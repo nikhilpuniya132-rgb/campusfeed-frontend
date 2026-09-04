@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import confetti from 'canvas-confetti';
+import { SwipeableList, SwipeableListItem, SwipeAction, TrailingActions, LeadingActions } from 'react-swipeable-list';
+import 'react-swipeable-list/dist/styles.css';
 
 const API = 'https://campusfeed-backend-po4g.onrender.com/api';
-const AVATARS = ['😎', '👽', '👻', '🤖', '👑', '🔥', '🦊', '🚀'];
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -11,6 +12,8 @@ export default function App() {
   const [grade, setGrade] = useState('11');
   const [avatar, setAvatar] = useState('😎'); 
   const [refCode, setRefCode] = useState('');
+  const [instagramHandle, setInstagramHandle] = useState('');
+  const [profilePic, setProfilePic] = useState('');
   
   const [view, setView] = useState('poll'); 
   const [tab, setTab] = useState('11'); 
@@ -21,20 +24,17 @@ export default function App() {
   const [invites, setInvites] = useState(0);
 
   const [profileData, setProfileData] = useState(null);
+  const [publicProfile, setPublicProfile] = useState(null);
   const [bioInput, setBioInput] = useState('');
   const [instaInput, setInstaInput] = useState('');
-  const [profileAvatar, setProfileAvatar] = useState(''); 
   const [leaderboard, setLeaderboard] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
 
-  const handleProfileImageUpload = (e) => {
+  const handleImageUpload = (e, setter) => {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) return alert("Photo must be under 2MB!");
-    
     const reader = new FileReader();
-    reader.onloadend = () => setProfileAvatar(reader.result);
+    reader.onloadend = () => setter(reader.result);
     reader.readAsDataURL(file);
   };
 
@@ -43,15 +43,11 @@ export default function App() {
     try {
       const res = await fetch(`${API}/auth`, {
         method: 'POST', 
-        headers: { 
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true'
-        },
-        body: JSON.stringify({ handle, password, grade, avatar, refCode })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ handle, password, grade, avatar, refCode, instagramHandle, profilePic })
       });
       const data = await res.json();
       if (!res.ok) return alert(data.error || 'Server Error');
-      
       setUser(data.user);
       setTab(data.user.grade.toString());
       loadNextPoll(data.user.id, data.user.grade.toString());
@@ -59,22 +55,17 @@ export default function App() {
   };
 
   const loadNextPoll = async (userId, targetGrade) => {
-    const res = await fetch(`${API}/play/${userId}?gradeFilter=${targetGrade}`, {
-      headers: { 'ngrok-skip-browser-warning': 'true' }
-    });
+    const res = await fetch(`${API}/play/${userId}?gradeFilter=${targetGrade}`);
     const data = await res.json();
     setCurrentPoll(data.poll);
     setOptions(data.options || []);
   };
 
   const castVote = async (receiverId) => {
-    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#3b82f6', '#f43f5e'] });
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
     await fetch(`${API}/vote`, {
       method: 'POST', 
-      headers: { 
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pollId: currentPoll.id, voterId: user.id, receiverId })
     });
     loadNextPoll(user.id, tab);
@@ -82,59 +73,50 @@ export default function App() {
 
   const loadInbox = async () => {
     setView('inbox');
-    const res = await fetch(`${API}/inbox/${user.id}`, {
-      headers: { 'ngrok-skip-browser-warning': 'true' }
-    });
+    const res = await fetch(`${API}/inbox/${user.id}`);
     const data = await res.json();
     setInbox(data.messages || []);
     setInvites(data.invites || 0);
   };
 
-  // NEW FUNCTION: Delete Notification
   const deleteNotification = async (voteId) => {
-    try {
-      await fetch(`${API}/inbox/${voteId}`, {
-        method: 'DELETE',
-        headers: { 'ngrok-skip-browser-warning': 'true' }
-      });
-      // Refresh inbox to show the item is gone
-      loadInbox();
-    } catch (err) {
-      alert("Failed to delete notification");
-    }
+    await fetch(`${API}/inbox/${voteId}`, { method: 'DELETE' });
+    setInbox(inbox.filter(msg => msg.voteId !== voteId));
+  };
+
+  const saveNotification = async (voteId) => {
+    await fetch(`${API}/inbox/${voteId}/save`, { method: 'PUT' });
+    setInbox(inbox.map(msg => msg.voteId === voteId ? { ...msg, isSaved: true } : msg));
   };
 
   const loadProfile = async () => {
     setView('profile');
-    const res = await fetch(`${API}/profile/${user.id}`, {
-      headers: { 'ngrok-skip-browser-warning': 'true' }
-    });
+    const res = await fetch(`${API}/profile/${user.id}`);
     const data = await res.json();
     setProfileData(data);
     setBioInput(data.user.bio || '');
-    setInstaInput(data.user.insta_id || '');
-    setProfileAvatar(data.user.avatar || ''); 
+    setInstaInput(data.user.instagram_handle || '');
+  };
+
+  const loadPublicProfile = async (userId) => {
+    setView('publicProfile');
+    const res = await fetch(`${API}/profile/public/${userId}`);
+    const data = await res.json();
+    setPublicProfile(data.user);
   };
 
   const saveProfile = async () => {
-    if (bioInput.trim().split(/\s+/).filter(Boolean).length > 50) return alert("Bio must be 50 words or less!");
     await fetch(`${API}/profile/edit`, {
       method: 'POST', 
-      headers: { 
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
-      },
-      body: JSON.stringify({ userId: user.id, bio: bioInput, instaId: instaInput, avatar: profileAvatar }) 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id, bio: bioInput, instaId: instaInput, avatar: profileData.user.avatar }) 
     });
     alert("Profile updated!");
-    loadProfile();
   };
 
   const loadExplore = async () => {
     setView('explore');
-    const res = await fetch(`${API}/explore/leaderboard`, {
-      headers: { 'ngrok-skip-browser-warning': 'true' }
-    });
+    const res = await fetch(`${API}/explore/leaderboard`);
     const data = await res.json();
     setLeaderboard(data.leaderboard || []);
   };
@@ -144,8 +126,14 @@ export default function App() {
       <div className="app-container" style={{ justifyContent: 'center' }}>
         <h1 style={{ textAlign: 'center', fontSize: '42px', fontWeight: '900' }}>Campus<span style={{color: '#3b82f6'}}>Feed</span></h1>
         <div className="card">
+          {profilePic ? (
+            <img src={profilePic} style={{ width: 80, height: 80, borderRadius: '50%', margin: '0 auto 10px', display: 'block' }} />
+          ) : (
+            <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setProfilePic)} style={{ marginBottom: 10 }} />
+          )}
           <input className="input-field" placeholder="Handle" value={handle} onChange={e => setHandle(e.target.value)} autoComplete="off" />
           <input className="input-field" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+          <input className="input-field" placeholder="Instagram (e.g. @yourhandle)" value={instagramHandle} onChange={e => setInstagramHandle(e.target.value)} autoComplete="off" />
           <input className="input-field" placeholder="Invite Code (Optional)" value={refCode} onChange={e => setRefCode(e.target.value)} autoComplete="off" />
           <select className="input-field" value={grade} onChange={e => setGrade(e.target.value)}>
             <option value="9">Class 9</option>
@@ -158,6 +146,22 @@ export default function App() {
       </div>
     );
   }
+
+  const renderLeadingActions = (id) => (
+    <LeadingActions>
+      <SwipeAction onClick={() => saveNotification(id)}>
+        <div style={{ background: '#10b981', color: 'white', padding: '20px', display: 'flex', alignItems: 'center' }}>Save</div>
+      </SwipeAction>
+    </LeadingActions>
+  );
+
+  const renderTrailingActions = (id) => (
+    <TrailingActions>
+      <SwipeAction destructive={true} onClick={() => deleteNotification(id)}>
+        <div style={{ background: '#ef4444', color: 'white', padding: '20px', display: 'flex', alignItems: 'center' }}>Delete</div>
+      </SwipeAction>
+    </TrailingActions>
+  );
 
   return (
     <div className="app-container">
@@ -174,6 +178,7 @@ export default function App() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             {options.map(opt => (
               <button key={opt.id} className="btn-option" onClick={() => castVote(opt.id)}>
+                {opt.profile_pic ? <img src={opt.profile_pic} style={{width: 30, borderRadius: '50%', marginRight: 8}} /> : opt.avatar}
                 {opt.handle}
               </button>
             ))}
@@ -183,37 +188,25 @@ export default function App() {
 
       {view === 'inbox' && (
          <div>
-         <div className="card" style={{ padding: '24px', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1))' }}>
-           <h3 style={{ margin: '0 0 12px 0', fontSize: '20px' }}>Your Invite Code: <span style={{ color: '#60a5fa' }}>{user.invite_code}</span></h3>
+         <div className="card" style={{ padding: '24px', marginBottom: '20px' }}>
+           <h3>Your Invite Code: <span style={{ color: '#60a5fa' }}>{user.invite_code}</span></h3>
          </div>
          
-         {inbox.length === 0 ? <p style={{ textAlign: 'center', color: '#71717a' }}>No votes yet.</p> : inbox.map(vote => (
-             
-             <div key={vote.voteId} className="inbox-item" style={{ position: 'relative' }}>
-               
-               {/* NEW TRASH BUTTON */}
-               <button 
-                 onClick={() => deleteNotification(vote.voteId)} 
-                 style={{ position: 'absolute', top: '10px', right: '10px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px' }}
-                 title="Delete Notification"
-               >
-                 🗑️
-               </button>
-
-               <p style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: '900', color: '#fff' }}>"{vote.question}"</p>
-               
-               <p style={{ margin: '0 0 12px 0', color: '#a1a1aa' }}>Voted by: <strong style={{ color: vote.voterHandle ? '#3b82f6' : '#fff' }}>{vote.voterHandle || '???'}</strong></p>
-             </div>
+         <SwipeableList>
+           {inbox.map(vote => (
+             <SwipeableListItem
+               key={vote.voteId}
+               leadingActions={renderLeadingActions(vote.voteId)}
+               trailingActions={renderTrailingActions(vote.voteId)}
+             >
+               <div className="inbox-item" style={{ width: '100%', border: vote.isSaved ? '2px solid #10b981' : 'none' }}>
+                 <p style={{ margin: '0 0 16px 0', fontSize: '20px', color: '#fff' }}>"{vote.question}"</p>
+                 <p style={{ margin: '0 0 12px 0', color: '#a1a1aa' }}>Voted by: <strong style={{ color: '#3b82f6' }}>{vote.voterHandle || '???'}</strong></p>
+               </div>
+             </SwipeableListItem>
            ))}
+         </SwipeableList>
        </div>
-      )}
-
-      {view === 'profile' && profileData && (
-        <div className="card">
-          <h2>@{profileData.user.handle}</h2>
-          <textarea value={bioInput} onChange={(e) => setBioInput(e.target.value)} placeholder="Write a bio..." className="input-field" />
-          <button onClick={saveProfile} className="btn-primary">Save Profile</button>
-        </div>
       )}
 
       {view === 'explore' && (
@@ -221,14 +214,52 @@ export default function App() {
           <h2>🏆 School Leaderboard</h2>
           <div className="card">
             {leaderboard.map((leader, index) => (
-              <div key={leader.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: '1px solid #27272a' }}>
-                <span>#{index + 1} @{leader.handle}</span>
+              <div 
+                key={leader.id} 
+                onClick={() => loadPublicProfile(leader.id)}
+                style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: '1px solid #27272a', cursor: 'pointer' }}
+              >
+                <span>#{index + 1} {leader.profile_pic ? <img src={leader.profile_pic} style={{width: 24, borderRadius:'50%'}}/> : leader.avatar} @{leader.handle}</span>
                 <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>{leader.total_votes} Votes</span>
               </div>
             ))}
           </div>
         </div>
       )}
+
+      {view === 'publicProfile' && publicProfile && (
+        <div className="card" style={{ textAlign: 'center' }}>
+          {publicProfile.profile_pic ? (
+             <img src={publicProfile.profile_pic} style={{ width: 100, height: 100, borderRadius: '50%', margin: '0 auto 15px' }} />
+          ) : (
+             <div style={{ fontSize: '60px', margin: '0 auto 15px' }}>{publicProfile.avatar}</div>
+          )}
+          <h2>@{publicProfile.handle}</h2>
+          <p style={{ color: '#a1a1aa', margin: '15px 0' }}>{publicProfile.bio || "No bio yet."}</p>
+          <p style={{ fontWeight: 'bold', marginBottom: '20px' }}>Total Votes: {publicProfile.total_votes}</p>
+          
+          {publicProfile.instagram_handle && (
+            <a 
+              href={`https://ig.me/m/${publicProfile.instagram_handle.replace('@', '')}`} 
+              target="_blank" 
+              rel="noreferrer"
+              className="btn-primary"
+              style={{ display: 'inline-block', textDecoration: 'none' }}
+            >
+              Message on Instagram
+            </a>
+          )}
+        </div>
+      )}
+
+      {view === 'profile' && profileData && (
+        <div className="card">
+          <h2>@{profileData.user.handle}</h2>
+          <textarea value={bioInput} onChange={(e) => setBioInput(e.target.value)} placeholder="Write a bio..." className="input-field" />
+          <input value={instaInput} onChange={(e) => setInstaInput(e.target.value)} placeholder="Update Instagram..." className="input-field" />
+          <button onClick={saveProfile} className="btn-primary">Save Profile</button>
+        </div>
+      )}
     </div>
   );
-} 
+}
