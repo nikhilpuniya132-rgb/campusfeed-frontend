@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import confetti from 'canvas-confetti';
 
-const API = '[https://campusfeed-backend-po4g.onrender.com/api](https://campusfeed-backend-po4g.onrender.com/api)';
+const API = 'https://campusfeed-backend-po4g.onrender.com/api';
 const AVATARS = ['😎', '👽', '👻', '🤖', '👑', '🔥', '🦊', '🚀'];
 
 export default function App() {
