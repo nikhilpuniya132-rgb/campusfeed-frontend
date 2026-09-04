@@ -12,7 +12,7 @@ export default function App() {
   const [grade, setGrade] = useState('11');
   const [avatar, setAvatar] = useState('😎'); 
   const [refCode, setRefCode] = useState('');
-  const [instagramHandle, setInstagramHandle] = useState('');
+  
   const [profilePic, setProfilePic] = useState('');
   
   const [view, setView] = useState('poll'); 
@@ -29,12 +29,12 @@ export default function App() {
   const [instaInput, setInstaInput] = useState('');
   const [leaderboard, setLeaderboard] = useState([]);
 
-  const handleImageUpload = (e, setter) => {
+  const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) return alert("Photo must be under 2MB!");
     const reader = new FileReader();
-    reader.onloadend = () => setter(reader.result);
+    reader.onloadend = () => setProfilePic(reader.result);
     reader.readAsDataURL(file);
   };
 
@@ -44,7 +44,7 @@ export default function App() {
       const res = await fetch(`${API}/auth`, {
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ handle, password, grade, avatar, refCode, instagramHandle, profilePic })
+        body: JSON.stringify({ handle, password, grade, avatar, refCode })
       });
       const data = await res.json();
       if (!res.ok) return alert(data.error || 'Server Error');
@@ -96,6 +96,7 @@ export default function App() {
     setProfileData(data);
     setBioInput(data.user.bio || '');
     setInstaInput(data.user.instagram_handle || '');
+    setProfilePic(''); 
   };
 
   const loadPublicProfile = async (userId) => {
@@ -109,9 +110,16 @@ export default function App() {
     await fetch(`${API}/profile/edit`, {
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id, bio: bioInput, instaId: instaInput, avatar: profileData.user.avatar }) 
+      body: JSON.stringify({ 
+        userId: user.id, 
+        bio: bioInput, 
+        instaId: instaInput, 
+        avatar: profileData.user.avatar,
+        profilePic: profilePic || profileData.user.profile_pic
+      }) 
     });
     alert("Profile updated!");
+    loadProfile();
   };
 
   const loadExplore = async () => {
@@ -126,14 +134,8 @@ export default function App() {
       <div className="app-container" style={{ justifyContent: 'center' }}>
         <h1 style={{ textAlign: 'center', fontSize: '42px', fontWeight: '900' }}>Campus<span style={{color: '#3b82f6'}}>Feed</span></h1>
         <div className="card">
-          {profilePic ? (
-            <img src={profilePic} style={{ width: 80, height: 80, borderRadius: '50%', margin: '0 auto 10px', display: 'block' }} />
-          ) : (
-            <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setProfilePic)} style={{ marginBottom: 10 }} />
-          )}
           <input className="input-field" placeholder="Handle" value={handle} onChange={e => setHandle(e.target.value)} autoComplete="off" />
           <input className="input-field" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
-          <input className="input-field" placeholder="Instagram (e.g. @yourhandle)" value={instagramHandle} onChange={e => setInstagramHandle(e.target.value)} autoComplete="off" />
           <input className="input-field" placeholder="Invite Code (Optional)" value={refCode} onChange={e => setRefCode(e.target.value)} autoComplete="off" />
           <select className="input-field" value={grade} onChange={e => setGrade(e.target.value)}>
             <option value="9">Class 9</option>
@@ -150,7 +152,7 @@ export default function App() {
   const renderLeadingActions = (id) => (
     <LeadingActions>
       <SwipeAction onClick={() => saveNotification(id)}>
-        <div style={{ background: '#10b981', color: 'white', padding: '20px', display: 'flex', alignItems: 'center' }}>Save</div>
+        <div style={{ background: '#10b981', color: 'white', padding: '20px', display: 'flex', alignItems: 'center', height: '100%' }}>Save</div>
       </SwipeAction>
     </LeadingActions>
   );
@@ -158,7 +160,7 @@ export default function App() {
   const renderTrailingActions = (id) => (
     <TrailingActions>
       <SwipeAction destructive={true} onClick={() => deleteNotification(id)}>
-        <div style={{ background: '#ef4444', color: 'white', padding: '20px', display: 'flex', alignItems: 'center' }}>Delete</div>
+        <div style={{ background: '#ef4444', color: 'white', padding: '20px', display: 'flex', alignItems: 'center', height: '100%' }}>Delete</div>
       </SwipeAction>
     </TrailingActions>
   );
@@ -178,7 +180,7 @@ export default function App() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             {options.map(opt => (
               <button key={opt.id} className="btn-option" onClick={() => castVote(opt.id)}>
-                {opt.profile_pic ? <img src={opt.profile_pic} style={{width: 30, borderRadius: '50%', marginRight: 8}} /> : opt.avatar}
+                {opt.profile_pic ? <img src={opt.profile_pic} style={{width: 30, height: 30, objectFit: 'cover', borderRadius: '50%', marginRight: 8}} /> : opt.avatar}
                 {opt.handle}
               </button>
             ))}
@@ -217,9 +219,13 @@ export default function App() {
               <div 
                 key={leader.id} 
                 onClick={() => loadPublicProfile(leader.id)}
-                style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: '1px solid #27272a', cursor: 'pointer' }}
+                style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: '1px solid #27272a', cursor: 'pointer', alignItems: 'center' }}
               >
-                <span>#{index + 1} {leader.profile_pic ? <img src={leader.profile_pic} style={{width: 24, borderRadius:'50%'}}/> : leader.avatar} @{leader.handle}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  #{index + 1} 
+                  {leader.profile_pic ? <img src={leader.profile_pic} style={{width: 24, height: 24, objectFit: 'cover', borderRadius:'50%'}}/> : leader.avatar} 
+                  @{leader.handle}
+                </span>
                 <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>{leader.total_votes} Votes</span>
               </div>
             ))}
@@ -230,7 +236,7 @@ export default function App() {
       {view === 'publicProfile' && publicProfile && (
         <div className="card" style={{ textAlign: 'center' }}>
           {publicProfile.profile_pic ? (
-             <img src={publicProfile.profile_pic} style={{ width: 100, height: 100, borderRadius: '50%', margin: '0 auto 15px' }} />
+             <img src={publicProfile.profile_pic} style={{ width: 100, height: 100, borderRadius: '50%', margin: '0 auto 15px', objectFit: 'cover' }} />
           ) : (
              <div style={{ fontSize: '60px', margin: '0 auto 15px' }}>{publicProfile.avatar}</div>
           )}
@@ -253,10 +259,20 @@ export default function App() {
       )}
 
       {view === 'profile' && profileData && (
-        <div className="card">
+        <div className="card" style={{ textAlign: 'center' }}>
+          {profilePic || profileData.user.profile_pic ? (
+             <img src={profilePic || profileData.user.profile_pic} style={{ width: 100, height: 100, borderRadius: '50%', margin: '0 auto 15px', display: 'block', objectFit: 'cover' }} />
+          ) : (
+             <div style={{ fontSize: '60px', margin: '0 auto 15px' }}>{profileData.user.avatar}</div>
+          )}
+          
+          <input type="file" accept="image/*" onChange={handleImageUpload} style={{ marginBottom: '20px', display: 'block', marginLeft: 'auto', marginRight: 'auto' }} />
+          
           <h2>@{profileData.user.handle}</h2>
-          <textarea value={bioInput} onChange={(e) => setBioInput(e.target.value)} placeholder="Write a bio..." className="input-field" />
-          <input value={instaInput} onChange={(e) => setInstaInput(e.target.value)} placeholder="Update Instagram..." className="input-field" />
+          
+          <input value={instaInput} onChange={(e) => setInstaInput(e.target.value)} placeholder="Instagram Handle (e.g. @nikhil)" className="input-field" style={{ marginBottom: '10px' }} />
+          <textarea value={bioInput} onChange={(e) => setBioInput(e.target.value)} placeholder="Write a bio..." className="input-field" style={{ minHeight: '80px', marginBottom: '15px' }} />
+          
           <button onClick={saveProfile} className="btn-primary">Save Profile</button>
         </div>
       )}
