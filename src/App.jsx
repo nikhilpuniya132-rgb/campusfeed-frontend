@@ -14,13 +14,15 @@ export default function App() {
   const [refCode, setRefCode] = useState('');
   
   const [profilePic, setProfilePic] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
   
   const [view, setView] = useState('poll'); 
-  const [tab, setTab] = useState('11'); 
+  const [gradeFilter, setGradeFilter] = useState('11'); // 'all' for whole school, or specific grade
   
   const [currentPoll, setCurrentPoll] = useState(null);
   const [options, setOptions] = useState([]);
   const [inbox, setInbox] = useState([]);
+  const [canRevealNames, setCanRevealNames] = useState(false);
   const [invites, setInvites] = useState(0);
 
   const [profileData, setProfileData] = useState(null);
@@ -49,7 +51,7 @@ export default function App() {
       const data = await res.json();
       if (!res.ok) return alert(data.error || 'Server Error');
       setUser(data.user);
-      setTab(data.user.grade.toString());
+      setGradeFilter(data.user.grade.toString());
       loadNextPoll(data.user.id, data.user.grade.toString());
     } catch (err) { alert("Network Error"); }
   };
@@ -61,6 +63,10 @@ export default function App() {
     setOptions(data.options || []);
   };
 
+  const shuffleCurrentPoll = () => {
+    if (user) loadNextPoll(user.id, gradeFilter);
+  };
+
   const castVote = async (receiverId) => {
     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
     await fetch(`${API}/vote`, {
@@ -68,7 +74,7 @@ export default function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pollId: currentPoll.id, voterId: user.id, receiverId })
     });
-    loadNextPoll(user.id, tab);
+    loadNextPoll(user.id, gradeFilter);
   };
 
   const loadInbox = async () => {
@@ -76,6 +82,7 @@ export default function App() {
     const res = await fetch(`${API}/inbox/${user.id}`);
     const data = await res.json();
     setInbox(data.messages || []);
+    setCanRevealNames(data.canReveal);
     setInvites(data.invites || 0);
   };
 
@@ -120,6 +127,25 @@ export default function App() {
     });
     alert("Profile updated!");
     loadProfile();
+  };
+
+  const deleteAccount = async () => {
+    if (!deletePassword) return alert("Enter your password to confirm deletion.");
+    if (!confirm("Are you sure you want to permanently delete your account?")) return;
+
+    try {
+      const res = await fetch(`${API}/profile/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, password: deletePassword })
+      });
+      const data = await res.json();
+      if (!res.ok) return alert(data.error || "Failed to delete account");
+      alert("Account deleted successfully.");
+      setUser(null);
+    } catch (err) {
+      alert("Network Error");
+    }
   };
 
   const loadExplore = async () => {
@@ -168,30 +194,42 @@ export default function App() {
   return (
     <div className="app-container">
       <div className="nav-bar">
-        <button className={`nav-btn ${view === 'poll' ? 'active' : ''}`} onClick={() => { setView('poll'); loadNextPoll(user.id, tab); }}>🎮</button>
+        <button className={`nav-btn ${view === 'poll' ? 'active' : ''}`} onClick={() => { setView('poll'); loadNextPoll(user.id, gradeFilter); }}>🎮</button>
         <button className={`nav-btn ${view === 'inbox' ? 'active' : ''}`} onClick={loadInbox}>🔔</button>
         <button className={`nav-btn ${view === 'profile' ? 'active' : ''}`} onClick={loadProfile}>👤</button>
         <button className={`nav-btn ${view === 'explore' ? 'active' : ''}`} onClick={loadExplore}>🌍</button>
       </div>
 
       {view === 'poll' && (
-        <div className="card">
-          <div className="poll-question">"{currentPoll?.question}"</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            {options.map(opt => (
-              <button key={opt.id} className="btn-option" onClick={() => castVote(opt.id)}>
-                {opt.profile_pic ? <img src={opt.profile_pic} style={{width: 30, height: 30, objectFit: 'cover', borderRadius: '50%', marginRight: 8}} /> : opt.avatar}
-                {opt.handle}
-              </button>
-            ))}
+        <div>
+          {/* Grade Filter & Shuffle Navigation */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '15px', justifyContent: 'center' }}>
+            <button className={`btn-primary`} style={{ padding: '6px 12px', fontSize: '14px', background: gradeFilter === user.grade.toString() ? '#3b82f6' : '#27272a' }} onClick={() => { setGradeFilter(user.grade.toString()); loadNextPoll(user.id, user.grade.toString()); }}>My Class</button>
+            <button className={`btn-primary`} style={{ padding: '6px 12px', fontSize: '14px', background: gradeFilter === 'all' ? '#3b82f6' : '#27272a' }} onClick={() => { setGradeFilter('all'); loadNextPoll(user.id, 'all'); }}>Whole School</button>
+            <button className={`btn-primary`} style={{ padding: '6px 12px', fontSize: '14px', background: '#8b5cf6' }} onClick={shuffleCurrentPoll}>🔄 Shuffle</button>
+          </div>
+
+          <div className="card">
+            <div className="poll-question">"{currentPoll?.question}"</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              {options.map(opt => (
+                <button key={opt.id} className="btn-option" onClick={() => castVote(opt.id)}>
+                  {opt.profile_pic ? <img src={opt.profile_pic} style={{width: 30, height: 30, objectFit: 'cover', borderRadius: '50%', marginRight: 8}} /> : opt.avatar}
+                  {opt.handle}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
       {view === 'inbox' && (
          <div>
-         <div className="card" style={{ padding: '24px', marginBottom: '20px' }}>
+         <div className="card" style={{ padding: '24px', marginBottom: '20px', textAlign: 'center' }}>
            <h3>Your Invite Code: <span style={{ color: '#60a5fa' }}>{user.invite_code}</span></h3>
+           <p style={{ color: '#a1a1aa', fontSize: '14px', marginTop: '8px' }}>
+             {canRevealNames ? "✅ Names Unlocked! Share your code to keep getting hints." : "🔒 Share your invite code with at least 1 friend to reveal who voted for you!"}
+           </p>
          </div>
          
          <SwipeableList>
@@ -203,7 +241,11 @@ export default function App() {
              >
                <div className="inbox-item" style={{ width: '100%', border: vote.isSaved ? '2px solid #10b981' : 'none' }}>
                  <p style={{ margin: '0 0 16px 0', fontSize: '20px', color: '#fff' }}>"{vote.question}"</p>
-                 <p style={{ margin: '0 0 12px 0', color: '#a1a1aa' }}>Voted by: <strong style={{ color: '#3b82f6' }}>{vote.voterHandle || '???'}</strong></p>
+                 <p style={{ margin: '0 0 12px 0', color: '#a1a1aa' }}>
+                   Voted by: <strong style={{ color: vote.voterHandle ? '#3b82f6' : '#ef4444' }}>
+                     {vote.voterHandle || '🔒 Locked (Share Invite Code to Reveal)'}
+                   </strong>
+                 </p>
                </div>
              </SwipeableListItem>
            ))}
@@ -273,7 +315,23 @@ export default function App() {
           <input value={instaInput} onChange={(e) => setInstaInput(e.target.value)} placeholder="Instagram Handle (e.g. @nikhil)" className="input-field" style={{ marginBottom: '10px' }} />
           <textarea value={bioInput} onChange={(e) => setBioInput(e.target.value)} placeholder="Write a bio..." className="input-field" style={{ minHeight: '80px', marginBottom: '15px' }} />
           
-          <button onClick={saveProfile} className="btn-primary">Save Profile</button>
+          <button onClick={saveProfile} className="btn-primary" style={{ marginBottom: '30px' }}>Save Profile</button>
+
+          {/* Account Deletion Section */}
+          <div style={{ borderTop: '1px solid #27272a', paddingTop: '20px', marginTop: '10px' }}>
+            <h4 style={{ color: '#ef4444', marginBottom: '10px' }}>Danger Zone</h4>
+            <input 
+              type="password" 
+              placeholder="Enter password to delete account" 
+              value={deletePassword} 
+              onChange={e => setDeletePassword(e.target.value)} 
+              className="input-field"
+              style={{ marginBottom: '10px', borderColor: '#ef4444' }}
+            />
+            <button onClick={deleteAccount} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', width: '100%' }}>
+              Delete Account Permanently
+            </button>
+          </div>
         </div>
       )}
     </div>
