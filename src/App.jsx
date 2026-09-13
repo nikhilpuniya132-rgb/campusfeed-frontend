@@ -3,7 +3,15 @@ import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://campusfeed-backend-po4g.onrender.com/api';
-const RAZORPAY_KEY_ID = 'rzp_test_YOUR_ACTUAL_TEST_KEY_ID'; // Replace before deploying
+const RAZORPAY_KEY_ID = 'rzp_test_YOUR_ACTUAL_TEST_KEY_ID'; 
+
+const AURA_RINGS = {
+  none: { border: 'none', boxShadow: 'none' },
+  gold: { border: '4px solid var(--accent-pro)', boxShadow: '0 0 15px rgba(251, 191, 36, 0.5)' },
+  neonPurple: { border: '4px solid #d946ef', boxShadow: '0 0 20px #d946ef, inset 0 0 10px #d946ef' },
+  blueEnergy: { border: '4px dashed #3b82f6', boxShadow: '0 0 15px rgba(59, 130, 246, 0.8)' },
+  crimsonFire: { border: '4px double #ef4444', boxShadow: '0 0 15px rgba(239, 68, 68, 0.8)' }
+};
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -16,7 +24,7 @@ export default function App() {
   const [view, setView] = useState('poll');
   const [gradeFilter, setGradeFilter] = useState('11');
   const [searchQuery, setSearchQuery] = useState('');
-  const [legalView, setLegalView] = useState(null); // 'privacy' or 'terms'
+  const [legalView, setLegalView] = useState(null); 
 
   const [currentPoll, setCurrentPoll] = useState(null);
   const [options, setOptions] = useState([]);
@@ -24,7 +32,6 @@ export default function App() {
   const [isLoadingPoll, setIsLoadingPoll] = useState(false); 
   
   const [inbox, setInbox] = useState([]);
-  const [canRevealNames, setCanRevealNames] = useState(false);
   const [leaderboard, setLeaderboard] = useState([]);
   const [profileData, setProfileData] = useState(null);
   const [publicProfile, setPublicProfile] = useState(null); 
@@ -32,6 +39,7 @@ export default function App() {
   const [isEditing, setIsEditing] = useState(false);
   const [editBio, setEditBio] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
+  const [editRing, setEditRing] = useState('gold');
 
   useEffect(() => {
     if (!document.getElementById('razorpay-sdk')) {
@@ -42,16 +50,22 @@ export default function App() {
     }
   }, []);
 
-  const renderProfilePic = (pic, ava, isPro, size = 100) => (
-    <div style={{ position: 'relative', display: 'inline-block', margin: '0 auto 15px' }}>
-      {pic ? (
-        <img src={pic} alt="profile" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', border: isPro ? '4px solid var(--accent-pro)' : 'none' }} />
-      ) : (
-        <div style={{ fontSize: `${size * 0.6}px`, width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', border: isPro ? '4px solid var(--accent-pro)' : 'none', borderRadius: '50%', background: 'var(--bg-surface-hover)' }}>{ava}</div>
-      )}
-      {isPro && <div style={{ position: 'absolute', bottom: -5, right: '50%', transform: 'translateX(50%)', fontSize: `${size * 0.25}px` }}>⭐</div>}
-    </div>
-  );
+  const renderProfilePic = (pic, ava, isPro, ring = 'gold', size = 100) => {
+    const activeAura = isPro ? (AURA_RINGS[ring] || AURA_RINGS.gold) : AURA_RINGS.none;
+    
+    return (
+      <div style={{ position: 'relative', display: 'inline-block', margin: '0 auto 15px' }}>
+        {pic ? (
+          <img src={pic} alt="profile" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', ...activeAura }} />
+        ) : (
+          <div style={{ fontSize: `${size * 0.6}px`, width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'var(--bg-surface-hover)', ...activeAura }}>
+            {ava}
+          </div>
+        )}
+        {isPro && <div style={{ position: 'absolute', bottom: -5, right: '50%', transform: 'translateX(50%)', fontSize: `${size * 0.25}px` }}>👑</div>}
+      </div>
+    );
+  };
 
   const login = async () => {
     if (!handle || !password) return alert('Enter credentials');
@@ -99,17 +113,22 @@ export default function App() {
 
   const handleNav = (newView) => {
     setView(newView);
-    if (newView === 'inbox') fetch(`${API}/inbox/${user.id}`).then(r => r.json()).then(d => { setInbox(d.messages || []); setCanRevealNames(d.canReveal); });
+    if (newView === 'inbox') fetch(`${API}/inbox/${user.id}`).then(r => r.json()).then(d => setInbox(d.messages || []));
     if (newView === 'explore') fetch(`${API}/explore/leaderboard`).then(r => r.json()).then(d => setLeaderboard(d.leaderboard || []));
-    if (newView === 'profile') fetch(`${API}/profile/${user.id}`).then(r => r.json()).then(d => { setProfileData(d); setEditBio(d.user.bio || ''); setEditAvatar(d.user.avatar || ''); });
+    if (newView === 'profile') fetch(`${API}/profile/${user.id}`).then(r => r.json()).then(d => { 
+      setProfileData(d); 
+      setEditBio(d.user.bio || ''); 
+      setEditAvatar(d.user.avatar || ''); 
+      setEditRing(d.user.ring || 'gold');
+    });
   };
 
   const saveProfile = async () => {
     setIsEditing(false);
-    const updatedUser = { ...profileData.user, bio: editBio, avatar: editAvatar };
+    const updatedUser = { ...profileData.user, bio: editBio, avatar: editAvatar, ring: editRing };
     setProfileData({ user: updatedUser }); 
-    setUser({ ...user, avatar: editAvatar });
-    await fetch(`${API}/profile/${user.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bio: editBio, avatar: editAvatar }) });
+    setUser({ ...user, avatar: editAvatar, ring: editRing });
+    await fetch(`${API}/profile/${user.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bio: editBio, avatar: editAvatar, ring: editRing }) });
   };
 
   const deleteAccount = async () => {
@@ -127,7 +146,7 @@ export default function App() {
         key: RAZORPAY_KEY_ID, amount: orderData.amount, currency: 'INR', name: 'CampusFeed', description: 'Unlock God Mode', order_id: orderData.id,
         handler: async (response) => {
           const verifyRes = await fetch(`${API}/pay/verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...response, userId: user.id }) });
-          if ((await verifyRes.json()).success) { alert('👑 God Mode Unlocked!'); setUser({ ...user, is_pro: true }); handleNav('inbox'); }
+          if ((await verifyRes.json()).success) { alert('👑 God Mode Unlocked!'); setUser({ ...user, is_pro: true, ring: 'gold' }); handleNav('inbox'); }
         }, theme: { color: '#fbbf24' }
       };
       new window.Razorpay(options).open();
@@ -154,14 +173,12 @@ export default function App() {
           </motion.button>
         </motion.div>
 
-        {/* Razorpay Legal Links Footer */}
         <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
           <p>By entering, you agree to our <br/>
             <span onClick={() => setLegalView('terms')} style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}>Terms & Conditions</span> and <span onClick={() => setLegalView('privacy')} style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}>Privacy Policy</span>.
           </p>
         </div>
 
-        {/* Legal Modals */}
         <AnimatePresence>
           {legalView && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay" onClick={() => setLegalView(null)}>
@@ -223,8 +240,8 @@ export default function App() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     {options.map((opt) => (
                       <motion.button key={opt.id} whileHover={{ scale: 1.05, backgroundColor: 'var(--accent-primary)', color: '#fff' }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", stiffness: 400, damping: 17 }} className="btn-option" onClick={() => castVote(opt.id)}>
-                        {opt.profile_pic ? <img src={opt.profile_pic} alt="" style={{ width: 30, height: 30, borderRadius: '50%', marginRight: 8 }} /> : opt.avatar}
-                        {opt.handle}
+                        {renderProfilePic(opt.profile_pic, opt.avatar, opt.is_pro, opt.ring, 30)}
+                        <span style={{ marginLeft: '8px' }}>{opt.handle}</span>
                       </motion.button>
                     ))}
                   </div>
@@ -244,7 +261,7 @@ export default function App() {
             {leaderboard.filter(u => u.handle.toLowerCase().includes(searchQuery.toLowerCase())).map((leader, index) => (
               <motion.div key={leader.id} variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0, transition: { type: "spring" } } }} onClick={() => loadPublicProfile(leader.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', borderBottom: '1px solid var(--bg-surface-hover)', cursor: 'pointer' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  #{index + 1} {renderProfilePic(leader.profile_pic, leader.avatar, leader.is_pro, 32)}
+                  #{index + 1} {renderProfilePic(leader.profile_pic, leader.avatar, leader.is_pro, leader.ring, 32)}
                   <span style={{ color: leader.is_pro ? 'var(--accent-pro)' : '#fff' }}>@{leader.handle}</span>
                 </span>
                 <span style={{ color: 'var(--accent-primary)', fontWeight: 'bold' }}>{leader.total_votes}</span>
@@ -258,7 +275,7 @@ export default function App() {
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card" style={{ textAlign: 'center' }}>
           {publicProfile ? (
             <>
-              {renderProfilePic(publicProfile.profile_pic, publicProfile.avatar, publicProfile.is_pro, 120)}
+              {renderProfilePic(publicProfile.profile_pic, publicProfile.avatar, publicProfile.is_pro, publicProfile.ring, 120)}
               <h2 style={{ color: publicProfile.is_pro ? 'var(--accent-pro)' : '#fff', margin: '10px 0' }}>@{publicProfile.handle}</h2>
               <p style={{ color: 'var(--text-muted)', margin: '0 0 15px 0' }}>{publicProfile.bio || 'No bio yet.'}</p>
               <p style={{ color: 'var(--accent-primary)', fontWeight: 'bold', marginBottom: '20px' }}>Total Votes: {publicProfile.total_votes}</p>
@@ -271,13 +288,36 @@ export default function App() {
 
       {view === 'profile' && profileData && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ textAlign: 'center' }}>
-          {renderProfilePic(profileData.user.profile_pic, profileData.user.avatar, profileData.user.is_pro, 120)}
+          {renderProfilePic(profileData.user.profile_pic, editAvatar || profileData.user.avatar, profileData.user.is_pro, editRing, 120)}
           <h2 style={{ color: profileData.user.is_pro ? 'var(--accent-pro)' : '#fff', margin: '10px 0' }}>@{profileData.user.handle}</h2>
           
           {isEditing ? (
             <div>
               <input className="input-field" value={editAvatar} onChange={(e) => setEditAvatar(e.target.value)} placeholder="Avatar Emoji" maxLength={2} style={{ width: '60px', display: 'inline-block', marginBottom: '10px' }} />
               <textarea className="input-field" value={editBio} onChange={(e) => setEditBio(e.target.value)} placeholder="Write a bio..." rows={3} />
+              
+              {user.is_pro && (
+                <div style={{ margin: '20px 0', padding: '15px', background: 'var(--bg-surface-hover)', borderRadius: '12px' }}>
+                  <h4 style={{ margin: '0 0 15px 0', color: 'var(--text-main)' }}>Equip God Mode Aura</h4>
+                  <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    {Object.keys(AURA_RINGS).filter(k => k !== 'none').map((ringKey) => (
+                      <motion.div 
+                        key={ringKey}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setEditRing(ringKey)}
+                        style={{ 
+                          width: '50px', height: '50px', borderRadius: '50%', cursor: 'pointer',
+                          background: 'var(--bg-base)',
+                          border: editRing === ringKey ? '2px solid #fff' : '2px solid transparent',
+                          ...AURA_RINGS[ringKey]
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <button className="btn-primary" onClick={saveProfile}>Save Profile</button>
             </div>
           ) : (
@@ -304,8 +344,8 @@ export default function App() {
           <div className="card" style={{ padding: '20px', textAlign: 'center', marginBottom: '15px' }}>
             <h3 style={{ margin: 0, color: user.is_pro ? 'var(--accent-pro)' : '#fff' }}>{user.is_pro ? '👑 Names Revealed' : '🔒 Names Hidden'}</h3>
           </div>
-          {inbox.map((vote) => (
-            <motion.div key={vote.voteId} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="card" style={{ marginBottom: '10px', padding: '15px' }}>
+          {inbox.map((vote, index) => (
+            <motion.div key={index} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="card" style={{ marginBottom: '10px', padding: '15px' }}>
               <p style={{ margin: '0 0 8px 0', fontSize: '18px' }}>"{vote.question}"</p>
               <p style={{ margin: 0, color: 'var(--text-muted)' }}>Voted by: {vote.voterHandle ? <strong style={{ color: 'var(--accent-pro)' }}>{vote.voterAvatar} @{vote.voterHandle}</strong> : <span style={{ color: '#ef4444' }}>🔒 Hidden</span>}</p>
             </motion.div>
