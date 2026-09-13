@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const API = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://campusfeed-backend-po4g.onrender.com/api';
-const RAZORPAY_KEY_ID = 'rzp_test_YOUR_ACTUAL_TEST_KEY_ID'; // Keep your real key here
+const RAZORPAY_KEY_ID = 'rzp_test_YOUR_ACTUAL_TEST_KEY_ID'; // Replace before deploying
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -15,6 +16,7 @@ export default function App() {
   const [view, setView] = useState('poll');
   const [gradeFilter, setGradeFilter] = useState('11');
   const [searchQuery, setSearchQuery] = useState('');
+  const [legalView, setLegalView] = useState(null); // 'privacy' or 'terms'
 
   const [currentPoll, setCurrentPoll] = useState(null);
   const [options, setOptions] = useState([]);
@@ -43,9 +45,9 @@ export default function App() {
   const renderProfilePic = (pic, ava, isPro, size = 100) => (
     <div style={{ position: 'relative', display: 'inline-block', margin: '0 auto 15px' }}>
       {pic ? (
-        <img src={pic} alt="profile" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', border: isPro ? '4px solid #fbbf24' : 'none' }} />
+        <img src={pic} alt="profile" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', border: isPro ? '4px solid var(--accent-pro)' : 'none' }} />
       ) : (
-        <div style={{ fontSize: `${size * 0.6}px`, width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', border: isPro ? '4px solid #fbbf24' : 'none', borderRadius: '50%', background: '#27272a' }}>{ava}</div>
+        <div style={{ fontSize: `${size * 0.6}px`, width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', border: isPro ? '4px solid var(--accent-pro)' : 'none', borderRadius: '50%', background: 'var(--bg-surface-hover)' }}>{ava}</div>
       )}
       {isPro && <div style={{ position: 'absolute', bottom: -5, right: '50%', transform: 'translateX(50%)', fontSize: `${size * 0.25}px` }}>⭐</div>}
     </div>
@@ -111,7 +113,7 @@ export default function App() {
   };
 
   const deleteAccount = async () => {
-    const pass = prompt('Warning: This is permanent. Enter your password to delete your account:');
+    const pass = prompt('Warning: This is permanent. Enter password to delete account:');
     if (!pass) return;
     const res = await fetch(`${API}/profile/${user.id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pass }) });
     if (res.ok) setUser(null); else alert('Incorrect password.');
@@ -135,8 +137,10 @@ export default function App() {
   if (!user) {
     return (
       <div className="app-container" style={{ justifyContent: 'center' }}>
-        <h1 style={{ textAlign: 'center', fontSize: '42px', fontWeight: '900' }}>Campus<span style={{ color: '#3b82f6' }}>Feed</span></h1>
-        <div className="card">
+        <motion.h1 initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} style={{ textAlign: 'center', fontSize: '42px', fontWeight: '900' }}>
+          Campus<span style={{ color: 'var(--accent-primary)' }}>Feed</span>
+        </motion.h1>
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring" }} className="card">
           <input className="input-field" placeholder="Handle" value={handle} onChange={(e) => setHandle(e.target.value)} />
           <input className="input-field" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
           <select className="input-field" value={grade} onChange={(e) => setGrade(e.target.value)}>
@@ -145,8 +149,43 @@ export default function App() {
             <option value="11">Class 11</option>
             <option value="12">Class 12</option>
           </select>
-          <button className="btn-primary" onClick={login}>{isAuthenticating ? 'Loading...' : 'Enter Network 🚀'}</button>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="btn-primary" onClick={login}>
+            {isAuthenticating ? 'Loading...' : 'Enter Network 🚀'}
+          </motion.button>
+        </motion.div>
+
+        {/* Razorpay Legal Links Footer */}
+        <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
+          <p>By entering, you agree to our <br/>
+            <span onClick={() => setLegalView('terms')} style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}>Terms & Conditions</span> and <span onClick={() => setLegalView('privacy')} style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}>Privacy Policy</span>.
+          </p>
         </div>
+
+        {/* Legal Modals */}
+        <AnimatePresence>
+          {legalView && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay" onClick={() => setLegalView(null)}>
+              <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="modal-content" onClick={e => e.stopPropagation()}>
+                {legalView === 'terms' ? (
+                  <>
+                    <h2 style={{ color: 'var(--accent-primary)' }}>Terms & Conditions</h2>
+                    <p>Welcome to CampusFeed. This is an anonymous school polling app.</p>
+                    <p>1. <strong>Acceptable Use:</strong> Users must not engage in targeted harassment or cyberbullying. Violators will be banned.</p>
+                    <p>2. <strong>Purchases & Refunds:</strong> "God Mode" is a digital premium tier. Due to the immediate activation of digital goods, all purchases are non-refundable.</p>
+                  </>
+                ) : (
+                  <>
+                    <h2 style={{ color: 'var(--accent-primary)' }}>Privacy Policy</h2>
+                    <p>We respect your data and school privacy.</p>
+                    <p>1. <strong>Data Collection:</strong> We collect your Handle, Grade, and Password to facilitate anonymous voting.</p>
+                    <p>2. <strong>Security:</strong> All credentials and votes are encrypted. We do not sell your personal data to third-party marketers.</p>
+                  </>
+                )}
+                <button className="btn-primary" style={{ marginTop: '20px', backgroundColor: 'var(--bg-surface-hover)' }} onClick={() => setLegalView(null)}>Close</button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }
@@ -162,14 +201,14 @@ export default function App() {
       </div>
 
       {view === 'poll' && (
-        <div>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '15px' }}>
-            <button className="btn-primary" style={{ flex: 1, background: gradeFilter !== 'all' ? '#3b82f6' : '#27272a' }} onClick={() => loadNextPoll(user.grade.toString())}>My Class</button>
-            <button className="btn-primary" style={{ flex: 1, background: gradeFilter === 'all' ? '#8b5cf6' : '#27272a' }} onClick={() => loadNextPoll('all')}>Whole School</button>
+            <button className="btn-primary" style={{ flex: 1, background: gradeFilter !== 'all' ? 'var(--accent-primary)' : 'var(--bg-surface-hover)' }} onClick={() => loadNextPoll(user.grade.toString())}>My Class</button>
+            <button className="btn-primary" style={{ flex: 1, background: gradeFilter === 'all' ? 'var(--accent-primary)' : 'var(--bg-surface-hover)' }} onClick={() => loadNextPoll('all')}>Whole School</button>
           </div>
-          <div className="card">
+          <motion.div key={currentPoll?.id || 'loading'} initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 25 }} className="card">
             {isLoadingPoll ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: '#a1a1aa' }}><h3>Loading next scenario... ⚡</h3></div>
+              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}><h3>Loading next scenario... ⚡</h3></div>
             ) : hasVoted ? (
               <div style={{ textAlign: 'center', padding: '30px 0' }}>
                 <h2 style={{ color: '#10b981' }}>Vote Sent! 🚀</h2>
@@ -179,62 +218,61 @@ export default function App() {
               <>
                 <div className="poll-question">"{currentPoll?.question || 'No more questions!'}"</div>
                 {options.length === 0 ? (
-                  <p style={{ color: '#ef4444', textAlign: 'center', margin: '20px 0' }}>Not enough classmates in this filter! Invite friends to keep playing.</p>
+                  <p style={{ color: '#ef4444', textAlign: 'center', margin: '20px 0' }}>Not enough classmates in this filter!</p>
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     {options.map((opt) => (
-                      <button key={opt.id} className="btn-option" onClick={() => castVote(opt.id)}>
+                      <motion.button key={opt.id} whileHover={{ scale: 1.05, backgroundColor: 'var(--accent-primary)', color: '#fff' }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", stiffness: 400, damping: 17 }} className="btn-option" onClick={() => castVote(opt.id)}>
                         {opt.profile_pic ? <img src={opt.profile_pic} alt="" style={{ width: 30, height: 30, borderRadius: '50%', marginRight: 8 }} /> : opt.avatar}
                         {opt.handle}
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
                 )}
-                <button onClick={() => loadNextPoll(gradeFilter)} style={{ background: 'transparent', color: '#a1a1aa', border: 'none', marginTop: '20px', width: '100%', cursor: 'pointer' }}>Skip Question</button>
+                <button onClick={() => loadNextPoll(gradeFilter)} style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', marginTop: '20px', width: '100%', cursor: 'pointer' }}>Skip Question</button>
               </>
             )}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {view === 'explore' && (
-        <div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <h2>🏆 Leaderboard</h2>
-          <input className="input-field" placeholder="Search handles..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ marginBottom: '15px' }} />
-          <div className="card">
+          <input className="input-field" placeholder="Search handles..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+          <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }} className="card">
             {leaderboard.filter(u => u.handle.toLowerCase().includes(searchQuery.toLowerCase())).map((leader, index) => (
-              <div key={leader.id} onClick={() => loadPublicProfile(leader.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', borderBottom: '1px solid #27272a', cursor: 'pointer' }}>
+              <motion.div key={leader.id} variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0, transition: { type: "spring" } } }} onClick={() => loadPublicProfile(leader.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', borderBottom: '1px solid var(--bg-surface-hover)', cursor: 'pointer' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   #{index + 1} {renderProfilePic(leader.profile_pic, leader.avatar, leader.is_pro, 32)}
-                  <span style={{ color: leader.is_pro ? '#fbbf24' : '#fff' }}>@{leader.handle}</span>
+                  <span style={{ color: leader.is_pro ? 'var(--accent-pro)' : '#fff' }}>@{leader.handle}</span>
                 </span>
-                <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>{leader.total_votes}</span>
-              </div>
+                <span style={{ color: 'var(--accent-primary)', fontWeight: 'bold' }}>{leader.total_votes}</span>
+              </motion.div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {view === 'publicProfile' && (
-        <div className="card" style={{ textAlign: 'center' }}>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card" style={{ textAlign: 'center' }}>
           {publicProfile ? (
             <>
               {renderProfilePic(publicProfile.profile_pic, publicProfile.avatar, publicProfile.is_pro, 120)}
-              <h2 style={{ color: publicProfile.is_pro ? '#fbbf24' : '#fff', margin: '10px 0' }}>@{publicProfile.handle}</h2>
-              <p style={{ color: '#a1a1aa', margin: '0 0 15px 0' }}>{publicProfile.bio || 'No bio yet.'}</p>
-              <p style={{ color: '#3b82f6', fontWeight: 'bold', marginBottom: '20px' }}>Total Votes: {publicProfile.total_votes}</p>
-              
-              <button className="btn-primary" onClick={() => alert('Anonymous Ping Sent! 🔔')} style={{ background: '#8b5cf6', marginBottom: '10px' }}>Send Anonymous Ping</button>
-              <button className="btn-primary" onClick={() => handleNav('explore')} style={{ background: '#3f3f46' }}>Back to Leaderboard</button>
+              <h2 style={{ color: publicProfile.is_pro ? 'var(--accent-pro)' : '#fff', margin: '10px 0' }}>@{publicProfile.handle}</h2>
+              <p style={{ color: 'var(--text-muted)', margin: '0 0 15px 0' }}>{publicProfile.bio || 'No bio yet.'}</p>
+              <p style={{ color: 'var(--accent-primary)', fontWeight: 'bold', marginBottom: '20px' }}>Total Votes: {publicProfile.total_votes}</p>
+              <button className="btn-primary" onClick={() => alert('Anonymous Ping Sent! 🔔')} style={{ marginBottom: '10px' }}>Send Anonymous Ping</button>
+              <button className="btn-primary" onClick={() => handleNav('explore')} style={{ background: 'var(--bg-surface-hover)' }}>Back to Leaderboard</button>
             </>
-          ) : <p style={{ color: '#a1a1aa' }}>Loading profile...</p>}
-        </div>
+          ) : <p style={{ color: 'var(--text-muted)' }}>Loading profile...</p>}
+        </motion.div>
       )}
 
       {view === 'profile' && profileData && (
-        <div className="card" style={{ textAlign: 'center' }}>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ textAlign: 'center' }}>
           {renderProfilePic(profileData.user.profile_pic, profileData.user.avatar, profileData.user.is_pro, 120)}
-          <h2 style={{ color: profileData.user.is_pro ? '#fbbf24' : '#fff', margin: '10px 0' }}>@{profileData.user.handle}</h2>
+          <h2 style={{ color: profileData.user.is_pro ? 'var(--accent-pro)' : '#fff', margin: '10px 0' }}>@{profileData.user.handle}</h2>
           
           {isEditing ? (
             <div>
@@ -244,35 +282,35 @@ export default function App() {
             </div>
           ) : (
             <div>
-              <p style={{ color: '#a1a1aa', margin: '0 0 15px 0' }}>{profileData.user.bio || 'No bio yet.'}</p>
-              <p style={{ color: '#a1a1aa', marginBottom: '20px' }}>Total Votes Received: {profileData.user.total_votes}</p>
-              <button className="btn-primary" onClick={() => setIsEditing(true)} style={{ background: '#3f3f46' }}>Edit Profile</button>
+              <p style={{ color: 'var(--text-muted)', margin: '0 0 15px 0' }}>{profileData.user.bio || 'No bio yet.'}</p>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>Total Votes Received: {profileData.user.total_votes}</p>
+              <button className="btn-primary" onClick={() => setIsEditing(true)} style={{ background: 'var(--bg-surface-hover)' }}>Edit Profile</button>
               <button className="btn-primary" onClick={deleteAccount} style={{ background: '#ef4444', marginTop: '10px' }}>Delete Account</button>
             </div>
           )}
-        </div>
+        </motion.div>
       )}
 
       {view === 'pro' && (
-        <div className="card" style={{ textAlign: 'center', background: 'linear-gradient(145deg, #1f1f22, #2a2015)', border: '1px solid #fbbf24' }}>
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="card" style={{ textAlign: 'center', background: 'linear-gradient(145deg, #1f1f22, #2a2015)', border: '1px solid var(--accent-pro)' }}>
           <h1 style={{ fontSize: '40px', margin: '0' }}>👑</h1>
-          <h2 style={{ color: '#fbbf24' }}>{user.is_pro ? 'God Mode Active' : 'Unlock God Mode'}</h2>
-          {!user.is_pro && <button className="btn-primary" style={{ background: '#fbbf24', color: '#000', marginTop: '20px' }} onClick={handleUpgrade}>Upgrade Now - ₹99</button>}
-        </div>
+          <h2 style={{ color: 'var(--accent-pro)' }}>{user.is_pro ? 'God Mode Active' : 'Unlock God Mode'}</h2>
+          {!user.is_pro && <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn-primary" style={{ background: 'var(--accent-pro)', color: '#000', marginTop: '20px' }} onClick={handleUpgrade}>Upgrade Now - ₹99</motion.button>}
+        </motion.div>
       )}
 
       {view === 'inbox' && (
-        <div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <div className="card" style={{ padding: '20px', textAlign: 'center', marginBottom: '15px' }}>
-            <h3 style={{ margin: 0, color: user.is_pro ? '#fbbf24' : '#fff' }}>{user.is_pro ? '👑 Names Revealed' : '🔒 Names Hidden'}</h3>
+            <h3 style={{ margin: 0, color: user.is_pro ? 'var(--accent-pro)' : '#fff' }}>{user.is_pro ? '👑 Names Revealed' : '🔒 Names Hidden'}</h3>
           </div>
           {inbox.map((vote) => (
-            <div key={vote.voteId} className="card" style={{ marginBottom: '10px', padding: '15px' }}>
+            <motion.div key={vote.voteId} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="card" style={{ marginBottom: '10px', padding: '15px' }}>
               <p style={{ margin: '0 0 8px 0', fontSize: '18px' }}>"{vote.question}"</p>
-              <p style={{ margin: 0, color: '#a1a1aa' }}>Voted by: {vote.voterHandle ? <strong style={{ color: '#fbbf24' }}>{vote.voterAvatar} @{vote.voterHandle}</strong> : <span style={{ color: '#ef4444' }}>🔒 Hidden</span>}</p>
-            </div>
+              <p style={{ margin: 0, color: 'var(--text-muted)' }}>Voted by: {vote.voterHandle ? <strong style={{ color: 'var(--accent-pro)' }}>{vote.voterAvatar} @{vote.voterHandle}</strong> : <span style={{ color: '#ef4444' }}>🔒 Hidden</span>}</p>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   );
