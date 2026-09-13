@@ -155,50 +155,69 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="app-container" style={{ justifyContent: 'center' }}>
-        <motion.h1 initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} style={{ textAlign: 'center', fontSize: '42px', fontWeight: '900' }}>
-          Campus<span style={{ color: 'var(--accent-primary)' }}>Feed</span>
-        </motion.h1>
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring" }} className="card">
-          <input className="input-field" placeholder="Handle" value={handle} onChange={(e) => setHandle(e.target.value)} />
-          <input className="input-field" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <select className="input-field" value={grade} onChange={(e) => setGrade(e.target.value)}>
+      <div className="app-container" style={{ justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+        {/* Background Ambient Glow */}
+        <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '300px', height: '300px', background: 'var(--accent-primary)', filter: 'blur(150px)', opacity: 0.3, zIndex: -1 }} />
+        <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: '300px', height: '300px', background: 'var(--accent-pro)', filter: 'blur(150px)', opacity: 0.2, zIndex: -1 }} />
+
+        {/* Hero Section */}
+        <motion.div initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.8, ease: "easeOut" }} style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <h1 style={{ fontSize: '56px', fontWeight: '900', margin: '0 0 10px 0', letterSpacing: '-1.5px' }}>
+            Campus<span style={{ color: 'var(--accent-primary)' }}>Feed</span>
+          </h1>
+          <p style={{ fontSize: '18px', color: 'var(--text-muted)', margin: 0, fontWeight: '500' }}>
+            Stop guessing. <span style={{ color: '#fafafa' }}>Start knowing.</span>
+          </p>
+          
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginTop: '20px' }}>
+            <span style={{ fontSize: '14px', background: 'var(--bg-surface-hover)', padding: '6px 12px', borderRadius: '20px', color: 'var(--accent-primary)' }}>🔒 100% Anonymous</span>
+            <span style={{ fontSize: '14px', background: 'var(--bg-surface-hover)', padding: '6px 12px', borderRadius: '20px', color: 'var(--accent-pro)' }}>👑 God Mode Ready</span>
+          </div>
+        </motion.div>
+
+        {/* Login / Signup Card */}
+        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 300, delay: 0.2 }} className="card" style={{ background: 'rgba(24, 24, 27, 0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <input className="input-field" placeholder="@handle" value={handle} onChange={(e) => setHandle(e.target.value)} style={{ background: 'rgba(0,0,0,0.3)' }} />
+          <input className="input-field" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ background: 'rgba(0,0,0,0.3)' }} />
+          <select className="input-field" value={grade} onChange={(e) => setGrade(e.target.value)} style={{ background: 'rgba(0,0,0,0.3)' }}>
             <option value="9">Class 9</option>
             <option value="10">Class 10</option>
             <option value="11">Class 11</option>
             <option value="12">Class 12</option>
           </select>
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="btn-primary" onClick={login}>
-            {isAuthenticating ? 'Loading...' : 'Enter Network 🚀'}
+          <motion.button whileHover={{ scale: 1.02, boxShadow: '0 0 20px rgba(139, 92, 246, 0.4)' }} whileTap={{ scale: 0.98 }} className="btn-primary" onClick={login} style={{ marginTop: '10px' }}>
+            {isAuthenticating ? 'Decrypting Network...' : 'Enter the Velvet Rope 🚀'}
           </motion.button>
         </motion.div>
 
-        <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
+        {/* Legal Footer for Razorpay */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} style={{ marginTop: '30px', textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)' }}>
           <p>By entering, you agree to our <br/>
-            <span onClick={() => setLegalView('terms')} style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}>Terms & Conditions</span> and <span onClick={() => setLegalView('privacy')} style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}>Privacy Policy</span>.
+            <span onClick={() => setLegalView('terms')} style={{ color: 'var(--text-main)', textDecoration: 'underline', cursor: 'pointer' }}>Terms & Conditions</span> and <span onClick={() => setLegalView('privacy')} style={{ color: 'var(--text-main)', textDecoration: 'underline', cursor: 'pointer' }}>Privacy Policy</span>.
           </p>
-        </div>
+        </motion.div>
 
+        {/* Legal Modals */}
         <AnimatePresence>
           {legalView && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay" onClick={() => setLegalView(null)}>
-              <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="modal-content" onClick={e => e.stopPropagation()}>
+              <motion.div initial={{ y: 50, opacity: 0, scale: 0.9 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 20, opacity: 0, scale: 0.9 }} transition={{ type: "spring", stiffness: 400, damping: 25 }} className="modal-content" onClick={e => e.stopPropagation()}>
                 {legalView === 'terms' ? (
                   <>
-                    <h2 style={{ color: 'var(--accent-primary)' }}>Terms & Conditions</h2>
+                    <h2 style={{ color: 'var(--accent-primary)', marginTop: 0 }}>Terms & Conditions</h2>
                     <p>Welcome to CampusFeed. This is an anonymous school polling app.</p>
-                    <p>1. <strong>Acceptable Use:</strong> Users must not engage in targeted harassment or cyberbullying. Violators will be banned.</p>
+                    <p>1. <strong>Acceptable Use:</strong> Users must not engage in targeted harassment or cyberbullying. Violators will be permanently banned.</p>
                     <p>2. <strong>Purchases & Refunds:</strong> "God Mode" is a digital premium tier. Due to the immediate activation of digital goods, all purchases are non-refundable.</p>
                   </>
                 ) : (
                   <>
-                    <h2 style={{ color: 'var(--accent-primary)' }}>Privacy Policy</h2>
+                    <h2 style={{ color: 'var(--accent-primary)', marginTop: 0 }}>Privacy Policy</h2>
                     <p>We respect your data and school privacy.</p>
                     <p>1. <strong>Data Collection:</strong> We collect your Handle, Grade, and Password to facilitate anonymous voting.</p>
                     <p>2. <strong>Security:</strong> All credentials and votes are encrypted. We do not sell your personal data to third-party marketers.</p>
                   </>
                 )}
-                <button className="btn-primary" style={{ marginTop: '20px', backgroundColor: 'var(--bg-surface-hover)' }} onClick={() => setLegalView(null)}>Close</button>
+                <button className="btn-primary" style={{ marginTop: '20px', backgroundColor: 'var(--bg-surface-hover)', color: 'var(--text-main)' }} onClick={() => setLegalView(null)}>Close</button>
               </motion.div>
             </motion.div>
           )}
