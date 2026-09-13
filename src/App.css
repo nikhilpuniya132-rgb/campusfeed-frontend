@@ -122,45 +122,56 @@ body {
   border-radius: 16px; padding: 24px;
   max-width: 500px; width: 100%; max-height: 80vh; overflow-y: auto;
 }
-/* Premium Landing Page Styles */
+/* --- Premium Landing Page Mobile Fixes --- */
+html, body {
+  overflow-x: hidden; /* Hard kill horizontal scrolling */
+  width: 100%;
+}
+
 .landing-wrapper {
-  width: 100vw;
-  margin-left: -20px; /* Counteract app-container padding for full bleed */
-  background: #000;
+  /* Safely break out of the app-container padding */
+  margin: -20px -20px 0 -20px;
+  width: calc(100% + 40px);
+  background: #09090b;
   color: #fff;
-  overflow-x: hidden;
+  position: relative;
+  box-sizing: border-box;
 }
 
 .hero-fullscreen {
-  min-height: 100vh;
+  min-height: 100svh; /* svh adapts to mobile browser address bars */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
   text-align: center;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .massive-text {
-  font-size: 18vw;
+  /* clamp(MIN, IDEAL, MAX) ensures it never breaks mobile screens */
+  font-size: clamp(50px, 18vw, 200px);
   font-weight: 900;
   letter-spacing: -0.04em;
   text-transform: uppercase;
-  line-height: 0.8;
+  line-height: 0.85;
   color: #fff;
   z-index: 2;
   margin: 0;
+  word-wrap: break-word;
 }
 
 .script-overlap {
   font-family: Georgia, 'Times New Roman', serif;
   font-style: italic;
-  font-size: 6vw;
-  color: #ef4444; /* Premium Red */
+  font-size: clamp(24px, 6vw, 80px);
+  color: #ef4444; 
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -20%);
+  transform: translate(-50%, -10%);
   z-index: 3;
   white-space: nowrap;
 }
@@ -168,34 +179,38 @@ body {
 .feature-section {
   background: #fafafa;
   color: #09090b;
-  padding: 100px 20px;
+  padding: 60px 20px; /* Tighter padding for phones */
 }
 
 .feature-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 40px;
+  gap: 20px; /* Tighter gap for phones */
   max-width: 1000px;
   margin: 0 auto;
 }
 
 @media (min-width: 768px) {
+  .feature-section {
+    padding: 120px 40px;
+  }
   .feature-grid {
     grid-template-columns: 1fr 1fr;
+    gap: 40px;
   }
 }
 
 .feature-card {
-  padding: 40px;
+  padding: 30px;
   background: #fff;
-  border-radius: 4px;
+  border-radius: 8px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.05);
 }
 
 .marquee-container {
   overflow: hidden;
   white-space: nowrap;
-  padding: 20px 0;
+  padding: 15px 0;
   background: #18181b;
   border-top: 1px solid #27272a;
   border-bottom: 1px solid #27272a;
