@@ -9,73 +9,63 @@
 
 html, body {
   margin: 0; padding: 0;
+  width: 100vw; height: 100svh;
+  overflow: hidden; 
+  touch-action: none; /* Prevents mobile browser pull-to-refresh */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background: var(--gas-bg);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .gas-app-container {
-  max-width: 500px;
-  margin: 0 auto;
-  min-height: 100svh;
+  width: 100%;
+  height: 100%;
   background: #fff;
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow-x: hidden;
-  box-shadow: 0 0 20px rgba(0,0,0,0.05);
+  overflow: hidden;
 }
 
 /* --- Top Navigation --- */
 .gas-top-nav {
-  display: flex;
-  justify-content: space-between;
-  padding: 20px;
-  font-weight: 800;
-  font-size: 18px;
-  color: var(--gas-muted);
-  background: #fff;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 15px 20px; font-weight: 800; font-size: 18px; color: var(--gas-muted);
+  background: #fff; border-bottom: 1px solid var(--gas-border);
+  padding-bottom: env(safe-area-inset-bottom, 20px);
 }
-.gas-nav-item { cursor: pointer; position: relative; }
+.gas-nav-item { cursor: pointer; position: relative; padding: 10px 0; }
 .gas-nav-item.active { color: var(--gas-text); }
 .gas-badge {
-  background: var(--gas-orange);
-  color: #fff;
-  border-radius: 12px;
-  padding: 2px 6px;
-  font-size: 12px;
-  margin-left: 5px;
-  vertical-align: top;
+  background: var(--gas-orange); color: #fff; border-radius: 12px;
+  padding: 2px 6px; font-size: 12px; margin-left: 5px; vertical-align: top;
 }
 
-/* --- Onboarding Funnel --- */
+/* --- Mobile-Optimized Onboarding --- */
 .gas-ob-screen {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: var(--gas-orange);
-  z-index: 1000;
-  display: flex; flex-direction: column;
-  color: #fff;
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--gas-orange); z-index: 1000;
+  display: flex; flex-direction: column; color: #fff;
 }
 .gas-ob-dark { background: var(--gas-dark); }
 .gas-ob-content {
-  flex: 1; padding: 20px;
-  display: flex; flex-direction: column;
+  flex: 1; padding: 20px; display: flex; flex-direction: column;
   align-items: center; justify-content: center; text-align: center;
 }
 .gas-ob-white-btn {
-  background: #fff; color: var(--gas-orange);
-  width: 100%; max-width: 320px; padding: 18px;
-  border-radius: 30px; font-size: 18px; font-weight: 900;
-  border: none; cursor: pointer; margin-bottom: 15px;
+  background: #fff; color: var(--gas-orange); width: 90%; max-width: 350px;
+  padding: 20px; border-radius: 30px; font-size: 18px; font-weight: 900;
+  border: none; cursor: pointer; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 .gas-ob-input {
   background: transparent; border: none; border-bottom: 3px solid rgba(255,255,255,0.4);
-  color: #fff; font-size: 36px; text-align: center;
-  width: 100%; max-width: 300px; padding: 10px; margin-bottom: 40px; outline: none; font-weight: 800;
+  color: #fff; font-size: 40px; text-align: center; width: 90%; padding: 10px;
+  margin-bottom: 40px; outline: none; font-weight: 800;
 }
 .gas-ob-bottom-sheet {
   background: #fff; color: #000; flex: 1;
-  border-top-left-radius: 24px; border-top-right-radius: 24px;
-  width: 100%; overflow-y: auto;
+  border-top-left-radius: 32px; border-top-right-radius: 32px;
+  width: 100%; overflow-y: auto; padding-bottom: 40px;
 }
 .gas-ob-list-item {
   padding: 24px 20px; border-bottom: 1px solid var(--gas-border);
@@ -83,87 +73,60 @@ html, body {
   font-weight: 700; font-size: 18px; cursor: pointer;
 }
 
-/* --- Polling & White Screens --- */
+/* --- Fluid Polling View --- */
 .gas-poll-bg {
-  background: #7a8f9f; flex: 1;
-  border-top-left-radius: 24px; border-top-right-radius: 24px;
+  background: #7a8f9f; flex: 1; border-top-left-radius: 24px; border-top-right-radius: 24px;
   padding: 20px; display: flex; flex-direction: column; text-align: center; color: #fff;
 }
-.gas-poll-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
-}
+.gas-poll-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
 .gas-poll-btn {
-  background: #fff; color: #000; font-weight: 800;
-  padding: 20px 10px; border-radius: 12px; border: none; font-size: 16px; cursor: pointer;
+  background: #fff; color: #000; font-weight: 800; padding: 24px 10px;
+  border-radius: 16px; border: none; font-size: 16px; cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
 .gas-white-screen {
-  background: #fff; flex: 1;
-  border-top-left-radius: 24px; border-top-right-radius: 24px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: #fff; flex: 1; border-top-left-radius: 24px; border-top-right-radius: 24px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
 }
 
-/* --- Add Friends & Activity --- */
+/* --- Real Activity & Lists --- */
+.gas-scroll-area { flex: 1; overflow-y: auto; background: #fff; padding-bottom: 80px; }
 .gas-section-header {
-  background: var(--gas-bg); color: var(--gas-muted);
-  font-size: 13px; font-weight: 800; padding: 10px 20px; text-transform: uppercase;
+  background: var(--gas-bg); color: var(--gas-muted); font-size: 13px; font-weight: 800; padding: 10px 20px; text-transform: uppercase;
 }
 .gas-add-row {
-  display: flex; align-items: center; padding: 15px 20px;
-  border-bottom: 1px solid var(--gas-border); background: #fff;
+  display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--gas-border); background: #fff;
 }
 .gas-add-btn {
-  background: var(--gas-orange); color: #fff;
-  border: none; padding: 8px 16px; border-radius: 16px; font-weight: 800; font-size: 14px; cursor: pointer;
-}
-.gas-hide-text {
-  color: var(--gas-muted); font-size: 12px; font-weight: 700; margin-right: 15px; cursor: pointer;
+  background: var(--gas-orange); color: #fff; border: none; padding: 8px 16px; border-radius: 16px; font-weight: 800; font-size: 14px; cursor: pointer;
 }
 
-/* --- Profile --- */
-.gas-profile-header {
-  display: flex; padding: 20px; align-items: center;
+/* --- Profile & Aggressive Pro Upsell --- */
+.gas-pro-banner {
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color: #000;
+  margin: 20px; padding: 20px; border-radius: 16px; text-align: center; font-weight: 900;
+  box-shadow: 0 10px 20px rgba(251, 191, 36, 0.3);
 }
-.gas-profile-stats {
-  display: flex; flex-direction: column; margin-left: 20px;
-}
+.gas-profile-header { display: flex; padding: 20px; align-items: center; }
 .gas-btn-outline {
   border: 2px solid var(--gas-border); background: #fff; color: var(--gas-muted);
-  padding: 8px 16px; border-radius: 20px; font-weight: 800; font-size: 14px; cursor: pointer; margin-top: 10px;
-}
-.gas-btn-shop {
-  border: 2px solid var(--gas-border); background: #fff;
-  display: flex; align-items: center; border-radius: 24px; padding: 5px 5px 5px 15px; font-weight: 800; cursor: pointer;
+  padding: 10px 16px; border-radius: 20px; font-weight: 800; font-size: 14px;
 }
 .gas-flame-item {
-  display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--gas-border);
+  display: flex; align-items: center; padding: 20px; border-bottom: 1px solid var(--gas-border);
 }
-.gas-flame-rank {
-  background: var(--gas-orange); color: #fff; width: 20px; height: 20px;
-  border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 800; position: absolute; bottom: -5px; right: -5px;
+.gas-sticky-btn {
+  position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+  background: #000; color: #fff; padding: 20px 40px; border-radius: 30px;
+  font-weight: 800; font-size: 16px; border: none; width: 90%; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
 }
 
-/* --- Edit Profile --- */
-.gas-edit-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 18px 20px; border-bottom: 1px solid var(--gas-border);
-  font-weight: 700; color: var(--gas-text); cursor: pointer;
-}
-.gas-edit-label { color: var(--gas-muted); width: 100px; }
-
-/* --- Shop Modal --- */
+/* --- Modals --- */
 .gas-shop-overlay {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5); z-index: 1000; display: flex; flex-direction: column; justify-content: flex-end;
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6); z-index: 1000; display: flex; flex-direction: column; justify-content: flex-end;
 }
 .gas-shop-modal {
-  background: #111; color: #fff; border-top-left-radius: 24px; border-top-right-radius: 24px;
-  padding: 20px; height: 85svh; display: flex; flex-direction: column; align-items: center;
-}
-.gas-shop-card {
-  background: #27272a; border-radius: 16px; padding: 20px; width: 100%;
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; box-sizing: border-box;
-}
-.gas-shop-btn {
-  background: #fbbf24; color: #000; border: none; padding: 8px 16px; border-radius: 16px; font-weight: 900; cursor: pointer;
+  background: #111; color: #fff; border-top-left-radius: 32px; border-top-right-radius: 32px;
+  padding: 30px 20px; height: 85svh; display: flex; flex-direction: column; align-items: center;
 }
