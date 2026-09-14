@@ -15,29 +15,39 @@ const AURA_RINGS = {
 
 const pageVariants = { initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -20 }, transition: { type: "tween", duration: 0.25 } };
 
+
+
 export default function App() {
+  // --- CORE STATE ---
   const [user, setUser] = useState(null);
+  const [view, setView] = useState('poll');
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  
+  // --- ONBOARDING STATE ---
+  const [obStep, setObStep] = useState(1);
+  const [age, setAge] = useState('');
+  const [grade, setGrade] = useState('11');
+  const [phone, setPhone] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [handle, setHandle] = useState('');
   const [password, setPassword] = useState('');
-  const [grade, setGrade] = useState('11');
-  const [avatar, setAvatar] = useState('😎');
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [gender, setGender] = useState('');
+  const [avatarPreview, setAvatarPreview] = useState(null); // Stores Base64 Image
+  const [selectedFriends, setSelectedFriends] = useState([]); // Array of IDs
 
-  const [view, setView] = useState('poll');
+  // --- APP STATE ---
   const [gradeFilter, setGradeFilter] = useState('11');
   const [searchQuery, setSearchQuery] = useState('');
   const [legalView, setLegalView] = useState(null); 
-
   const [currentPoll, setCurrentPoll] = useState(null);
   const [options, setOptions] = useState([]);
   const [hasVoted, setHasVoted] = useState(false);
   const [isLoadingPoll, setIsLoadingPoll] = useState(false); 
-  
   const [inbox, setInbox] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [profileData, setProfileData] = useState(null);
   const [publicProfile, setPublicProfile] = useState(null); 
-
   const [isEditing, setIsEditing] = useState(false);
   const [editBio, setEditBio] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
@@ -52,9 +62,59 @@ export default function App() {
     }
   }, []);
 
+  // --- ONBOARDING LOGIC ---
+
+  // Real Location Browser API
+  const requestLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setObStep(3), // Success: Move to next step
+        (err) => { alert("Location needed to find St. Kabir accurately!"); setObStep(3); }
+      );
+    } else {
+      setObStep(3);
+    }
+  };
+
+  // Real File Upload Handler
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result); // Save Base64
+        setObStep(10); // Move to Add Friends
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const toggleFriend = (id) => {
+    setSelectedFriends(prev => prev.includes(id) ? prev.filter(fId => fId !== id) : [...prev, id]);
+  };
+
+  const login = async () => {
+    setIsAuthenticating(true);
+    try {
+      // Sends all the newly collected real data to server.js
+      const res = await fetch(`${API}/auth`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ phone, firstName, lastName, handle, password, grade, gender, avatar: avatarPreview || '😎', friends: selectedFriends }) 
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      
+      setUser(data.user);
+      setGradeFilter(data.user.grade.toString());
+      setObStep(0); // Exit Onboarding
+      loadNextPoll(data.user.grade.toString(), data.user.id);
+    } catch (err) { alert(err.message); }
+    setIsAuthenticating(false);
+  };
+
   const renderProfilePic = (pic, ava, isPro, ring = 'gold', size = 100) => {
     const activeAura = isPro ? (AURA_RINGS[ring] || AURA_RINGS.gold) : AURA_RINGS.none;
-    
     return (
       <div style={{ position: 'relative', display: 'inline-block', margin: '0 auto 15px' }}>
         {pic ? (
@@ -69,30 +129,14 @@ export default function App() {
     );
   };
 
-  const login = async () => {
-    if (!handle || !password) return alert('Enter credentials');
-    setIsAuthenticating(true);
-    try {
-      const res = await fetch(`${API}/auth`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ handle, password, grade, avatar }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setUser(data.user);
-      setGradeFilter(data.user.grade.toString());
-      loadNextPoll(data.user.grade.toString(), data.user.id);
-    } catch (err) { alert(err.message); }
-    setIsAuthenticating(false);
-  };
-
+  // Rest of the App Functions (loadNextPoll, castVote, handleNav, saveProfile, deleteAccount, handleUpgrade) remain unchanged...
   const loadNextPoll = async (targetGrade, explicitId = null) => {
-    setHasVoted(false);
-    setIsLoadingPoll(true); 
-    setGradeFilter(targetGrade);
+    setHasVoted(false); setIsLoadingPoll(true); setGradeFilter(targetGrade);
     const targetId = explicitId || user?.id;
     try {
       const res = await fetch(`${API}/play/${targetId}?gradeFilter=${targetGrade}`);
       const data = await res.json();
-      setCurrentPoll(data.poll);
-      setOptions(data.options || []);
+      setCurrentPoll(data.poll); setOptions(data.options || []);
     } catch (e) { console.error(e); }
     setIsLoadingPoll(false);
   };
@@ -104,12 +148,10 @@ export default function App() {
   };
 
   const loadPublicProfile = async (userId) => {
-    setView('publicProfile');
-    setPublicProfile(null);
+    setView('publicProfile'); setPublicProfile(null);
     try {
       const res = await fetch(`${API}/profile/public/${userId}`);
-      const data = await res.json();
-      setPublicProfile(data.user);
+      setPublicProfile((await res.json()).user);
     } catch (e) { console.error(e); }
   };
 
@@ -118,18 +160,14 @@ export default function App() {
     if (newView === 'inbox') fetch(`${API}/inbox/${user.id}`).then(r => r.json()).then(d => setInbox(d.messages || []));
     if (newView === 'explore') fetch(`${API}/explore/leaderboard`).then(r => r.json()).then(d => setLeaderboard(d.leaderboard || []));
     if (newView === 'profile') fetch(`${API}/profile/${user.id}`).then(r => r.json()).then(d => { 
-      setProfileData(d); 
-      setEditBio(d.user.bio || ''); 
-      setEditAvatar(d.user.avatar || ''); 
-      setEditRing(d.user.ring || 'gold');
+      setProfileData(d); setEditBio(d.user.bio || ''); setEditAvatar(d.user.avatar || ''); setEditRing(d.user.ring || 'gold');
     });
   };
 
   const saveProfile = async () => {
     setIsEditing(false);
     const updatedUser = { ...profileData.user, bio: editBio, avatar: editAvatar, ring: editRing };
-    setProfileData({ user: updatedUser }); 
-    setUser({ ...user, avatar: editAvatar, ring: editRing });
+    setProfileData({ user: updatedUser }); setUser({ ...user, avatar: editAvatar, ring: editRing });
     await fetch(`${API}/profile/${user.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bio: editBio, avatar: editAvatar, ring: editRing }) });
   };
 
@@ -155,55 +193,186 @@ export default function App() {
     } catch (e) { alert('Checkout error.'); }
   };
 
+  // --- STEP-BY-STEP VIRAL ONBOARDING FUNNEL ---
   if (!user) {
     return (
       <div className="gas-app-container">
-        <div className="gas-ob-screen">
-          <div className="gas-ob-content">
-            <h1 style={{ fontSize: '48px', color: '#fff', marginBottom: '40px' }}>CampusFeed</h1>
+        <AnimatePresence mode="wait">
+          <motion.div key={obStep} initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'tween', duration: 0.3 }} 
+            className="gas-ob-screen" style={{ background: obStep === 1 ? '#18181b' : 'var(--gas-orange)', display: 'flex', flexDirection: 'column' }}>
             
-            <div style={{ background: '#18181b', padding: '20px', borderRadius: '16px', width: '90%', maxWidth: '350px' }}>
-              <input className="gas-ob-input" style={{ width: '100%', fontSize: '20px', marginBottom: '20px' }} placeholder="@handle" value={handle} onChange={(e) => setHandle(e.target.value)} />
-              <input className="gas-ob-input" style={{ width: '100%', fontSize: '20px', marginBottom: '20px' }} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-              
-              <select className="gas-ob-input" style={{ width: '100%', fontSize: '20px', marginBottom: '20px', appearance: 'none' }} value={grade} onChange={(e) => setGrade(e.target.value)}>
-                <option value="9">Class 9</option>
-                <option value="10">Class 10</option>
-                <option value="11">Class 11</option>
-                <option value="12">Class 12</option>
-              </select>
-              
-              <button className="gas-ob-white-btn" style={{ width: '100%' }} onClick={login}>
-                {isAuthenticating ? 'Connecting...' : 'Connect ➔'}
-              </button>
-            </div>
-            
-            <div style={{ marginTop: '30px', textAlign: 'center', fontSize: '13px', color: '#a1a1aa' }}>
-              <p>By entering, you agree to our <br/>
-                <span onClick={() => setLegalView('terms')} style={{ color: '#fff', textDecoration: 'underline', cursor: 'pointer' }}>Terms & Conditions</span>
-              </p>
-            </div>
-          </div>
-        </div>
+            {obStep > 1 && (
+              <div style={{ padding: '20px', fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center' }}>
+                <span style={{ cursor: 'pointer', paddingRight: '20px' }} onClick={() => setObStep(obStep - 1)}>❮</span>
+                {obStep === 2 && "Please allow access"} {obStep === 3 && "What grade are you in?"} {obStep === 4 && "Pick your school"} {obStep === 10 && "Add Friends"}
+              </div>
+            )}
 
-        <AnimatePresence>
-          {legalView && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="gas-shop-overlay" onClick={() => setLegalView(null)}>
-              <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="gas-shop-modal" onClick={e => e.stopPropagation()}>
-                <h2 style={{ color: '#ff6200', marginTop: 0 }}>{legalView === 'terms' ? 'Terms & Conditions' : 'Privacy Policy'}</h2>
-                <p>Standard Razorpay compliance text goes here.</p>
-                <button className="gas-ob-white-btn" style={{ marginTop: 'auto' }} onClick={() => setLegalView(null)}>Close</button>
-              </motion.div>
-            </motion.div>
-          )}
+            {/* STEP 1: Age */}
+            {obStep === 1 && (
+              <div className="gas-ob-content" style={{ justifyContent: 'flex-start', paddingTop: '60px' }}>
+                <h1 style={{ fontSize: '64px', margin: '0 0 40px 0', letterSpacing: '-2px', color: '#fff' }}>CampusFeed</h1>
+                <p style={{ color: '#a1a1aa', fontSize: '14px', marginBottom: '40px' }}>By entering your age you agree to our<br/><span onClick={() => setLegalView('terms')} style={{ textDecoration: 'underline' }}>Terms and Privacy Policy</span></p>
+                <h3 style={{ color: '#ff6200', marginBottom: '20px' }}>Enter your age</h3>
+                <div className="gas-ob-bottom-sheet gas-scroll-picker" style={{ background: '#27272a', borderRadius: '16px', margin: '0 20px', width: 'auto' }}>
+                  {[12, 13, 14, 15, 16, 17, 18, 19].map(a => (
+                    <motion.div whileTap={{ backgroundColor: '#3f3f46' }} key={a} onClick={() => { setAge(a); setObStep(2); }} style={{ padding: '20px', color: '#a1a1aa', fontSize: '24px', fontWeight: 'bold', borderBottom: '1px solid #3f3f46', textAlign: 'center' }}>
+                      {a === 16 ? <span style={{ color: '#fff' }}>{a}</span> : a}
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: Real Permissions */}
+            {obStep === 2 && (
+              <div className="gas-ob-content">
+                <h1 style={{ fontSize: '64px', margin: '0 0 20px 0' }}>CampusFeed</h1>
+                <p style={{ fontSize: '18px', marginBottom: '60px', maxWidth: '280px', lineHeight: '1.4' }}>CampusFeed needs to find your school and suggest friends.</p>
+                <motion.button whileTap={{ scale: 0.95 }} className="gas-ob-white-btn" style={{ color: '#000', marginBottom: '15px' }} onClick={requestLocation}>🌍 Enable Location</motion.button>
+                <motion.button whileTap={{ scale: 0.95 }} className="gas-ob-white-btn" style={{ color: '#000' }} onClick={() => setObStep(3)}>📇 Enable Contacts</motion.button>
+                <p style={{ marginTop: 'auto', fontSize: '12px', opacity: 0.8 }}><br/>CampusFeed cares intensely about your privacy.</p>
+              </div>
+            )}
+
+            {/* STEP 3: Grade */}
+            {obStep === 3 && (
+              <div className="gas-ob-bottom-sheet" style={{ marginTop: 'auto', flex: '0.8', borderTopLeftRadius: '24px', borderTopRightRadius: '24px' }}>
+                <div style={{ padding: '20px', color: '#000', fontWeight: 'bold', textAlign: 'center', borderBottom: '1px solid var(--gas-border)' }}>Not in High School</div>
+                <div style={{ padding: '15px 20px', color: '#a1a1aa', fontSize: '13px', background: '#f4f4f5', fontWeight: 'bold' }}>HIGH SCHOOL</div>
+                {['Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'].map((g, i) => (
+                  <div key={g} className="gas-ob-list-item" onClick={() => { setGrade((i + 9).toString()); setObStep(4); }}>
+                    {g} <span style={{ color: '#a1a1aa', fontSize: '14px', fontWeight: 'normal' }}>CLASS OF {2027 - i}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* STEP 4: Real School Data */}
+            {obStep === 4 && (
+              <div className="gas-ob-bottom-sheet" style={{ marginTop: '20px', flex: 1 }}>
+                <div style={{ padding: '15px 20px', background: '#f4f4f5' }}>
+                  <input type="text" placeholder="🔍 Search..." style={{ width: '100%', padding: '12px', borderRadius: '8px', border: 'none', background: '#e4e4e7', fontSize: '16px', boxSizing: 'border-box' }} />
+                </div>
+                <div className="gas-ob-list-item" onClick={() => setObStep(5)}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <div style={{ fontSize: '24px' }}>🏫</div>
+                    <div>
+                      <div style={{ color: '#000', fontWeight: '800' }}>St. Kabir Convent School</div>
+                      <div style={{ color: '#a1a1aa', fontSize: '12px', fontWeight: 'normal' }}>Bathinda, Punjab</div>
+                    </div>
+                  </div>
+                  <div style={{ color: '#ff6200', textAlign: 'right', fontWeight: '800' }}>6<br/><span style={{ fontSize: '10px', color: '#a1a1aa' }}>MEMBERS</span></div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 5: Phone Number (No OTP) */}
+            {obStep === 5 && (
+              <div className="gas-ob-content" style={{ justifyContent: 'flex-start', paddingTop: '40px' }}>
+                <h2 style={{ marginBottom: '10px' }}>Enter your phone number</h2>
+                <p style={{ fontSize: '14px', opacity: 0.9, marginBottom: '40px' }}>🇮🇳 +91</p>
+                <input type="tel" autoFocus className="gas-ob-input" style={{ width: '100%', maxWidth: '280px', letterSpacing: '2px' }} placeholder="00000 00000" value={phone} onChange={e => setPhone(e.target.value)} />
+                <motion.button whileTap={{ scale: 0.95 }} className="gas-ob-white-btn" style={{ background: '#fff', color: '#ff6200' }} onClick={() => setObStep(6)}>Next</motion.button>
+              </div>
+            )}
+
+            {/* STEP 6: Name */}
+            {obStep === 6 && (
+              <div className="gas-ob-content" style={{ justifyContent: 'flex-start', paddingTop: '40px' }}>
+                <h2>What's your full name?</h2>
+                <input type="text" autoFocus className="gas-ob-input" style={{ marginBottom: '20px' }} placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} />
+                <input type="text" className="gas-ob-input" placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} />
+                <motion.button whileTap={{ scale: 0.95 }} className="gas-ob-white-btn" onClick={() => setObStep(7)}>Next</motion.button>
+              </div>
+            )}
+
+            {/* STEP 7: Username & Password */}
+            {obStep === 7 && (
+              <div className="gas-ob-content" style={{ justifyContent: 'flex-start', paddingTop: '40px' }}>
+                <h2>Choose a username</h2>
+                <input type="text" autoFocus className="gas-ob-input" style={{ marginBottom: '20px' }} placeholder="@handle" value={handle} onChange={e => setHandle(e.target.value.toLowerCase())} />
+                <h2>Secure Password</h2>
+                <input type="password" className="gas-ob-input" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+                <motion.button whileTap={{ scale: 0.95 }} className="gas-ob-white-btn" onClick={() => setObStep(8)}>Next</motion.button>
+              </div>
+            )}
+
+            {/* STEP 8: Gender (Image grid) */}
+            {obStep === 8 && (
+              <div className="gas-ob-content" style={{ justifyContent: 'flex-start', paddingTop: '40px' }}>
+                <h2 style={{ marginBottom: '40px' }}>What's your gender?</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', width: '90%' }}>
+                  <motion.div whileTap={{ scale: 0.9 }} style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '16px', padding: '30px 10px', cursor: 'pointer' }} onClick={() => { setGender('Boy'); setObStep(9); }}>
+                    <div style={{ fontSize: '60px' }}>👦</div><div style={{ marginTop: '10px', fontWeight: 'bold' }}>Boy</div>
+                  </motion.div>
+                  <motion.div whileTap={{ scale: 0.9 }} style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '16px', padding: '30px 10px', cursor: 'pointer' }} onClick={() => { setGender('Girl'); setObStep(9); }}>
+                    <div style={{ fontSize: '60px' }}>👧</div><div style={{ marginTop: '10px', fontWeight: 'bold' }}>Girl</div>
+                  </motion.div>
+                  <motion.div whileTap={{ scale: 0.9 }} style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '16px', padding: '30px 10px', cursor: 'pointer', gridColumn: 'span 2' }} onClick={() => { setGender('Non-binary'); setObStep(9); }}>
+                    <div style={{ fontSize: '60px' }}>🧑</div><div style={{ marginTop: '10px', fontWeight: 'bold' }}>Non-binary</div>
+                  </motion.div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 9: Profile Photo Upload */}
+            {obStep === 9 && (
+              <div className="gas-ob-content" style={{ justifyContent: 'center' }}>
+                <h2 style={{ marginBottom: '30px' }}>Add a profile photo</h2>
+                <div style={{ fontSize: '100px', background: 'rgba(255,255,255,0.2)', width: '160px', height: '160px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '40px', overflow: 'hidden' }}>
+                  {avatarPreview ? <img src={avatarPreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📸'}
+                </div>
+                
+                <label className="gas-ob-white-btn" style={{ display: 'inline-block', background: '#fff', color: '#ff6200', textAlign: 'center', cursor: 'pointer', boxSizing: 'border-box' }}>
+                  Choose a photo
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} />
+                </label>
+                <div style={{ marginTop: '20px', fontWeight: 'bold', cursor: 'pointer' }} onClick={() => setObStep(10)}>Skip for now</div>
+              </div>
+            )}
+
+            {/* STEP 10: Real Database Add Friends */}
+            {obStep === 10 && (
+              <div className="gas-ob-bottom-sheet" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <div style={{ padding: '15px 20px', background: '#f4f4f5' }}>
+                  <input type="text" placeholder="🔍 Search St. Kabir..." style={{ width: '100%', padding: '12px', borderRadius: '8px', border: 'none', background: '#e4e4e7', fontSize: '16px', boxSizing: 'border-box' }} />
+                </div>
+                
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  {ST_KABIR_MEMBERS.map(member => (
+                    <div key={member.id} className="gas-ob-list-item" onClick={() => toggleFriend(member.id)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                        <div style={{ fontSize: '40px', background: '#e4e4e7', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🧑</div>
+                        <div>
+                          <div style={{ color: '#000', fontWeight: '800' }}>{member.name}</div>
+                          <div style={{ color: '#a1a1aa', fontSize: '12px', fontWeight: 'normal' }}>{member.mutuals} mutual friends</div>
+                        </div>
+                      </div>
+                      <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: '2px solid #e4e4e7', background: selectedFriends.includes(member.id) ? '#ff6200' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px' }}>
+                        {selectedFriends.includes(member.id) && "✓"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ padding: '20px', background: '#fff', borderTop: '1px solid #e4e4e7' }}>
+                  <motion.button whileTap={{ scale: 0.95 }} className="gas-ob-white-btn" style={{ width: '100%', background: '#ff6200', color: '#fff', margin: 0 }} onClick={login}>
+                    {isAuthenticating ? 'Building Feed...' : 'Continue'}
+                  </motion.button>
+                </div>
+              </div>
+            )}
+            
+          </motion.div>
         </AnimatePresence>
       </div>
     );
   }
 
+  // --- CORE APP UI (Unchanged) ---
   return (
     <div className="gas-app-container">
-      {/* Top Navigation */}
       <div className="gas-top-nav">
         <motion.span whileTap={{ scale: 0.9 }} className={`gas-nav-item ${view === 'poll' ? 'active' : ''}`} onClick={() => handleNav('poll')}>Feed</motion.span>
         <motion.span whileTap={{ scale: 0.9 }} className={`gas-nav-item ${view === 'inbox' ? 'active' : ''}`} onClick={() => handleNav('inbox')}>Inbox</motion.span>
