@@ -14,6 +14,7 @@ const AURA_RINGS = {
 };
 
 export default function App() {
+  const [inviteCode, setInviteCode] = useState('');
   const [user, setUser] = useState(null);
   const [handle, setHandle] = useState('');
   const [password, setPassword] = useState('');
@@ -28,8 +29,8 @@ export default function App() {
 
   const [currentPoll, setCurrentPoll] = useState(null);
   const [options, setOptions] = useState([]);
-  const [hasVoted, setHasVoted] = useState(false);
   const [isLoadingPoll, setIsLoadingPoll] = useState(false); 
+  const [voteCount, setVoteCount] = useState(0);
   
   const [inbox, setInbox] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
@@ -52,7 +53,6 @@ export default function App() {
 
   const renderProfilePic = (pic, ava, isPro, ring = 'gold', size = 100) => {
     const activeAura = isPro ? (AURA_RINGS[ring] || AURA_RINGS.gold) : AURA_RINGS.none;
-    
     return (
       <div style={{ position: 'relative', display: 'inline-block', margin: '0 auto 15px' }}>
         {pic ? (
@@ -71,18 +71,24 @@ export default function App() {
     if (!handle || !password) return alert('Enter credentials');
     setIsAuthenticating(true);
     try {
-      const res = await fetch(`${API}/auth`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ handle, password, grade, avatar }) });
+      const res = await fetch(`${API}/auth`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ handle, password, grade, avatar, inviteCode }) 
+      });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || 'Login failed');
+      if (!data.user) throw new Error('Database returned an empty user profile.');
+      
       setUser(data.user);
-      setGradeFilter(data.user.grade.toString());
-      loadNextPoll(data.user.grade.toString(), data.user.id);
+      const userGrade = data.user?.grade?.toString() || grade; 
+      setGradeFilter(userGrade);
+      loadNextPoll(userGrade, data.user.id);
     } catch (err) { alert(err.message); }
     setIsAuthenticating(false);
   };
 
   const loadNextPoll = async (targetGrade, explicitId = null) => {
-    setHasVoted(false);
     setIsLoadingPoll(true); 
     setGradeFilter(targetGrade);
     const targetId = explicitId || user?.id;
@@ -96,8 +102,6 @@ export default function App() {
   };
 
   const castVote = (receiverId) => {
-    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-    setHasVoted(true); 
     fetch(`${API}/vote`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pollId: currentPoll.id, voterId: user.id, receiverId }) });
   };
 
@@ -116,10 +120,7 @@ export default function App() {
     if (newView === 'inbox') fetch(`${API}/inbox/${user.id}`).then(r => r.json()).then(d => setInbox(d.messages || []));
     if (newView === 'explore') fetch(`${API}/explore/leaderboard`).then(r => r.json()).then(d => setLeaderboard(d.leaderboard || []));
     if (newView === 'profile') fetch(`${API}/profile/${user.id}`).then(r => r.json()).then(d => { 
-      setProfileData(d); 
-      setEditBio(d.user.bio || ''); 
-      setEditAvatar(d.user.avatar || ''); 
-      setEditRing(d.user.ring || 'gold');
+      setProfileData(d); setEditBio(d.user.bio || ''); setEditAvatar(d.user.avatar || ''); setEditRing(d.user.ring || 'gold');
     });
   };
 
@@ -143,56 +144,48 @@ export default function App() {
       const orderRes = await fetch(`${API}/pay/order`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) });
       const orderData = await orderRes.json();
       const options = {
-        key: RAZORPAY_KEY_ID, amount: orderData.amount, currency: 'INR', name: 'CampusFeed', description: 'Unlock God Mode', order_id: orderData.id,
+        key: RAZORPAY_KEY_ID, amount: orderData.amount, currency: 'INR', name: 'CampusFeed', description: 'Unlock The 1% Club', order_id: orderData.id,
         handler: async (response) => {
           const verifyRes = await fetch(`${API}/pay/verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...response, userId: user.id }) });
-          if ((await verifyRes.json()).success) { alert('👑 God Mode Unlocked!'); setUser({ ...user, is_pro: true, ring: 'gold' }); handleNav('inbox'); }
+          if ((await verifyRes.json()).success) { alert('👑 1% Club Unlocked!'); setUser({ ...user, is_pro: true, ring: 'gold' }); handleNav('inbox'); }
         }, theme: { color: '#fbbf24' }
       };
       new window.Razorpay(options).open();
     } catch (e) { alert('Checkout error.'); }
   };
 
- if (!user) {
+  if (!user) {
     return (
       <div className="landing-wrapper">
-        {/* HERO SECTION */}
         <div className="hero-fullscreen">
-          <div style={{ position: 'absolute', top: '20px', left: '20px', fontWeight: 'bold', letterSpacing: '2px' }}>
-            CAMPUSFEED®
-          </div>
+          <div style={{ position: 'absolute', opacity: 0.03, top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '120vw', height: '120vw', maxWidth: '800px', maxHeight: '800px', backgroundImage: 'url(/favicon.svg)', backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', zIndex: 0, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', top: '20px', left: '20px', fontWeight: 'bold', letterSpacing: '2px', zIndex: 5 }}>CAMPUSFEED®</div>
           
-          <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} style={{ position: 'relative', width: '100%' }}>
+          <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} style={{ position: 'relative', width: '100%', zIndex: 5 }}>
             <h1 className="massive-text">CAMPUS</h1>
             <div className="script-overlap">stop guessing.</div>
           </motion.div>
 
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} style={{ marginTop: '40px', fontSize: '18px', color: '#a1a1aa', maxWidth: '400px' }}>
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} style={{ marginTop: '40px', fontSize: '18px', color: '#a1a1aa', maxWidth: '400px', zIndex: 5 }}>
             The anonymous network designed exclusively for Class 11. Find out who really likes you.
           </motion.p>
 
           <motion.button 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 }}
             className="btn-primary" 
-            style={{ width: 'auto', padding: '16px 40px', borderRadius: '4px', marginTop: '40px', background: '#fff', color: '#000' }}
+            style={{ width: 'auto', padding: '16px 40px', borderRadius: '4px', marginTop: '40px', background: '#fff', color: '#000', zIndex: 5 }}
             onClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })}
           >
             START A PROJECT ➔
           </motion.button>
         </div>
 
-        {/* MARQUEE SECTION */}
         <div className="marquee-container">
-          <motion.div 
-            animate={{ x: [0, -1000] }} 
-            transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
-            style={{ display: 'inline-block', fontSize: '24px', fontWeight: 'bold', color: '#fff' }}
-          >
-            [100% ANONYMOUS] • [GOD MODE ENABLED] • [INVITE ONLY] • [100% ANONYMOUS] • [GOD MODE ENABLED] • [INVITE ONLY] • 
+          <motion.div animate={{ x: [0, -1500] }} transition={{ repeat: Infinity, duration: 25, ease: "linear" }} style={{ display: 'inline-block', fontSize: '24px', fontWeight: 'bold', color: '#fff' }}>
+            [100% ANONYMOUS] • [THE 1% CLUB ENABLED] • [ST. KABIR EXCLUSIVE] • [FIND OUT WHO LIKES YOU] • [NO DIGITAL FOOTPRINT] • [INVITE ONLY] • [100% ANONYMOUS] • [THE 1% CLUB ENABLED] • [ST. KABIR EXCLUSIVE] • [FIND OUT WHO LIKES YOU] •
           </motion.div>
         </div>
 
-        {/* LIGHT THEME AGENCY FEATURES */}
         <div className="feature-section">
           <div style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '60px' }}>
             <h2 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '-1px', margin: '0 0 20px 0' }}>What We Build</h2>
@@ -202,20 +195,60 @@ export default function App() {
           <div className="feature-grid">
             <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="feature-card">
               <h3 style={{ fontSize: '24px', margin: '0 0 15px 0' }}>[01 / The Vault]</h3>
-              <p style={{ color: '#52525b', lineHeight: '1.6' }}>End-to-end encrypted polling. Vote on your classmates without leaving a digital footprint. Pure honesty.</p>
+              <p style={{ color: '#52525b', lineHeight: '1.6' }}>End-to-end encrypted polling. Vote on your classmates without leaving a digital footprint. Pure honesty, safely secured behind our velvet rope.</p>
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }} className="feature-card">
-              <h3 style={{ fontSize: '24px', margin: '0 0 15px 0' }}>[02 / God Mode]</h3>
-              <p style={{ color: '#52525b', lineHeight: '1.6' }}>Upgrade to see exactly who voted for you. Unlock premium aura rings and bypass the velvet rope.</p>
+              <h3 style={{ fontSize: '24px', margin: '0 0 15px 0' }}>[02 / The 1% Club]</h3>
+              <p style={{ color: '#52525b', lineHeight: '1.6' }}>Stop wondering. Upgrade your account to see exactly who voted for you. Unlock premium aura rings, priority leaderboard status, and bypass the velvet rope entirely.</p>
             </motion.div>
           </div>
         </div>
 
+        <div className="pricing-section">
+          <h2 style={{ fontSize: '42px', textAlign: 'center', fontWeight: '900', margin: '0 0 10px 0' }}>Choose Your Status</h2>
+          <p style={{ textAlign: 'center', color: '#a1a1aa', fontSize: '18px' }}>Join the network or run the network.</p>
+          
+          <div className="pricing-grid">
+            <div className="pricing-card">
+              <h3 style={{ fontSize: '24px', margin: '0 0 10px 0' }}>Ghost Tier</h3>
+              <h1 style={{ fontSize: '48px', margin: '0 0 20px 0' }}>₹0</h1>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 30px 0', color: '#a1a1aa', lineHeight: '2' }}>
+                <li>✓ 100% Anonymous Voting</li>
+                <li>✓ Basic Profile Avatar</li>
+                <li>✓ Participate in Class Polls</li>
+                <li style={{ opacity: 0.3 }}>✗ See Who Voted For You</li>
+              </ul>
+              <button className="btn-primary" style={{ marginTop: 'auto', background: '#27272a', color: '#fff' }} onClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })}>Get Started for Free</button>
+            </div>
+
+            <div className="pricing-card premium">
+              <div style={{ position: 'absolute', top: 0, right: 0, background: '#fbbf24', color: '#000', padding: '6px 15px', fontWeight: 'bold', borderBottomLeftRadius: '16px' }}>MOST EXCLUSIVE</div>
+              <h3 style={{ fontSize: '24px', margin: '0 0 10px 0', color: '#fbbf24' }}>The 1% Club 👑</h3>
+              <h1 style={{ fontSize: '48px', margin: '0 0 20px 0' }}>₹99<span style={{ fontSize: '16px', color: '#a1a1aa', fontWeight: 'normal' }}>/mo</span></h1>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 30px 0', color: '#fafafa', lineHeight: '2' }}>
+                <li><strong>✓ Name Reveal Technology</strong></li>
+                <li><strong>✓ God Mode Aura Rings</strong></li>
+                <li>✓ VIP Profile Badge</li>
+                <li>✓ Leaderboard Priority</li>
+              </ul>
+              <button className="btn-primary" style={{ marginTop: 'auto', background: '#fbbf24', color: '#000' }} onClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })}>Unlock the Velvet Rope</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="founder-section">
+          <img src="https://placehold.co/400x400/18181b/8b5cf6/png?text=NP" alt="Nikhil Puniya" className="founder-img" />
+          <h2 style={{ fontSize: '32px', margin: '0 0 5px 0' }}>Nikhil Puniya</h2>
+          <p style={{ fontSize: '18px', color: '#52525b', fontWeight: 'bold', margin: '0 0 15px 0' }}>Founder & CEO • Class 11</p>
+          <p style={{ maxWidth: '600px', margin: '0 auto', color: '#3f3f46', lineHeight: '1.6' }}>
+            "I built CampusFeed because I was tired of guessing. We created a secure, anonymous space for our school to connect, vote, and actually know where they stand."
+          </p>
+        </div>
+
         {/* LOGIN PORTAL */}
-        <div id="login-portal" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: '#09090b' }}>
+        <div id="login-portal" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', background: '#09090b' }}>
           <div style={{ width: '100%', maxWidth: '400px' }}>
             <h2 style={{ fontSize: '32px', textAlign: 'center', marginBottom: '30px' }}>Enter Network.</h2>
-            
             <div className="card" style={{ background: '#18181b', border: '1px solid #27272a' }}>
               <input className="input-field" placeholder="@handle" value={handle} onChange={(e) => setHandle(e.target.value)} />
               <input className="input-field" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -225,28 +258,44 @@ export default function App() {
                 <option value="11">Class 11</option>
                 <option value="12">Class 12</option>
               </select>
+              
+              <div style={{ position: 'relative', marginTop: '5px', marginBottom: '15px' }}>
+                <input 
+                  className="input-field" 
+                  placeholder="Invite Code (Optional)" 
+                  value={inviteCode} 
+                  onChange={(e) => setInviteCode(e.target.value.toUpperCase())} 
+                  style={{ marginBottom: 0, border: '1px dashed #52525b', background: 'rgba(255,255,255,0.02)', textTransform: 'uppercase', letterSpacing: '2px' }} 
+                />
+                <span style={{ position: 'absolute', right: '12px', top: '12px', fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 'bold' }}>
+                  +50 COINS
+                </span>
+              </div>
+
               <button className="btn-primary" onClick={login} style={{ marginTop: '10px', borderRadius: '4px' }}>
                 {isAuthenticating ? 'Authenticating...' : 'Connect ➔'}
               </button>
             </div>
-
-            {/* Legal Footer for Razorpay */}
-            <div style={{ marginTop: '30px', textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)' }}>
-              <p>By entering, you agree to our <br/>
-                <span onClick={() => setLegalView('terms')} style={{ color: '#fff', textDecoration: 'underline', cursor: 'pointer' }}>Terms & Conditions</span> and <span onClick={() => setLegalView('privacy')} style={{ color: '#fff', textDecoration: 'underline', cursor: 'pointer' }}>Privacy Policy</span>.
-              </p>
-            </div>
           </div>
         </div>
 
-        {/* Legal Modals */}
+        <div className="contact-section">
+          <p style={{ fontSize: '18px', margin: '0 0 10px 0' }}>Got questions? Reach out.</p>
+          <a href="https://instagram.com/campusfeedst.kabiraale" target="_blank" rel="noreferrer" style={{ fontSize: '20px', color: '#8b5cf6', textDecoration: 'none', fontWeight: 'bold', display: 'block', marginBottom: '40px' }}>
+            @campusfeedst.kabiraale
+          </a>
+          <div style={{ fontSize: '13px', color: '#a1a1aa' }}>
+            <p>By entering, you agree to our <br/><span onClick={() => setLegalView('terms')} style={{ color: '#fff', textDecoration: 'underline', cursor: 'pointer' }}>Terms & Conditions</span> and <span onClick={() => setLegalView('privacy')} style={{ color: '#fff', textDecoration: 'underline', cursor: 'pointer' }}>Privacy Policy</span>.</p>
+          </div>
+        </div>
+
         <AnimatePresence>
           {legalView && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-overlay" onClick={() => setLegalView(null)}>
               <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="modal-content" onClick={e => e.stopPropagation()}>
-                <h2 style={{ color: 'var(--accent-primary)', marginTop: 0 }}>{legalView === 'terms' ? 'Terms & Conditions' : 'Privacy Policy'}</h2>
+                <h2 style={{ color: '#8b5cf6', marginTop: 0 }}>{legalView === 'terms' ? 'Terms & Conditions' : 'Privacy Policy'}</h2>
                 <p>Standard Razorpay compliance text goes here.</p>
-                <button className="btn-primary" style={{ marginTop: '20px' }} onClick={() => setLegalView(null)}>Close</button>
+                <button className="btn-primary" style={{ marginTop: '20px', background: '#27272a' }} onClick={() => setLegalView(null)}>Close</button>
               </motion.div>
             </motion.div>
           )}
@@ -254,6 +303,7 @@ export default function App() {
       </div>
     );
   }
+
   return (
     <div className="app-container">
       <div className="nav-bar">
@@ -265,46 +315,83 @@ export default function App() {
       </div>
 
       {view === 'poll' && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '15px' }}>
-            <button className="btn-primary" style={{ flex: 1, background: gradeFilter !== 'all' ? 'var(--accent-primary)' : 'var(--bg-surface-hover)' }} onClick={() => loadNextPoll(user.grade.toString())}>My Class</button>
-            <button className="btn-primary" style={{ flex: 1, background: gradeFilter === 'all' ? 'var(--accent-primary)' : 'var(--bg-surface-hover)' }} onClick={() => loadNextPoll('all')}>Whole School</button>
-          </div>
-          <motion.div key={currentPoll?.id || 'loading'} initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 25 }} className="card">
-            {isLoadingPoll ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}><h3>Loading next scenario... ⚡</h3></div>
-            ) : hasVoted ? (
-              <div style={{ textAlign: 'center', padding: '30px 0' }}>
-                <h2 style={{ color: '#10b981' }}>Vote Sent! 🚀</h2>
-                <button className="btn-primary" onClick={() => loadNextPoll(gradeFilter)} style={{ marginTop: '20px' }}>Next Question ➔</button>
-              </div>
-            ) : (
-              <>
-                <div className="poll-question">"{currentPoll?.question || 'No more questions!'}"</div>
-                {options.length === 0 ? (
-                  <p style={{ color: '#ef4444', textAlign: 'center', margin: '20px 0' }}>Not enough classmates in this filter!</p>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    {options.map((opt) => (
-                      <motion.button key={opt.id} whileHover={{ scale: 1.05, backgroundColor: 'var(--accent-primary)', color: '#fff' }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", stiffness: 400, damping: 17 }} className="btn-option" onClick={() => castVote(opt.id)}>
-                        {renderProfilePic(opt.profile_pic, opt.avatar, opt.is_pro, opt.ring, 30)}
-                        <span style={{ marginLeft: '8px' }}>{opt.handle}</span>
-                      </motion.button>
-                    ))}
+        <div className="gas-poll-container">
+          {voteCount >= 12 ? (
+            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="cooldown-screen">
+              <h1 style={{ fontSize: '72px', margin: '0 0 20px 0' }}>🔒</h1>
+              <h2 style={{ color: '#fff', fontSize: '32px', marginBottom: '10px' }}>Play Again</h2>
+              <p style={{ color: 'var(--accent-primary)', fontSize: '24px', fontWeight: 'bold', margin: '0 0 30px 0' }}>New Polls in 29:47</p>
+              <div style={{ color: '#52525b', marginBottom: '30px' }}>--------- OR ---------</div>
+              <motion.button 
+                whileHover={{ scale: 1.05 }} 
+                whileTap={{ scale: 0.95 }} 
+                className="btn-primary" 
+                style={{ background: '#10b981', color: '#000' }}
+                onClick={() => alert('WhatsApp Invite triggered!')}
+              >
+                Skip the wait ➔ Invite a friend
+              </motion.button>
+            </motion.div>
+          ) : (
+            <AnimatePresence mode="wait">
+              {isLoadingPoll ? (
+                <motion.div key="loading" exit={{ opacity: 0 }} style={{ textAlign: 'center', marginTop: '100px' }}>
+                  <h3 style={{ color: 'var(--text-muted)' }}>Loading network...</h3>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key={currentPoll?.id || 'empty'}
+                  initial={{ x: 300, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: -300, opacity: 0 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  className="gas-card"
+                >
+                  <div>
+                    <div className="gas-emoji">{currentPoll?.emoji || '🔥'}</div>
+                    <div className="gas-question">"{currentPoll?.question || 'Who is most likely to win a Nobel Prize?'}"</div>
                   </div>
-                )}
-                <button onClick={() => loadNextPoll(gradeFilter)} style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', marginTop: '20px', width: '100%', cursor: 'pointer' }}>Skip Question</button>
-              </>
-            )}
-          </motion.div>
-        </motion.div>
+
+                  <div className="gas-grid">
+                    {options.length > 0 ? options.map((opt) => (
+                      <motion.button 
+                        key={opt.id} 
+                        whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+                        whileTap={{ scale: 0.9, backgroundColor: 'var(--accent-primary)' }} 
+                        className="gas-option-btn" 
+                        onClick={() => {
+                          setVoteCount(prev => prev + 1);
+                          castVote(opt.id);
+                          if (voteCount === 11) {
+                            confetti({ particleCount: 150, spread: 100, origin: { y: 0.8 }, colors: ['#fbbf24', '#f59e0b'] });
+                          } else {
+                            loadNextPoll(gradeFilter);
+                          }
+                        }}
+                      >
+                        {opt.handle}
+                      </motion.button>
+                    )) : (
+                      <p style={{ color: '#fff', gridColumn: 'span 2' }}>Not enough users in filter.</p>
+                    )}
+                  </div>
+
+                  <div className="gas-footer">
+                    <span onClick={() => loadNextPoll(gradeFilter)} style={{ cursor: 'pointer' }}>🔀 Shuffle</span>
+                    <span onClick={() => loadNextPoll(gradeFilter)} style={{ cursor: 'pointer' }}>⏭ Skip</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          )}
+        </div>
       )}
 
       {view === 'explore' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: '20px' }}>
           <h2>🏆 Leaderboard</h2>
           <input className="input-field" placeholder="Search handles..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-          <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }} className="card">
+          <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }} className="card" style={{ margin: 0 }}>
             {leaderboard.filter(u => u.handle.toLowerCase().includes(searchQuery.toLowerCase())).map((leader, index) => (
               <motion.div key={leader.id} variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0, transition: { type: "spring" } } }} onClick={() => loadPublicProfile(leader.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', borderBottom: '1px solid var(--bg-surface-hover)', cursor: 'pointer' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -381,22 +468,33 @@ export default function App() {
       {view === 'pro' && (
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="card" style={{ textAlign: 'center', background: 'linear-gradient(145deg, #1f1f22, #2a2015)', border: '1px solid var(--accent-pro)' }}>
           <h1 style={{ fontSize: '40px', margin: '0' }}>👑</h1>
-          <h2 style={{ color: 'var(--accent-pro)' }}>{user.is_pro ? 'God Mode Active' : 'Unlock God Mode'}</h2>
+          <h2 style={{ color: 'var(--accent-pro)' }}>{user.is_pro ? 'The 1% Club Active' : 'Unlock The 1% Club'}</h2>
           {!user.is_pro && <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn-primary" style={{ background: 'var(--accent-pro)', color: '#000', marginTop: '20px' }} onClick={handleUpgrade}>Upgrade Now - ₹99</motion.button>}
         </motion.div>
       )}
 
       {view === 'inbox' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <div className="card" style={{ padding: '20px', textAlign: 'center', marginBottom: '15px' }}>
-            <h3 style={{ margin: 0, color: user.is_pro ? 'var(--accent-pro)' : '#fff' }}>{user.is_pro ? '👑 Names Revealed' : '🔒 Names Hidden'}</h3>
-          </div>
-          {inbox.map((vote, index) => (
-            <motion.div key={index} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="card" style={{ marginBottom: '10px', padding: '15px' }}>
-              <p style={{ margin: '0 0 8px 0', fontSize: '18px' }}>"{vote.question}"</p>
-              <p style={{ margin: 0, color: 'var(--text-muted)' }}>Voted by: {vote.voterHandle ? <strong style={{ color: 'var(--accent-pro)' }}>{vote.voterAvatar} @{vote.voterHandle}</strong> : <span style={{ color: '#ef4444' }}>🔒 Hidden</span>}</p>
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} style={{ padding: '20px' }}>
+          <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>Activity</h2>
+          {['girl', 'boy', 'girl'].map((senderGender, index) => (
+            <motion.div 
+              key={index} 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="card" 
+              style={{ display: 'flex', alignItems: 'center', padding: '20px', marginBottom: '10px', cursor: 'pointer', background: 'var(--bg-surface-hover)', margin: '0 0 10px 0' }}
+              onClick={() => handleNav('pro')}
+            >
+              <div style={{ fontSize: '32px', marginRight: '20px', filter: senderGender === 'girl' ? 'hue-rotate(-50deg)' : 'hue-rotate(180deg)' }}>🔥</div>
+              <div style={{ flex: 1 }}>
+                <h4 style={{ margin: '0 0 5px 0', fontSize: '18px' }}>From a {senderGender} in Class 11</h4>
+                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '14px' }}>{index + 1}h ago</p>
+              </div>
             </motion.div>
           ))}
+          <button className="btn-primary" style={{ width: '100%', marginTop: '20px', background: '#27272a', padding: '16px' }} onClick={() => handleNav('pro')}>
+            🔒 See who likes you
+          </button>
         </motion.div>
       )}
     </div>
