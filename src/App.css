@@ -1,8 +1,3 @@
-#root {
-  width: 100vw;
-  height: 100svh;
-  overflow: hidden;
-}
 :root {
   --gas-orange: #ff6200;
   --gas-bg: #f4f4f5;
@@ -12,31 +7,36 @@
   --gas-muted: #a1a1aa;
 }
 
-html, body {
+body {
   margin: 0; padding: 0;
-  width: 100vw; height: 100svh;
-  overflow: hidden; 
-  touch-action: none; /* Prevents mobile browser pull-to-refresh */
+  background: #e4e4e7; /* Grey background for PC monitors */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background: var(--gas-bg);
   -webkit-tap-highlight-color: transparent;
+  touch-action: none; /* Prevents mobile browser pull-to-refresh */
 }
+
 #root {
   width: 100vw;
   height: 100svh;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
 }
 
 .gas-app-container {
   width: 100%;
-  height: 100svh; /* Change this from 100% to 100svh */
+  max-width: 400px; /* Locks UI to iPhone dimensions on PC */
+  height: 100svh;
+  max-height: 900px;
   background: #fff;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
 }
+
 /* --- Top Navigation --- */
 .gas-top-nav {
   display: flex; justify-content: space-between; align-items: center;
@@ -82,6 +82,14 @@ html, body {
   display: flex; justify-content: space-between; align-items: center;
   font-weight: 700; font-size: 18px; cursor: pointer;
 }
+.gas-scroll-picker {
+  max-height: 350px;
+  overflow-y: auto;
+  scrollbar-width: none; /* Hides scrollbar on Firefox */
+}
+.gas-scroll-picker::-webkit-scrollbar {
+  display: none; /* Hides scrollbar on Chrome/Safari */
+}
 
 /* --- Fluid Polling View --- */
 .gas-poll-bg {
@@ -110,28 +118,49 @@ html, body {
 .gas-add-btn {
   background: var(--gas-orange); color: #fff; border: none; padding: 8px 16px; border-radius: 16px; font-weight: 800; font-size: 14px; cursor: pointer;
 }
+.gas-hide-text {
+  color: var(--gas-muted); font-size: 12px; font-weight: 700; margin-right: 15px; cursor: pointer;
+}
 
 /* --- Profile & Aggressive Pro Upsell --- */
 .gas-pro-banner {
   background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color: #000;
   margin: 20px; padding: 20px; border-radius: 16px; text-align: center; font-weight: 900;
   box-shadow: 0 10px 20px rgba(251, 191, 36, 0.3);
+  cursor: pointer;
 }
 .gas-profile-header { display: flex; padding: 20px; align-items: center; }
 .gas-btn-outline {
   border: 2px solid var(--gas-border); background: #fff; color: var(--gas-muted);
-  padding: 10px 16px; border-radius: 20px; font-weight: 800; font-size: 14px;
+  padding: 10px 16px; border-radius: 20px; font-weight: 800; font-size: 14px; cursor: pointer;
+}
+.gas-btn-shop {
+  border: 2px solid var(--gas-border); background: #fff; position: relative;
+  display: flex; align-items: center; border-radius: 24px; padding: 5px 5px 5px 15px; font-weight: 800; cursor: pointer;
 }
 .gas-flame-item {
   display: flex; align-items: center; padding: 20px; border-bottom: 1px solid var(--gas-border);
 }
+.gas-flame-rank {
+  background: var(--gas-orange); color: #fff; width: 20px; height: 20px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; position: absolute; bottom: -5px; right: -5px;
+}
+
+/* --- Edit Profile --- */
+.gas-edit-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 20px; border-bottom: 1px solid var(--gas-border);
+  font-weight: 700; color: var(--gas-text); cursor: pointer;
+}
+.gas-edit-label { color: var(--gas-muted); width: 100px; }
+
+/* --- Modals --- */
 .gas-sticky-btn {
   position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
   background: #000; color: #fff; padding: 20px 40px; border-radius: 30px;
-  font-weight: 800; font-size: 16px; border: none; width: 90%; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+  font-weight: 800; font-size: 16px; border: none; width: 90%; box-shadow: 0 10px 20px rgba(0,0,0,0.2); cursor: pointer;
 }
-
-/* --- Modals --- */
 .gas-shop-overlay {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.6); z-index: 1000; display: flex; flex-direction: column; justify-content: flex-end;
@@ -139,4 +168,11 @@ html, body {
 .gas-shop-modal {
   background: #111; color: #fff; border-top-left-radius: 32px; border-top-right-radius: 32px;
   padding: 30px 20px; height: 85svh; display: flex; flex-direction: column; align-items: center;
+}
+.gas-shop-card {
+  background: #27272a; border-radius: 16px; padding: 20px; width: 100%;
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; box-sizing: border-box;
+}
+.gas-shop-btn {
+  background: #fbbf24; color: #000; border: none; padding: 8px 16px; border-radius: 16px; font-weight: 900; cursor: pointer;
 }

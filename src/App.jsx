@@ -34,7 +34,7 @@ export default function App() {
     else { setCurrentOptions(getRandomNames()); }
   };
 
-  const renderOnboarding = () => {
+ const renderOnboarding = () => {
     if (obStep === 0) return null;
     return (
       <AnimatePresence mode="wait">
@@ -43,23 +43,69 @@ export default function App() {
           {obStep > 1 && (
             <div style={{ padding: '20px', textAlign: 'center', fontWeight: 800, fontSize: '20px', position: 'relative' }}>
               <div style={{ position: 'absolute', left: '20px', top: '20px', cursor: 'pointer' }} onClick={() => setObStep(obStep - 1)}>❮</div>
-              {obStep === 2 && "Enable Access"} {obStep === 3 && "Your Grade"} {obStep === 4 && "Find School"}
+              {obStep === 2 && "Please allow access"} 
+              {obStep === 3 && "What grade are you in?"} 
+              {obStep === 4 && "Pick your school"}
             </div>
           )}
 
+          {/* STEP 1: Scrollable Age Picker */}
           {obStep === 1 && (
             <div className="gas-ob-content">
               <h1 style={{ fontSize: '64px', margin: '0 0 40px 0', letterSpacing: '-2px' }}>GAS</h1>
               <h3 style={{ color: '#ff6200', marginBottom: '20px' }}>Enter your age</h3>
-              <div className="gas-ob-bottom-sheet" style={{ background: '#27272a' }}>
-                {[14, 15, 16, 17].map(a => (
-                  <motion.div whileTap={{ backgroundColor: '#3f3f46' }} key={a} onClick={() => setObStep(2)} style={{ padding: '20px', color: '#fff', fontSize: '24px', fontWeight: 'bold', borderBottom: '1px solid #3f3f46', textAlign: 'center' }}>{a}</motion.div>
+              <div className="gas-ob-bottom-sheet gas-scroll-picker" style={{ background: '#27272a' }}>
+                {[10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map(a => (
+                  <motion.div whileTap={{ backgroundColor: '#3f3f46' }} key={a} onClick={() => setObStep(2)} style={{ padding: '20px', color: '#fff', fontSize: '24px', fontWeight: 'bold', borderBottom: '1px solid #3f3f46', textAlign: 'center' }}>
+                    {a}
+                  </motion.div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Skipped steps 2-4 for brevity in UX flow, focusing on mobile input */}
+          {/* STEP 2: Permissions (Restored) */}
+          {obStep === 2 && (
+            <div className="gas-ob-content">
+              <h1 style={{ fontSize: '64px', margin: '0 0 20px 0' }}>GAS</h1>
+              <p style={{ fontSize: '18px', marginBottom: '60px', maxWidth: '250px' }}>Gas needs to find your school and suggest friends.</p>
+              <button className="gas-ob-white-btn" onClick={() => setObStep(3)}>🗺️ Enable Location</button>
+              <button className="gas-ob-white-btn" onClick={() => setObStep(3)}>📇 Enable Contacts</button>
+            </div>
+          )}
+
+          {/* STEP 3: Grade (Restored) */}
+          {obStep === 3 && (
+            <div className="gas-ob-bottom-sheet">
+              <div style={{ padding: '15px 20px', color: '#a1a1aa', fontSize: '14px', background: '#f4f4f5', fontWeight: 'bold' }}>HIGH SCHOOL</div>
+              {['Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'].map((g, i) => (
+                <div key={g} className="gas-ob-list-item" onClick={() => setObStep(4)}>
+                  {g} <span style={{ color: '#a1a1aa', fontSize: '14px', fontWeight: 'normal' }}>CLASS OF {2027 - i}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* STEP 4: School (Restored) */}
+          {obStep === 4 && (
+            <div className="gas-ob-bottom-sheet">
+              <div style={{ padding: '15px 20px', background: '#f4f4f5' }}>
+                <input type="text" placeholder="🔍 Search..." style={{ width: '100%', padding: '12px', borderRadius: '8px', border: 'none', background: '#e4e4e7', fontSize: '16px', boxSizing: 'border-box' }} />
+              </div>
+              <div className="gas-ob-list-item" onClick={() => setObStep(5)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <div style={{ fontSize: '24px' }}>🏫</div>
+                  <div>
+                    <div style={{ color: '#ff6200', fontWeight: '800' }}>St. Kabir Convent</div>
+                    <div style={{ color: '#a1a1aa', fontSize: '12px', fontWeight: 'normal' }}>Bathinda, Punjab</div>
+                  </div>
+                </div>
+                <div style={{ color: '#ff6200', textAlign: 'right', fontWeight: '800' }}>1,515<br/><span style={{ fontSize: '10px', color: '#a1a1aa' }}>MEMBERS</span></div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 5: Username */}
           {obStep === 5 && (
             <div className="gas-ob-content">
               <h2>Choose a username</h2>
@@ -68,14 +114,15 @@ export default function App() {
             </div>
           )}
 
+          {/* STEP 6: Gender */}
           {obStep === 6 && (
             <div className="gas-ob-content">
-              <h2 style={{ marginBottom: '40px' }}>Your Avatar</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', width: '90%' }}>
-                <motion.div whileTap={{ scale: 0.9 }} style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '24px', padding: '40px 10px' }} onClick={() => { setAvatar('👦'); setObStep(0); }}>
+              <h2 style={{ marginBottom: '40px' }}>What's your gender?</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', width: '100%', maxWidth: '320px' }}>
+                <motion.div whileTap={{ scale: 0.9 }} style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '24px', padding: '40px 10px', cursor: 'pointer' }} onClick={() => { setAvatar('👦'); setObStep(0); }}>
                   <div style={{ fontSize: '70px' }}>👦</div><div style={{ marginTop: '10px', fontWeight: 'bold' }}>Boy</div>
                 </motion.div>
-                <motion.div whileTap={{ scale: 0.9 }} style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '24px', padding: '40px 10px' }} onClick={() => { setAvatar('👧'); setObStep(0); }}>
+                <motion.div whileTap={{ scale: 0.9 }} style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '24px', padding: '40px 10px', cursor: 'pointer' }} onClick={() => { setAvatar('👧'); setObStep(0); }}>
                   <div style={{ fontSize: '70px' }}>👧</div><div style={{ marginTop: '10px', fontWeight: 'bold' }}>Girl</div>
                 </motion.div>
               </div>
