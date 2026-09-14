@@ -1,3 +1,8 @@
+#root {
+  width: 100vw;
+  height: 100svh;
+  overflow: hidden;
+}
 :root {
   --gas-orange: #ff6200;
   --gas-bg: #f4f4f5;
@@ -16,17 +21,22 @@ html, body {
   background: var(--gas-bg);
   -webkit-tap-highlight-color: transparent;
 }
+#root {
+  width: 100vw;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
 
 .gas-app-container {
   width: 100%;
-  height: 100%;
+  height: 100svh; /* Change this from 100% to 100svh */
   background: #fff;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
 }
-
 /* --- Top Navigation --- */
 .gas-top-nav {
   display: flex; justify-content: space-between; align-items: center;
