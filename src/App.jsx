@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
+import { motion, AnimatePresence } from 'framer-motion';
+import bgVideo from './assets/campus_promo.mp4'; // Add this line!
 
 const API = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://campusfeed-backend-po4g.onrender.com/api';
 
@@ -151,14 +155,15 @@ export default function App() {
       
       if (!orderRes.ok) throw new Error(orderData.error);
 
-      // 2. Open standard web checkout with live ID
+      // 2. Open standard web checkout securely
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_TcMElkxc0e3qRM', 
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Strict environment variable
         amount: orderData.amount, 
         currency: orderData.currency, 
         name: 'CampusFeed', 
         description: 'Unlock God Mode', 
         order_id: orderData.id,
+        // ... rest of the handler remains the same
         handler: async (response) => {
           // 3. Verify on backend
           const verifyRes = await fetch(`${API}/pay/verify`, { 
@@ -197,59 +202,72 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="gas-app-container" style={{ background: '#09090b', overflowY: 'auto' }}>
-        <div style={{ minHeight: '100svh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative' }}>
-          
-          <div style={{ position: 'absolute', top: '20px', left: '20px', fontWeight: 'bold', letterSpacing: '2px', color: '#fff' }}>
-            CAMPUSFEED®
-          </div>
-          
-          <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} style={{ textAlign: 'center', width: '100%' }}>
-            <h1 style={{ fontSize: '72px', margin: 0, color: '#ff6200', letterSpacing: '-2px' }}>CAMPUS</h1>
-            <div style={{ fontSize: '24px', color: '#fff', fontStyle: 'italic', marginTop: '-10px' }}>stop guessing.</div>
-          </motion.div>
-
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} style={{ marginTop: '40px', fontSize: '18px', color: '#a1a1aa', maxWidth: '400px', textAlign: 'center' }}>
-            The anonymous network designed exclusively for Class 11. Find out who really likes you.
-          </motion.p>
-
-          <motion.button initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 }}
-            style={{ width: 'auto', padding: '16px 40px', borderRadius: '30px', marginTop: '40px', background: '#fff', color: '#000', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '16px' }}
-            onClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })}>
-            ENTER NETWORK ➔
-          </motion.button>
+      <div className="gas-app-container" style={{ background: '#09090b', overflowY: 'auto', position: 'relative' }}>
+        
+        {/* BACKGROUND VIDEO ENGINE */}
+        <div className="gas-video-wrapper">
+          <video className="gas-video-bg" autoPlay loop muted playsInline>
+            <source src={bgVideo} type="video/mp4" />
+          </video>
+          <div className="gas-video-overlay"></div>
         </div>
 
-        <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', padding: '20px 0', background: '#ff6200' }}>
-          <motion.div animate={{ x: [0, -1000] }} transition={{ repeat: Infinity, duration: 20, ease: "linear" }} style={{ display: 'inline-block', fontSize: '20px', fontWeight: 'bold', color: '#fff' }}>
-            [100% ANONYMOUS] • [GOD MODE ENABLED] • [ST KABIR ONLY] • [100% ANONYMOUS] • [GOD MODE ENABLED] • [ST KABIR ONLY] • 
-          </motion.div>
-        </div>
-
-        <div id="login-portal" style={{ minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: '#18181b' }}>
-          <div style={{ width: '100%', maxWidth: '350px' }}>
-            <h2 style={{ fontSize: '32px', textAlign: 'center', marginBottom: '30px', color: '#fff' }}>Join the Loop.</h2>
+        {/* LANDING PAGE CONTENT (Scrolls over the video) */}
+        <div className="gas-landing-content">
+          <div style={{ minHeight: '100svh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative' }}>
             
-            <div style={{ background: '#27272a', padding: '24px', borderRadius: '16px' }}>
-              <input style={{ width: '100%', padding: '12px', boxSizing: 'border-box', marginBottom: '15px', borderRadius: '8px', border: 'none', background: '#3f3f46', color: '#fff' }} placeholder="@handle" value={handle} onChange={(e) => setHandle(e.target.value)} />
-              <input style={{ width: '100%', padding: '12px', boxSizing: 'border-box', marginBottom: '15px', borderRadius: '8px', border: 'none', background: '#3f3f46', color: '#fff' }} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-              <select style={{ width: '100%', padding: '12px', boxSizing: 'border-box', marginBottom: '15px', borderRadius: '8px', border: 'none', background: '#3f3f46', color: '#fff' }} value={grade} onChange={(e) => setGrade(e.target.value)}>
-                <option value="11">Class 11 (St. Kabir)</option>
-                <option value="12">Class 12 (St. Kabir)</option>
-              </select>
-              <button style={{ width: '100%', padding: '14px', borderRadius: '8px', border: 'none', background: '#ff6200', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }} onClick={login}>
-                {isAuthenticating ? 'Authenticating...' : 'Connect ➔'}
-              </button>
+            <div style={{ position: 'absolute', top: '20px', left: '20px', fontWeight: 'bold', letterSpacing: '2px', color: '#fff' }}>
+              CAMPUSFEED®
             </div>
+            
+            <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} style={{ textAlign: 'center', width: '100%' }}>
+              <h1 style={{ fontSize: '72px', margin: 0, color: '#ff6200', letterSpacing: '-2px' }}>CAMPUS</h1>
+              <div style={{ fontSize: '24px', color: '#fff', fontStyle: 'italic', marginTop: '-10px' }}>stop guessing.</div>
+            </motion.div>
 
-            <div style={{ marginTop: '30px', textAlign: 'center', fontSize: '13px', color: '#a1a1aa' }}>
-              <p>By entering, you agree to our <br/>
-                <span onClick={() => setLegalView('terms')} style={{ color: '#fff', textDecoration: 'underline', cursor: 'pointer' }}>Terms & Conditions</span>
-              </p>
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} style={{ marginTop: '40px', fontSize: '18px', color: '#e4e4e7', maxWidth: '400px', textAlign: 'center', fontWeight: '500' }}>
+              The anonymous network designed exclusively for Class 11. Find out who really likes you.
+            </motion.p>
+
+            <motion.button initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 }}
+              style={{ width: 'auto', padding: '16px 40px', borderRadius: '30px', marginTop: '40px', background: '#fff', color: '#000', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '16px' }}
+              onClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })}>
+              ENTER NETWORK ➔
+            </motion.button>
+          </div>
+
+          <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', padding: '20px 0', background: '#ff6200' }}>
+            <motion.div animate={{ x: [0, -1000] }} transition={{ repeat: Infinity, duration: 20, ease: "linear" }} style={{ display: 'inline-block', fontSize: '20px', fontWeight: 'bold', color: '#fff' }}>
+              [100% ANONYMOUS] • [GOD MODE ENABLED] • [ST KABIR ONLY] • [100% ANONYMOUS] • [GOD MODE ENABLED] • [ST KABIR ONLY] • 
+            </motion.div>
+          </div>
+
+          <div id="login-portal" style={{ minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+            <div style={{ width: '100%', maxWidth: '350px' }}>
+              <h2 style={{ fontSize: '32px', textAlign: 'center', marginBottom: '30px', color: '#fff' }}>Join the Loop.</h2>
+              
+              <div style={{ background: 'rgba(39, 39, 42, 0.85)', backdropFilter: 'blur(10px)', padding: '24px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <input style={{ width: '100%', padding: '12px', boxSizing: 'border-box', marginBottom: '15px', borderRadius: '8px', border: 'none', background: '#3f3f46', color: '#fff' }} placeholder="@handle" value={handle} onChange={(e) => setHandle(e.target.value)} />
+                <input style={{ width: '100%', padding: '12px', boxSizing: 'border-box', marginBottom: '15px', borderRadius: '8px', border: 'none', background: '#3f3f46', color: '#fff' }} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <select style={{ width: '100%', padding: '12px', boxSizing: 'border-box', marginBottom: '15px', borderRadius: '8px', border: 'none', background: '#3f3f46', color: '#fff' }} value={grade} onChange={(e) => setGrade(e.target.value)}>
+                  <option value="11">Class 11 (St. Kabir)</option>
+                  <option value="12">Class 12 (St. Kabir)</option>
+                </select>
+                <button style={{ width: '100%', padding: '14px', borderRadius: '8px', border: 'none', background: '#ff6200', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }} onClick={login}>
+                  {isAuthenticating ? 'Authenticating...' : 'Connect ➔'}
+                </button>
+              </div>
+
+              <div style={{ marginTop: '30px', textAlign: 'center', fontSize: '13px', color: '#a1a1aa' }}>
+                <p>By entering, you agree to our <br/>
+                  <span onClick={() => setLegalView('terms')} style={{ color: '#fff', textDecoration: 'underline', cursor: 'pointer' }}>Terms & Conditions</span>
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
+        {/* Legal View Modal remains exactly the same */}
         <AnimatePresence>
           {legalView && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setLegalView(null)}>
