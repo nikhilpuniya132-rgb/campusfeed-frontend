@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
-import confetti from 'canvas-confetti';
-import { motion, AnimatePresence } from 'framer-motion';
 import bgVideo from './assets/campus_promo.mp4'; // Add this line!
 
 const API = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://campusfeed-backend-po4g.onrender.com/api';
