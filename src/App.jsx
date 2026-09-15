@@ -227,9 +227,15 @@ export default function App() {
             </motion.p>
 
             <motion.button initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 }}
-              style={{ width: 'auto', padding: '16px 40px', borderRadius: '30px', marginTop: '40px', background: '#fff', color: '#000', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '16px' }}
+              className="magic-btn"
               onClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })}>
               ENTER NETWORK ➔
+              <svg viewBox="0 0 24 24" className="star star-1" xmlns="http://www.w3.org/2000/svg"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z"/></svg>
+              <svg viewBox="0 0 24 24" className="star star-2" xmlns="http://www.w3.org/2000/svg"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z"/></svg>
+              <svg viewBox="0 0 24 24" className="star star-3" xmlns="http://www.w3.org/2000/svg"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z"/></svg>
+              <svg viewBox="0 0 24 24" className="star star-4" xmlns="http://www.w3.org/2000/svg"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z"/></svg>
+              <svg viewBox="0 0 24 24" className="star star-5" xmlns="http://www.w3.org/2000/svg"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z"/></svg>
+              <svg viewBox="0 0 24 24" className="star star-6" xmlns="http://www.w3.org/2000/svg"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z"/></svg>
             </motion.button>
           </div>
 
