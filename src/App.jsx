@@ -3,7 +3,6 @@ import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://campusfeed-backend-po4g.onrender.com/api';
-const RAZORPAY_KEY_ID = 'rzp_test_YOUR_ACTUAL_TEST_KEY_ID'; 
 
 const AURA_RINGS = {
   none: { border: 'none', boxShadow: 'none' },
@@ -142,42 +141,107 @@ export default function App() {
 
   const handleUpgrade = async () => {
     try {
-      const orderRes = await fetch(`${API}/pay/order`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) });
+      // 1. Backend creates order
+      const orderRes = await fetch(`${API}/pay/order`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ userId: user.id, amount: 9900 }) 
+      });
       const orderData = await orderRes.json();
+      
+      if (!orderRes.ok) throw new Error(orderData.error);
+
+      // 2. Open standard web checkout with live ID
       const options = {
-        key: RAZORPAY_KEY_ID, amount: orderData.amount, currency: 'INR', name: 'CampusFeed', description: 'Unlock God Mode', order_id: orderData.id,
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_TcMElkxc0e3qRM', 
+        amount: orderData.amount, 
+        currency: orderData.currency, 
+        name: 'CampusFeed', 
+        description: 'Unlock God Mode', 
+        order_id: orderData.id,
         handler: async (response) => {
-          const verifyRes = await fetch(`${API}/pay/verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...response, userId: user.id }) });
-          if ((await verifyRes.json()).success) { alert('👑 God Mode Unlocked!'); setUser({ ...user, is_pro: true, ring: 'gold' }); handleNav('inbox'); }
-        }, theme: { color: '#fbbf24' }
+          // 3. Verify on backend
+          const verifyRes = await fetch(`${API}/pay/verify`, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ 
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              userId: user.id 
+            }) 
+          });
+          
+          const verifyData = await verifyRes.json();
+          if (verifyData.success) { 
+            alert('👑 God Mode Unlocked!'); 
+            setUser({ ...user, is_pro: true, ring: 'gold' }); 
+            handleNav('inbox'); 
+          } else {
+            alert('Payment verification failed: ' + verifyData.error);
+          }
+        }, 
+        theme: { color: '#fbbf24' }
       };
-      new window.Razorpay(options).open();
-    } catch (e) { alert('Checkout error.'); }
+      
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response){
+        alert("Payment Failed: " + response.error.description);
+      });
+      rzp.open();
+    } catch (e) { 
+      alert('Checkout error. Ensure backend is running.'); 
+      console.error(e);
+    }
   };
 
   if (!user) {
     return (
-      <div className="gas-app-container">
-        <div className="gas-ob-screen">
-          <div className="gas-ob-content">
-            <h1 style={{ fontSize: '48px', color: '#fff', marginBottom: '40px' }}>CampusFeed</h1>
+      <div className="gas-app-container" style={{ background: '#09090b', overflowY: 'auto' }}>
+        <div style={{ minHeight: '100svh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative' }}>
+          
+          <div style={{ position: 'absolute', top: '20px', left: '20px', fontWeight: 'bold', letterSpacing: '2px', color: '#fff' }}>
+            CAMPUSFEED®
+          </div>
+          
+          <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} style={{ textAlign: 'center', width: '100%' }}>
+            <h1 style={{ fontSize: '72px', margin: 0, color: '#ff6200', letterSpacing: '-2px' }}>CAMPUS</h1>
+            <div style={{ fontSize: '24px', color: '#fff', fontStyle: 'italic', marginTop: '-10px' }}>stop guessing.</div>
+          </motion.div>
+
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} style={{ marginTop: '40px', fontSize: '18px', color: '#a1a1aa', maxWidth: '400px', textAlign: 'center' }}>
+            The anonymous network designed exclusively for Class 11. Find out who really likes you.
+          </motion.p>
+
+          <motion.button initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 }}
+            style={{ width: 'auto', padding: '16px 40px', borderRadius: '30px', marginTop: '40px', background: '#fff', color: '#000', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '16px' }}
+            onClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })}>
+            ENTER NETWORK ➔
+          </motion.button>
+        </div>
+
+        <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', padding: '20px 0', background: '#ff6200' }}>
+          <motion.div animate={{ x: [0, -1000] }} transition={{ repeat: Infinity, duration: 20, ease: "linear" }} style={{ display: 'inline-block', fontSize: '20px', fontWeight: 'bold', color: '#fff' }}>
+            [100% ANONYMOUS] • [GOD MODE ENABLED] • [ST KABIR ONLY] • [100% ANONYMOUS] • [GOD MODE ENABLED] • [ST KABIR ONLY] • 
+          </motion.div>
+        </div>
+
+        <div id="login-portal" style={{ minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: '#18181b' }}>
+          <div style={{ width: '100%', maxWidth: '350px' }}>
+            <h2 style={{ fontSize: '32px', textAlign: 'center', marginBottom: '30px', color: '#fff' }}>Join the Loop.</h2>
             
-            <div style={{ background: '#18181b', padding: '20px', borderRadius: '16px', width: '90%', maxWidth: '350px' }}>
-              <input className="gas-ob-input" style={{ width: '100%', fontSize: '20px', marginBottom: '20px' }} placeholder="@handle" value={handle} onChange={(e) => setHandle(e.target.value)} />
-              <input className="gas-ob-input" style={{ width: '100%', fontSize: '20px', marginBottom: '20px' }} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-              
-              <select className="gas-ob-input" style={{ width: '100%', fontSize: '20px', marginBottom: '20px', appearance: 'none' }} value={grade} onChange={(e) => setGrade(e.target.value)}>
-                <option value="9">Class 9</option>
-                <option value="10">Class 10</option>
-                <option value="11">Class 11</option>
-                <option value="12">Class 12</option>
+            <div style={{ background: '#27272a', padding: '24px', borderRadius: '16px' }}>
+              <input style={{ width: '100%', padding: '12px', boxSizing: 'border-box', marginBottom: '15px', borderRadius: '8px', border: 'none', background: '#3f3f46', color: '#fff' }} placeholder="@handle" value={handle} onChange={(e) => setHandle(e.target.value)} />
+              <input style={{ width: '100%', padding: '12px', boxSizing: 'border-box', marginBottom: '15px', borderRadius: '8px', border: 'none', background: '#3f3f46', color: '#fff' }} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <select style={{ width: '100%', padding: '12px', boxSizing: 'border-box', marginBottom: '15px', borderRadius: '8px', border: 'none', background: '#3f3f46', color: '#fff' }} value={grade} onChange={(e) => setGrade(e.target.value)}>
+                <option value="11">Class 11 (St. Kabir)</option>
+                <option value="12">Class 12 (St. Kabir)</option>
               </select>
-              
-              <button className="gas-ob-white-btn" style={{ width: '100%' }} onClick={login}>
-                {isAuthenticating ? 'Connecting...' : 'Connect ➔'}
+              <button style={{ width: '100%', padding: '14px', borderRadius: '8px', border: 'none', background: '#ff6200', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }} onClick={login}>
+                {isAuthenticating ? 'Authenticating...' : 'Connect ➔'}
               </button>
             </div>
-            
+
             <div style={{ marginTop: '30px', textAlign: 'center', fontSize: '13px', color: '#a1a1aa' }}>
               <p>By entering, you agree to our <br/>
                 <span onClick={() => setLegalView('terms')} style={{ color: '#fff', textDecoration: 'underline', cursor: 'pointer' }}>Terms & Conditions</span>
@@ -188,11 +252,11 @@ export default function App() {
 
         <AnimatePresence>
           {legalView && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="gas-shop-overlay" onClick={() => setLegalView(null)}>
-              <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="gas-shop-modal" onClick={e => e.stopPropagation()}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setLegalView(null)}>
+              <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} style={{ background: '#fff', color: '#000', padding: '30px', borderRadius: '16px', width: '80%' }} onClick={e => e.stopPropagation()}>
                 <h2 style={{ color: '#ff6200', marginTop: 0 }}>{legalView === 'terms' ? 'Terms & Conditions' : 'Privacy Policy'}</h2>
                 <p>Standard Razorpay compliance text goes here.</p>
-                <button className="gas-ob-white-btn" style={{ marginTop: 'auto' }} onClick={() => setLegalView(null)}>Close</button>
+                <button style={{ padding: '10px 20px', background: '#000', color: '#fff', border: 'none', borderRadius: '8px' }} onClick={() => setLegalView(null)}>Close</button>
               </motion.div>
             </motion.div>
           )}
@@ -203,7 +267,6 @@ export default function App() {
 
   return (
     <div className="gas-app-container">
-      {/* Top Navigation */}
       <div className="gas-top-nav">
         <motion.span whileTap={{ scale: 0.9 }} className={`gas-nav-item ${view === 'poll' ? 'active' : ''}`} onClick={() => handleNav('poll')}>Feed</motion.span>
         <motion.span whileTap={{ scale: 0.9 }} className={`gas-nav-item ${view === 'inbox' ? 'active' : ''}`} onClick={() => handleNav('inbox')}>Inbox</motion.span>
@@ -213,38 +276,37 @@ export default function App() {
       </div>
 
       <AnimatePresence mode="wait">
-        
         {view === 'poll' && (
-          <motion.div key="poll" {...pageVariants} className="gas-poll-bg">
+          <motion.div key="poll" {...pageVariants} className="gas-poll-bg" style={{ background: '#7a8f9f', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '15px' }}>
-              <button className="gas-ob-white-btn" style={{ flex: 1, padding: '10px', fontSize: '14px', background: gradeFilter !== 'all' ? '#ff6200' : '#fff', color: gradeFilter !== 'all' ? '#fff' : '#000' }} onClick={() => loadNextPoll(user.grade.toString())}>My Class</button>
-              <button className="gas-ob-white-btn" style={{ flex: 1, padding: '10px', fontSize: '14px', background: gradeFilter === 'all' ? '#ff6200' : '#fff', color: gradeFilter === 'all' ? '#fff' : '#000' }} onClick={() => loadNextPoll('all')}>Whole School</button>
+              <button style={{ flex: 1, padding: '10px', fontSize: '14px', borderRadius: '8px', border: 'none', fontWeight: 'bold', background: gradeFilter !== 'all' ? '#ff6200' : '#fff', color: gradeFilter !== 'all' ? '#fff' : '#000' }} onClick={() => loadNextPoll(user.grade.toString())}>My Class</button>
+              <button style={{ flex: 1, padding: '10px', fontSize: '14px', borderRadius: '8px', border: 'none', fontWeight: 'bold', background: gradeFilter === 'all' ? '#ff6200' : '#fff', color: gradeFilter === 'all' ? '#fff' : '#000' }} onClick={() => loadNextPoll('all')}>Whole School</button>
             </div>
             
             <motion.div key={currentPoll?.id || 'loading'} initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               {isLoadingPoll ? (
-                <div style={{ textAlign: 'center', padding: '40px 0' }}><h3>Loading next scenario... ⚡</h3></div>
+                <div style={{ textAlign: 'center', padding: '40px 0', color: '#fff' }}><h3>Loading next scenario... ⚡</h3></div>
               ) : hasVoted ? (
                 <div style={{ textAlign: 'center', padding: '30px 0' }}>
                   <h2 style={{ color: '#fff' }}>Vote Sent! 🚀</h2>
-                  <button className="gas-ob-white-btn" onClick={() => loadNextPoll(gradeFilter)} style={{ marginTop: '20px' }}>Next Question ➔</button>
+                  <button style={{ padding: '15px 30px', background: '#fff', border: 'none', borderRadius: '24px', fontWeight: 'bold', marginTop: '20px' }} onClick={() => loadNextPoll(gradeFilter)}>Next Question ➔</button>
                 </div>
               ) : (
                 <>
-                  <div style={{ fontSize: '26px', fontWeight: 900, marginBottom: 'auto' }}>"{currentPoll?.question || 'No more questions!'}"</div>
+                  <div style={{ fontSize: '32px', color: '#fff', fontWeight: 900, marginBottom: 'auto', textAlign: 'center' }}>"{currentPoll?.question || 'No more questions!'}"</div>
                   {options.length === 0 ? (
-                    <p style={{ textAlign: 'center', margin: '20px 0' }}>Not enough classmates in this filter!</p>
+                    <p style={{ textAlign: 'center', margin: '20px 0', color: '#fff' }}>Not enough classmates in this filter!</p>
                   ) : (
-                    <div className="gas-poll-grid">
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
                       {options.map((opt) => (
-                        <motion.button key={opt.id} whileTap={{ scale: 0.95 }} className="gas-poll-btn" onClick={() => castVote(opt.id)}>
+                        <motion.button key={opt.id} whileTap={{ scale: 0.95 }} style={{ background: '#fff', color: '#000', fontWeight: '800', padding: '24px 10px', borderRadius: '16px', border: 'none', fontSize: '16px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} onClick={() => castVote(opt.id)}>
                           {renderProfilePic(opt.profile_pic, opt.avatar, opt.is_pro, opt.ring, 40)}
                           <div style={{ marginTop: '8px' }}>{opt.handle}</div>
                         </motion.button>
                       ))}
                     </div>
                   )}
-                  <button onClick={() => loadNextPoll(gradeFilter)} style={{ background: 'transparent', color: '#fff', border: 'none', marginTop: '20px', width: '100%', cursor: 'pointer', padding: '15px' }}>Skip Question</button>
+                  <button onClick={() => loadNextPoll(gradeFilter)} style={{ background: 'transparent', color: '#fff', border: 'none', marginTop: '20px', width: '100%', cursor: 'pointer', padding: '15px', fontWeight: 'bold' }}>Skip Question</button>
                 </>
               )}
             </motion.div>
@@ -252,13 +314,13 @@ export default function App() {
         )}
 
         {view === 'explore' && (
-          <motion.div key="explore" {...pageVariants} className="gas-scroll-area" style={{ padding: '20px' }}>
+          <motion.div key="explore" {...pageVariants} style={{ flex: 1, overflowY: 'auto', padding: '20px', background: '#fff' }}>
             <h2 style={{ marginTop: 0 }}>🏆 Leaderboard</h2>
             <input type="text" placeholder="Search handles..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ width: '100%', padding: '15px', borderRadius: '12px', border: 'none', background: '#f4f4f5', fontSize: '16px', boxSizing: 'border-box', marginBottom: '20px' }} />
             
             <div>
               {leaderboard.filter(u => u.handle.toLowerCase().includes(searchQuery.toLowerCase())).map((leader, index) => (
-                <motion.div key={leader.id} onClick={() => loadPublicProfile(leader.id)} className="gas-add-row" style={{ padding: '15px 0' }}>
+                <motion.div key={leader.id} onClick={() => loadPublicProfile(leader.id)} style={{ display: 'flex', alignItems: 'center', padding: '15px 0', borderBottom: '1px solid #e4e4e7', cursor: 'pointer' }}>
                   <div style={{ fontWeight: 'bold', marginRight: '15px', width: '25px' }}>#{index + 1}</div>
                   {renderProfilePic(leader.profile_pic, leader.avatar, leader.is_pro, leader.ring, 40)}
                   <div style={{ flex: 1, marginLeft: '15px' }}>
@@ -271,30 +333,12 @@ export default function App() {
           </motion.div>
         )}
 
-        {view === 'publicProfile' && (
-          <motion.div key="publicProfile" {...pageVariants} className="gas-scroll-area" style={{ padding: '20px', textAlign: 'center' }}>
-            {publicProfile ? (
-              <>
-                <div style={{ margin: '20px 0' }}>
-                  {renderProfilePic(publicProfile.profile_pic, publicProfile.avatar, publicProfile.is_pro, publicProfile.ring, 120)}
-                </div>
-                <h2 style={{ color: publicProfile.is_pro ? '#fbbf24' : '#000', margin: '10px 0' }}>@{publicProfile.handle}</h2>
-                <p style={{ color: '#a1a1aa', margin: '0 0 15px 0' }}>{publicProfile.bio || 'No bio yet.'}</p>
-                <p style={{ color: '#ff6200', fontWeight: 'bold', marginBottom: '30px' }}>Total Votes: {publicProfile.total_votes}</p>
-                
-                <button className="gas-ob-white-btn" style={{ background: '#000', color: '#fff', width: '100%' }} onClick={() => alert('Anonymous Ping Sent! 🔔')}>Send Anonymous Ping</button>
-                <button className="gas-ob-white-btn" style={{ background: '#f4f4f5', color: '#000', width: '100%' }} onClick={() => handleNav('explore')}>Back to Leaderboard</button>
-              </>
-            ) : <p style={{ color: '#a1a1aa', marginTop: '40px' }}>Loading profile...</p>}
-          </motion.div>
-        )}
-
-        {view === 'profile' && profileData && (
-          <motion.div key="profile" {...pageVariants} className="gas-scroll-area" style={{ padding: '20px', textAlign: 'center' }}>
+        {view === 'profile' && (
+          <motion.div key="profile" {...pageVariants} style={{ flex: 1, overflowY: 'auto', padding: '20px', textAlign: 'center', background: '#fff' }}>
             <div style={{ margin: '20px 0' }}>
-              {renderProfilePic(profileData.user.profile_pic, editAvatar || profileData.user.avatar, profileData.user.is_pro, editRing, 120)}
+              {renderProfilePic(user.profile_pic, editAvatar || user.avatar, user.is_pro, editRing, 120)}
             </div>
-            <h2 style={{ color: profileData.user.is_pro ? '#fbbf24' : '#000', margin: '10px 0' }}>@{profileData.user.handle}</h2>
+            <h2 style={{ color: user.is_pro ? '#fbbf24' : '#000', margin: '10px 0' }}>@{user.handle}</h2>
             
             {isEditing ? (
               <div style={{ textAlign: 'left' }}>
@@ -313,28 +357,28 @@ export default function App() {
                     </div>
                   </div>
                 )}
-                <button className="gas-ob-white-btn" style={{ width: '100%' }} onClick={saveProfile}>Save Profile</button>
+                <button style={{ width: '100%', padding: '15px', background: '#ff6200', color: '#fff', border: 'none', borderRadius: '24px', fontWeight: 'bold' }} onClick={saveProfile}>Save Profile</button>
               </div>
             ) : (
               <div>
-                <p style={{ color: '#a1a1aa', margin: '0 0 15px 0' }}>{profileData.user.bio || 'No bio yet.'}</p>
-                <p style={{ color: '#a1a1aa', marginBottom: '30px' }}>Total Votes Received: {profileData.user.total_votes}</p>
-                <button className="gas-ob-white-btn" style={{ background: '#f4f4f5', color: '#000', width: '100%' }} onClick={() => setIsEditing(true)}>Edit Profile</button>
-                <button className="gas-ob-white-btn" style={{ background: '#ef4444', color: '#fff', width: '100%' }} onClick={deleteAccount}>Delete Account</button>
+                <p style={{ color: '#a1a1aa', margin: '0 0 15px 0' }}>{user.bio || 'Class 11 - St. Kabir'}</p>
+                <p style={{ color: '#a1a1aa', marginBottom: '30px' }}>Total Votes Received: {user.total_votes || 0}</p>
+                <button style={{ width: '100%', padding: '15px', background: '#f4f4f5', color: '#000', border: 'none', borderRadius: '24px', fontWeight: 'bold', marginBottom: '10px' }} onClick={() => setIsEditing(true)}>Edit Profile</button>
+                <button style={{ width: '100%', padding: '15px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '24px', fontWeight: 'bold' }} onClick={deleteAccount}>Delete Account</button>
               </div>
             )}
           </motion.div>
         )}
 
         {view === 'pro' && (
-          <motion.div key="pro" {...pageVariants} className="gas-scroll-area" style={{ padding: '20px', textAlign: 'center' }}>
+          <motion.div key="pro" {...pageVariants} style={{ flex: 1, overflowY: 'auto', padding: '20px', textAlign: 'center', background: '#fff' }}>
             <div style={{ background: '#111', color: '#fff', borderRadius: '24px', padding: '40px 20px', border: '2px solid #fbbf24', marginTop: '20px' }}>
               <h1 style={{ fontSize: '60px', margin: '0 0 20px' }}>👑</h1>
               <h2 style={{ color: '#fbbf24', margin: '0 0 20px' }}>{user.is_pro ? 'God Mode Active' : 'Unlock God Mode'}</h2>
               <p style={{ fontSize: '18px', marginBottom: '30px' }}>{user.is_pro ? 'You have access to all premium features.' : 'Reveal 2 Names Per Week & unlock exclusive Aura Rings.'}</p>
               
               {!user.is_pro && (
-                <motion.button whileTap={{ scale: 0.95 }} className="gas-ob-white-btn" style={{ background: '#fbbf24', color: '#000', width: '100%' }} onClick={handleUpgrade}>
+                <motion.button whileTap={{ scale: 0.95 }} style={{ width: '100%', padding: '15px', background: '#fbbf24', color: '#000', border: 'none', borderRadius: '24px', fontWeight: 'bold' }} onClick={handleUpgrade}>
                   Upgrade Now - ₹99
                 </motion.button>
               )}
@@ -343,7 +387,7 @@ export default function App() {
         )}
 
         {view === 'inbox' && (
-          <motion.div key="inbox" {...pageVariants} className="gas-scroll-area">
+          <motion.div key="inbox" {...pageVariants} style={{ flex: 1, overflowY: 'auto', background: '#fff' }}>
             <div style={{ padding: '20px', textAlign: 'center', background: '#f4f4f5', fontWeight: 'bold' }}>
               <h3 style={{ margin: 0, color: user.is_pro ? '#fbbf24' : '#000' }}>{user.is_pro ? '👑 Names Revealed' : '🔒 Names Hidden'}</h3>
             </div>
