@@ -245,8 +245,14 @@ export default function App() {
             </motion.div>
           </div>
 
-          <div id="login-portal" style={{ minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-            <div style={{ width: '100%', maxWidth: '350px' }}>
+          <div id="login-portal" className="stars-container" style={{ minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative', overflow: 'hidden' }}>
+            
+            {/* Animated Stars Background Layers */}
+            <div className="stars-layer-1" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }} />
+            <div className="stars-layer-2" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }} />
+            <div className="stars-layer-3" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }} />
+
+            <div style={{ width: '100%', maxWidth: '350px', position: 'relative', zIndex: 10 }}>
               <h2 style={{ fontSize: '32px', textAlign: 'center', marginBottom: '30px', color: '#fff' }}>Join the Loop.</h2>
               
               <div style={{ background: 'rgba(39, 39, 42, 0.85)', backdropFilter: 'blur(10px)', padding: '24px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -262,7 +268,7 @@ export default function App() {
               </div>
 
               <div style={{ marginTop: '30px', textAlign: 'center', fontSize: '13px', color: '#a1a1aa' }}>
-                <p>By entering, you agree to our <br/>
+                <p>By entering, you agree to our <br />
                   <span onClick={() => setLegalView('terms')} style={{ color: '#fff', textDecoration: 'underline', cursor: 'pointer' }}>Terms & Conditions</span>
                 </p>
               </div>
@@ -270,7 +276,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Legal View Modal remains exactly the same */}
+        {/* Legal View Modal */}
         <AnimatePresence>
           {legalView && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setLegalView(null)}>
@@ -285,7 +291,7 @@ export default function App() {
       </div>
     );
   }
-
+  
   return (
     <div className="gas-app-container">
       <div className="gas-top-nav">
