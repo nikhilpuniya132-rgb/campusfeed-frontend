@@ -22,6 +22,7 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [grade, setGrade] = useState('11');
   const [avatar, setAvatar] = useState('😎');
+  const [activePlan, setActivePlan] = useState('weekly'); // 'basic', 'weekly', or 'monthly'
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   
   const [activeRevealPopup, setActiveRevealPopup] = useState(null);
@@ -214,20 +215,57 @@ export default function App() {
     return (
       <div className="gas-app-container" style={{ background: '#09090b', overflowY: 'auto', position: 'relative' }}>
         
-        {/* BACKGROUND VIDEO ENGINE */}
-        <div className="gas-video-wrapper">
-          <video className="gas-video-bg" autoPlay loop muted playsInline>
-            <source src={bgVideo} type="video/mp4" />
-          </video>
-          <div className="gas-video-overlay"></div>
-        </div>
+        {/* ============================================== */}
+        {/* HERO SECTION WITH VIDEO & SUPPORT DROPDOWN */}
+        {/* ============================================== */}
+        <div style={{ position: 'relative', minHeight: '100svh' }}>
+          <div className="gas-video-wrapper">
+            <video className="gas-video-bg" autoPlay loop muted playsInline>
+              <source src={bgVideo} type="video/mp4" />
+            </video>
+            <div className="gas-video-overlay"></div>
+          </div>
 
-        {/* LANDING PAGE CONTENT (Scrolls over the video) */}
-        <div className="gas-landing-content">
-          <div style={{ minHeight: '100svh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative' }}>
+          <div className="gas-landing-content" style={{ minHeight: '100svh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative' }}>
             
+            {/* Top Left Logo */}
             <div style={{ position: 'absolute', top: '20px', left: '20px', fontWeight: 'bold', letterSpacing: '2px', color: '#fff' }}>
               CAMPUSFEED®
+            </div>
+
+            {/* Top Right Support Dropdown */}
+            <div className="tooltip-wrapper">
+              <li className="nav-link">
+                <div className="tooltip-tab">
+                  <span style={{ fontWeight: 'bold' }}>Support</span>
+                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-11v6h2v-6h-2zm0-4v2h2V7h-2z"></path></svg>
+                </div>
+                <div className="tooltip">
+                  <ul className="tooltip-menu-with-icon">
+                    <div style={{ padding: '10px 15px', fontSize: '12px', color: '#a1a1aa', borderBottom: '1px solid #3f3f46', textAlign: 'center' }}>
+                      Available: 3 PM - 6 PM
+                    </div>
+                    <li className="tooltip-link">
+                      <a href="https://instagram.com/_nikhilpuniyaai" target="_blank" rel="noreferrer">
+                        <svg viewBox="0 0 24 24"><path d="M12 2c2.717 0 3.056.01 4.122.06 1.065.05 1.79.217 2.428.465.66.254 1.216.598 1.772 1.153.555.556.9 1.11 1.152 1.772.247.637.415 1.363.465 2.428.047 1.066.06 1.405.06 4.122 0 2.717-.01 3.056-.06 4.122-.05 1.065-.218 1.79-.465 2.428a4.883 4.883 0 0 1-1.153 1.772c-.556.555-1.11.9-1.772 1.152-.637.247-1.363.415-2.428.465-1.066.047-1.405.06-4.122.06-2.717 0-3.056-.01-4.122-.06-1.065-.05-1.79-.218-2.428-.465a4.89 4.89 0 0 1-1.772-1.153 4.904 4.904 0 0 1-1.153-1.772c-.248-.637-.415-1.363-.465-2.428C2.013 15.056 2 14.717 2 12c0-2.717.01-3.056.06-4.122.05-1.066.217-1.79.465-2.428a4.88 4.88 0 0 1 1.153-1.772A4.897 4.897 0 0 1 5.45 2.525c.638-.248 1.362-.415 2.428-.465C8.944 2.013 9.283 2 12 2zm0 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 8.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4zm5.836-7.864a1.08 1.08 0 1 1-2.16 0 1.08 1.08 0 0 1 2.16 0z"/></svg>
+                        @_nikhilpuniyaai
+                      </a>
+                    </li>
+                    <li className="tooltip-link">
+                      <a href="https://snapchat.com/add/nikhilpuniya132" target="_blank" rel="noreferrer">
+                        <svg viewBox="0 0 24 24"><path d="M12.126 23.955c-1.536 0-3.023-.153-4.237-.714-1.002-.463-1.616-1.22-1.802-2.228-.052-.279.083-.55.333-.703.966-.593 1.354-1.144 1.354-1.91 0-.16-.017-.323-.053-.489-.107-.492-.35-.91-.707-1.218-.635-.55-1.637-.674-2.884-.36a.855.855 0 0 1-.951-.45c-.283-.556-.232-1.127.147-1.64.444-.602 1.258-1.05 2.225-1.223.782-.14 1.543-.016 2.158.35.408.243.834.337 1.246.275.602-.09 1.107-.464 1.455-1.077a2.535 2.535 0 0 0 .341-1.226c.007-.156.01-.314.01-.475 0-3.155 1.03-5.59 2.97-7.018C15.006 1.871 16.71 1.764 18 2.06c1.17.27 2.12 1.074 2.738 2.316.634 1.272.784 2.875.434 4.621a2.64 2.64 0 0 0 .285 1.775c.324.58.825.962 1.457 1.107.412.095.845.02 1.256-.217.585-.34 1.312-.486 2.067-.417.892.083 1.63.468 2.046 1.066.368.528.384 1.08.046 1.64-.176.29-.48.45-.795.424-1.116-.09-2.008.083-2.585.502-.32.234-.52.553-.58.927-.05.313-.023.633.083.928.324.896 1.002 1.47 1.957 1.654.262.05.424.31.393.578-.088.75-.417 1.344-.946 1.711-.79.548-1.92.812-3.253.76-.714-.027-1.463-.116-2.203-.263a2.915 2.915 0 0 0-.585-.058c-1.378 0-2.482.937-2.673 2.27-.04.28-.2.53-.45.702-1.242.85-2.822 1.034-4.57 1.034z"/></svg>
+                        nikhilpuniya132
+                      </a>
+                    </li>
+                    <li className="tooltip-link">
+                      <a href="mailto:nikhilpuniya132@gmail.com">
+                        <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                        nikhilpuniya132@gmail.com
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </li>
             </div>
             
             <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} style={{ textAlign: 'center', width: '100%' }}>
@@ -251,53 +289,111 @@ export default function App() {
               <svg viewBox="0 0 24 24" className="star star-6" xmlns="http://www.w3.org/2000/svg"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z"/></svg>
             </motion.button>
           </div>
+        </div>
 
-          <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', padding: '20px 0', background: '#ff6200' }}>
-            <motion.div animate={{ x: [0, -1000] }} transition={{ repeat: Infinity, duration: 20, ease: "linear" }} style={{ display: 'inline-block', fontSize: '20px', fontWeight: 'bold', color: '#fff' }}>
-              [100% ANONYMOUS] • [GOD MODE ENABLED] • [ST KABIR ONLY] • [100% ANONYMOUS] • [GOD MODE ENABLED] • [ST KABIR ONLY] • 
-            </motion.div>
-          </div>
-
-          {/* LOGIN PORTAL WITH GALAXY STARS & NEO-BRUTALIST GOOGLE AUTH */}
-          <div id="login-portal" className="stars-container" style={{ minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative', overflow: 'hidden' }}>
+        {/* ============================================== */}
+        {/* NEW PRICING MODAL SLIDE */}
+        {/* ============================================== */}
+        <div className="pricing-section">
+          <div className="pricing-modal">
+            <h2 className="pricing-title">Unlock God Mode.</h2>
+            <p className="pricing-description">Find out exactly who is voting for you in St. Kabir without guessing.</p>
             
-            {/* Animated Stars Background Layers */}
-            <div className="stars-layer-1" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }} />
-            <div className="stars-layer-2" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }} />
-            <div className="stars-layer-3" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }} />
+            <div className="tab-container">
+              <div className="indicator" data-active={activePlan}></div>
+              <button className="tab" data-active={activePlan === 'basic'} onClick={() => setActivePlan('basic')}>Basic</button>
+              <button className="tab" data-active={activePlan === 'weekly'} onClick={() => setActivePlan('weekly')}>Weekly</button>
+              <button className="tab" data-active={activePlan === 'monthly'} onClick={() => setActivePlan('monthly')}>Monthly</button>
+            </div>
 
-            <div style={{ width: '100%', maxWidth: '350px', position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div className="benefits">
+              <span>What's included</span>
+              <ul>
+                <li>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0bdd12" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Receive unlimited anonymous polls</span>
+                </li>
+                <li>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0bdd12" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>{activePlan === 'basic' ? 'Invite 3 friends to reveal 1 name' : 'Unlimited Instant Reveals'}</span>
+                </li>
+                {activePlan !== 'basic' && (
+                  <li>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0bdd12" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span>God Mode: See exactly who voted</span>
+                  </li>
+                )}
+                {activePlan === 'monthly' && (
+                  <li>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0bdd12" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span style={{ color: '#ff6200' }}>Save 62% vs Weekly Plan</span>
+                  </li>
+                )}
+              </ul>
+            </div>
+
+            <div className="modal--footer">
+              <div className="price">
+                <sup>₹</sup>{activePlan === 'basic' ? '0' : activePlan === 'weekly' ? '99' : '149'}
+                <sub>/{activePlan === 'basic' ? 'mo' : activePlan === 'weekly' ? 'week' : 'mo'}</sub>
+              </div>
               
-              <div className="form">
-                <p>
-                  Join the Loop.
-                  <span>Select your class to continue</span>
-                </p>
-                
-                <select value={grade} onChange={(e) => setGrade(e.target.value)}>
-                  <option value="11">Class 11 (St. Kabir)</option>
-                  <option value="12">Class 12 (St. Kabir)</option>
-                </select>
-
-                <button 
-                  className="oauthButton"
-                  onClick={() => alert("Google Auth Triggered")}
-                >
-                  <svg className="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                  </svg>
-                  Continue with Google
+              {activePlan === 'basic' ? (
+                <button className="upgrade-btn" style={{ background: '#18181b' }} onClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })}>
+                  Get Started Free
                 </button>
-              </div>
+              ) : (
+                <button className="upgrade-btn" onClick={() => handleUpgrade(activePlan === 'weekly' ? 99 : 149)}>
+                  Pay ₹{activePlan === 'weekly' ? '99' : '149'} Instantly
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
 
-              <div style={{ marginTop: '30px', textAlign: 'center', fontSize: '13px', color: '#a1a1aa' }}>
-                <p>By entering, you agree to our <br />
-                  <span onClick={() => setLegalView('terms')} style={{ color: '#fff', textDecoration: 'underline', cursor: 'pointer' }}>Terms & Conditions</span>
-                </p>
-              </div>
+        {/* ============================================== */}
+        {/* MARQUEE */}
+        {/* ============================================== */}
+        <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', padding: '20px 0', background: '#ff6200' }}>
+          <motion.div animate={{ x: [0, -1000] }} transition={{ repeat: Infinity, duration: 20, ease: "linear" }} style={{ display: 'inline-block', fontSize: '20px', fontWeight: 'bold', color: '#fff' }}>
+            [100% ANONYMOUS] • [GOD MODE ENABLED] • [ST KABIR ONLY] • [100% ANONYMOUS] • [GOD MODE ENABLED] • [ST KABIR ONLY] • 
+          </motion.div>
+        </div>
+
+        {/* ============================================== */}
+        {/* GALAXY LOGIN PORTAL & GOOGLE AUTH */}
+        {/* ============================================== */}
+        <div id="login-portal" className="stars-container" style={{ minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative', overflow: 'hidden' }}>
+          
+          <div className="stars-layer-1" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }} />
+          <div className="stars-layer-2" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }} />
+          <div className="stars-layer-3" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }} />
+
+          <div style={{ width: '100%', maxWidth: '350px', position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            
+            <div className="form">
+              <p>Join the Loop.<span>Select your class to continue</span></p>
+              
+              <select value={grade} onChange={(e) => setGrade(e.target.value)}>
+                <option value="11">Class 11 (St. Kabir)</option>
+                <option value="12">Class 12 (St. Kabir)</option>
+              </select>
+
+              <button className="oauthButton" onClick={() => alert("Google Auth Triggered")}>
+                <svg className="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                Continue with Google
+              </button>
+            </div>
+
+            <div style={{ marginTop: '30px', textAlign: 'center', fontSize: '13px', color: '#a1a1aa' }}>
+              <p>By entering, you agree to our <br />
+                <span onClick={() => setLegalView('terms')} style={{ color: '#fff', textDecoration: 'underline', cursor: 'pointer' }}>Terms & Conditions</span>
+              </p>
             </div>
           </div>
         </div>
