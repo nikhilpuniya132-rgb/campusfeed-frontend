@@ -22,6 +22,7 @@ export default function App() {
   const [grade, setGrade] = useState('11');
   const [avatar, setAvatar] = useState('😎');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [activeRevealPopup, setActiveRevealPopup] = useState(null); // Stores the notification the user clicked
 
   const [view, setView] = useState('poll');
   const [gradeFilter, setGradeFilter] = useState('11');
@@ -197,7 +198,13 @@ export default function App() {
     }
   };
 
-  if (!user) {
+  const handleWhatsAppInvite = () => {
+    const inviteText = "Someone in St. Kabir Class 11 thinks you're the best! 👀 See who voted for you on CampusFeed: https://campusfeed-frontend-3ok7rlgyt-campusfeed.vercel.app";
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(inviteText)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+ if (!user) {
     return (
       <div className="gas-app-container" style={{ background: '#09090b', overflowY: 'auto', position: 'relative' }}>
         
@@ -245,6 +252,7 @@ export default function App() {
             </motion.div>
           </div>
 
+          {/* LOGIN PORTAL WITH GALAXY STARS & NEO-BRUTALIST GOOGLE AUTH */}
           <div id="login-portal" className="stars-container" style={{ minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative', overflow: 'hidden' }}>
             
             {/* Animated Stars Background Layers */}
@@ -252,18 +260,30 @@ export default function App() {
             <div className="stars-layer-2" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }} />
             <div className="stars-layer-3" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }} />
 
-            <div style={{ width: '100%', maxWidth: '350px', position: 'relative', zIndex: 10 }}>
-              <h2 style={{ fontSize: '32px', textAlign: 'center', marginBottom: '30px', color: '#fff' }}>Join the Loop.</h2>
+            <div style={{ width: '100%', maxWidth: '350px', position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               
-              <div style={{ background: 'rgba(39, 39, 42, 0.85)', backdropFilter: 'blur(10px)', padding: '24px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                <input style={{ width: '100%', padding: '12px', boxSizing: 'border-box', marginBottom: '15px', borderRadius: '8px', border: 'none', background: '#3f3f46', color: '#fff' }} placeholder="@handle" value={handle} onChange={(e) => setHandle(e.target.value)} />
-                <input style={{ width: '100%', padding: '12px', boxSizing: 'border-box', marginBottom: '15px', borderRadius: '8px', border: 'none', background: '#3f3f46', color: '#fff' }} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-                <select style={{ width: '100%', padding: '12px', boxSizing: 'border-box', marginBottom: '15px', borderRadius: '8px', border: 'none', background: '#3f3f46', color: '#fff' }} value={grade} onChange={(e) => setGrade(e.target.value)}>
+              <div className="form">
+                <p>
+                  Join the Loop.
+                  <span>Select your class to continue</span>
+                </p>
+                
+                <select value={grade} onChange={(e) => setGrade(e.target.value)}>
                   <option value="11">Class 11 (St. Kabir)</option>
                   <option value="12">Class 12 (St. Kabir)</option>
                 </select>
-                <button style={{ width: '100%', padding: '14px', borderRadius: '8px', border: 'none', background: '#ff6200', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }} onClick={login}>
-                  {isAuthenticating ? 'Authenticating...' : 'Connect ➔'}
+
+                <button 
+                  className="oauthButton"
+                  onClick={() => alert("Google Auth Triggered")}
+                >
+                  <svg className="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                  </svg>
+                  Continue with Google
                 </button>
               </div>
 
@@ -437,3 +457,72 @@ export default function App() {
     </div>
   );
 }
+{/* --- INBOX TAB CONTENT --- */}
+        <div style={{ padding: '20px', color: '#fff', paddingBottom: '100px' }}>
+          <h2 style={{ fontSize: '28px', marginBottom: '20px' }}>Inbox</h2>
+          
+          {/* Example Notification Item */}
+          <motion.div 
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setActiveRevealPopup({ id: 1, text: "Someone thinks you have the best smile in Class 11." })}
+            style={{ background: '#27272a', padding: '20px', borderRadius: '16px', marginBottom: '15px', borderLeft: '4px solid #ff6200', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+          >
+            <div>
+              <div style={{ fontSize: '14px', color: '#a1a1aa', marginBottom: '5px' }}>Just now</div>
+              <div style={{ fontSize: '16px', fontWeight: 'bold' }}>Someone thinks you have the best smile in Class 11.</div>
+            </div>
+            <div style={{ background: 'rgba(255, 98, 0, 0.2)', color: '#ff6200', padding: '8px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>
+              REVEAL ➔
+            </div>
+          </motion.div>
+        </div>
+
+        {/* --- REVEAL POPUP MODAL --- */}
+        <AnimatePresence>
+          {activeRevealPopup && (
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+              style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} 
+              onClick={() => setActiveRevealPopup(null)}
+            >
+              <motion.div 
+                initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                style={{ background: '#18181b', width: '100%', maxWidth: '400px', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', padding: '30px 20px', borderTop: '1px solid #3f3f46' }} 
+                onClick={e => e.stopPropagation()} // Prevents closing when clicking inside the box
+              >
+                <div style={{ width: '40px', height: '4px', background: '#3f3f46', borderRadius: '2px', margin: '0 auto 20px auto' }}></div>
+                
+                <h3 style={{ fontSize: '22px', color: '#fff', textAlign: 'center', margin: '0 0 10px 0' }}>Unlock this name</h3>
+                <p style={{ color: '#a1a1aa', textAlign: 'center', fontSize: '15px', marginBottom: '30px', padding: '0 20px' }}>
+                  "{activeRevealPopup.text}"
+                </p>
+
+                {/* OPTION 1: The Viral Loop (Free) */}
+                <button 
+                  style={{ width: '100%', background: '#ff6200', color: '#fff', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', marginBottom: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer' }}
+                  onClick={handleWhatsAppInvite}
+                >
+                  <span>🔥</span> Invite 3 Friends (Free)
+                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '15px', color: '#52525b', fontSize: '12px', fontWeight: 'bold' }}>
+                  <hr style={{ flex: 1, borderColor: '#3f3f46' }} /> OR <hr style={{ flex: 1, borderColor: '#3f3f46' }} />
+                </div>
+
+                {/* OPTION 2: The Monetization Loop (Paid) */}
+                <button 
+                  className="magic-btn"
+                  style={{ width: '100%', background: 'transparent', color: '#fec195', border: '2px solid #fec195', padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', margin: 0 }}
+                  onClick={handleUpgrade}
+                >
+                  <span>⚡</span> Pay ₹99 / Week
+                  {/* Kept your magic star SVGs in here for the premium hover effect */}
+                  <svg viewBox="0 0 24 24" className="star star-1" xmlns="http://www.w3.org/2000/svg"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z"/></svg>
+                  <svg viewBox="0 0 24 24" className="star star-2" xmlns="http://www.w3.org/2000/svg"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z"/></svg>
+                  <svg viewBox="0 0 24 24" className="star star-3" xmlns="http://www.w3.org/2000/svg"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z"/></svg>
+                </button>
+
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
