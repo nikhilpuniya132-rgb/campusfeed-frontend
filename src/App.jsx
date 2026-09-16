@@ -351,12 +351,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* --- MARQUEE --- */}
-        <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', padding: '20px 0', background: '#ff6200' }}>
-          <motion.div animate={{ x: [0, -1000] }} transition={{ repeat: Infinity, duration: 20, ease: "linear" }} style={{ display: 'inline-block', fontSize: '20px', fontWeight: 'bold', color: '#fff' }}>
-            [100% ANONYMOUS] • [GOD MODE ENABLED] • [ST KABIR ONLY] • [100% ANONYMOUS] • [GOD MODE ENABLED] • [ST KABIR ONLY] • 
-          </motion.div>
-        </div>
+       
 
         {/* --- GALAXY LOGIN PORTAL & GOOGLE AUTH --- */}
         <div id="login-portal" className="stars-container" style={{ minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative', overflow: 'hidden' }}>
