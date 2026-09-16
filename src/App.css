@@ -1,3 +1,14 @@
+/* --- PREVENT MOBILE HORIZONTAL SCROLLING --- */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
 :root {
   --gas-orange: #ff6200;
   --gas-bg: #f4f4f5;

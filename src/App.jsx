@@ -219,7 +219,7 @@ export default function App() {
   // ==============================================
   if (!user) {
     return (
-      <div className="gas-app-container" style={{ background: '#09090b', overflowY: 'auto', position: 'relative' }}>
+<div className="gas-app-container" style={{ background: '#09090b', overflowX: 'hidden', overflowY: 'auto', position: 'relative', width: '100%' }}>
         
         {/* --- HERO SECTION WITH VIDEO & SUPPORT DROPDOWN --- */}
         <div style={{ position: 'relative', minHeight: '100svh' }}>
