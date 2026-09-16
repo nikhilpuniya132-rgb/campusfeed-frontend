@@ -14,6 +14,7 @@ const AURA_RINGS = {
 };
 
 const pageVariants = { initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -20 }, transition: { type: "tween", duration: 0.25 } };
+  const [activeRevealPopup, setActiveRevealPopup] = useState(null); // Stores the notification the user clicked
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -22,7 +23,9 @@ export default function App() {
   const [grade, setGrade] = useState('11');
   const [avatar, setAvatar] = useState('😎');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [activeRevealPopup, setActiveRevealPopup] = useState(null); // Stores the notification the user clicked
+  
+  const [activeRevealPopup, setActiveRevealPopup] = useState(null);
+
 
   const [view, setView] = useState('poll');
   const [gradeFilter, setGradeFilter] = useState('11');
@@ -203,6 +206,9 @@ export default function App() {
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(inviteText)}`;
     window.open(whatsappUrl, '_blank');
   };
+
+  
+
 
  if (!user) {
     return (
