@@ -1,7 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import FriendSearch from './FriendSearch';
+
+const AURA_OPTIONS = [
+  { id: 'none', label: 'None', color: '#666' },
+  { id: 'gold', label: 'Gold', color: '#fbbf24' },
+  { id: 'neon', label: 'Neon Blue', color: '#38bdf8' },
+  { id: 'ruby', label: 'Ruby Red', color: '#f43f5e' },
+  { id: 'purple', label: 'Purple', color: '#a855f7' },
+  { id: 'emerald', label: 'Emerald', color: '#10b981' }
+];
 
 export default function Profile({
   user,
@@ -20,14 +29,21 @@ export default function Profile({
   const [isEditing, setIsEditing] = useState(false);
   const [editBio, setEditBio] = useState(user?.bio || '');
   const [editAvatar, setEditAvatar] = useState(user?.avatar || '😎');
-  const [editRing, setEditRing] = useState(user?.ring || 'gold');
   const [editGrade, setEditGrade] = useState(user?.grade ? user.grade.toString() : '11');
   const [editProfilePic, setEditProfilePic] = useState(user?.profile_pic || '');
+  const [selectedRing, setSelectedRing] = useState(user?.selected_ring || user?.ring || 'gold');
+  const [ringSavedToast, setRingSavedToast] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    if (user?.selected_ring || user?.ring) {
+      setSelectedRing(user.selected_ring || user.ring);
+    }
+  }, [user?.selected_ring, user?.ring]);
+
   const my_invite_code = (user?.invite_code || user?.handle || 'campus').replace(/^@/, '').trim();
-  const inviteLink = 'https://campusfeed-frontend.vercel.app';
+  const inviteLink = `${window.location.origin}/?ref=${my_invite_code}`;
 
   const copyInviteToClipboard = () => {
     const shareText = `Someone from St. Kabir voted for you on CampusFeed! Join to see who: ${inviteLink} (Code: ${my_invite_code})`;
@@ -68,6 +84,25 @@ export default function Profile({
     reader.readAsDataURL(file);
   };
 
+  const handleRingSelect = async (ringId) => {
+    setSelectedRing(ringId);
+    if (onUpdateUser) {
+      onUpdateUser({ ...user, ring: ringId, selected_ring: ringId });
+    }
+    setRingSavedToast(true);
+    setTimeout(() => setRingSavedToast(false), 2000);
+
+    try {
+      await fetch(`${API}/user/ring`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, selected_ring: ringId })
+      });
+    } catch (err) {
+      console.error('Save ring error:', err);
+    }
+  };
+
   const saveProfile = async () => {
     setIsSaving(true);
     try {
@@ -75,7 +110,8 @@ export default function Profile({
         ...user,
         bio: editBio,
         avatar: editAvatar,
-        ring: editRing,
+        ring: selectedRing,
+        selected_ring: selectedRing,
         grade: editGrade,
         profile_pic: editProfilePic
       };
@@ -88,7 +124,7 @@ export default function Profile({
         body: JSON.stringify({
           bio: editBio,
           avatar: editAvatar,
-          ring: editRing,
+          ring: selectedRing,
           grade: editGrade,
           profile_pic: editProfilePic
         })
@@ -105,298 +141,336 @@ export default function Profile({
   };
 
   return (
-    <div style={{ padding: '20px 16px 80px 16px', textAlign: 'center', maxWidth: '460px', margin: '0 auto' }}>
+    <div style={{ padding: '16px 16px 80px 16px', textAlign: 'center', maxWidth: '440px', margin: '0 auto', boxSizing: 'border-box' }}>
       {/* 1. Header Profile Display */}
-      <div style={{ marginBottom: '14px' }}>
+      <div style={{ marginBottom: '12px' }}>
         {renderProfilePic
-          ? renderProfilePic(editProfilePic || user.profile_pic, editAvatar || user.avatar, user.is_pro, editRing, 96)
+          ? renderProfilePic(editProfilePic || user.profile_pic, editAvatar || user.avatar, user.is_pro, selectedRing, 92)
           : (
-            <div style={{ fontSize: '54px', width: '96px', height: '96px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: '50px', width: '92px', height: '92px', borderRadius: '50%', background: '#161616', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
               {user.avatar || '😎'}
             </div>
           )}
       </div>
 
-      <h2 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '950', color: user.is_pro ? '#fbbf24' : '#fff' }}>
+      <h2 style={{ margin: '0 0 4px 0', fontSize: '22px', fontWeight: '900', color: user.is_pro ? '#fbbf24' : '#fff' }}>
         @{user.handle}
       </h2>
 
-      <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#94a3b8', fontWeight: '700' }}>
-        St. Kabir Convent School • Class {user.grade}
+      <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#888888', fontWeight: '600' }}>
+        St. Kabir Convent School • Class {user.grade || '11'}
       </p>
 
-      {/* 2. Campus Social Stats Matrix */}
+      {/* 2. Campus Social Stats Matrix (Flat & Minimalist) */}
       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', margin: '0 0 20px 0', flexWrap: 'wrap' }}>
-        <div style={{ background: 'rgba(255, 85, 0, 0.15)', border: '1px solid rgba(255, 85, 0, 0.3)', padding: '6px 14px', borderRadius: '20px', color: '#ff8800', fontWeight: '800', fontSize: '13px' }}>
+        <div style={{ background: '#141414', border: '1px solid #222222', padding: '6px 14px', borderRadius: '16px', color: '#ffffff', fontWeight: '700', fontSize: '12.5px' }}>
           🔥 {user.total_votes || 0} Flames
         </div>
-        <div style={{ background: 'rgba(0, 240, 255, 0.15)', border: '1px solid rgba(0, 240, 255, 0.3)', padding: '6px 14px', borderRadius: '20px', color: '#00f0ff', fontWeight: '800', fontSize: '13px' }}>
+        <div style={{ background: '#141414', border: '1px solid #222222', padding: '6px 14px', borderRadius: '16px', color: '#ffffff', fontWeight: '700', fontSize: '12.5px' }}>
           👥 {acceptedFriends.length} Friends
         </div>
-        <div style={{ background: 'rgba(251, 191, 36, 0.15)', border: '1px solid rgba(251, 191, 36, 0.3)', padding: '6px 14px', borderRadius: '20px', color: '#fbbf24', fontWeight: '800', fontSize: '13px' }}>
+        <div style={{ background: '#141414', border: '1px solid #222222', padding: '6px 14px', borderRadius: '16px', color: '#ffffff', fontWeight: '700', fontSize: '12.5px' }}>
           ⚡ {Math.round((user.total_votes || 0) * 12 + acceptedFriends.length * 25)} Aura
         </div>
       </div>
 
-      {/* 3. PROMINENT VIRAL INVITE CARD (HIGH VISIBILITY REQUIREMENT) */}
-      <motion.div
-        whileHover={{ scale: 1.01 }}
+      {/* 3. RELOCATED AURA RING SELECTOR (PERSISTENT IN PROFILE TAB) */}
+      <div
         style={{
-          background: 'linear-gradient(145deg, rgba(255, 85, 0, 0.14), rgba(0, 240, 255, 0.08))',
-          borderRadius: '24px',
-          padding: '20px',
-          border: '1.5px solid rgba(255, 85, 0, 0.4)',
-          boxShadow: '0 16px 40px rgba(0,0,0,0.5), 0 0 25px rgba(255, 85, 0, 0.15)',
-          marginBottom: '22px',
+          background: '#111111',
+          border: '1px solid #222222',
+          borderRadius: '20px',
+          padding: '16px',
+          marginBottom: '20px',
+          textAlign: 'left'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div>
+            <span style={{ fontSize: '13.5px', fontWeight: '900', color: '#fff', display: 'block' }}>
+              💍 Profile Aura Ring
+            </span>
+            <span style={{ fontSize: '11px', color: '#777', display: 'block' }}>
+              Equip an aura ring for your profile & feed
+            </span>
+          </div>
+          {ringSavedToast && (
+            <span style={{ fontSize: '12px', color: '#10b981', fontWeight: '800' }}>
+              ✓ Saved!
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+          {AURA_OPTIONS.map((r) => {
+            const isSelected = selectedRing === r.id;
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => handleRingSelect(r.id)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '12px',
+                  border: isSelected ? `2px solid ${r.color}` : '1px solid #262626',
+                  background: isSelected ? '#1c1c1c' : '#141414',
+                  color: isSelected ? '#ffffff' : '#888888',
+                  fontSize: '12px',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: r.color, display: 'inline-block' }} />
+                <span>{r.label}</span>
+                {isSelected && <span style={{ color: r.color, fontSize: '11px' }}>✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 4. VIRAL INVITE PASS (CLEAN FLAT MINIMALIST) */}
+      <div
+        style={{
+          background: '#111111',
+          borderRadius: '20px',
+          padding: '18px',
+          border: '1px solid #222222',
+          marginBottom: '20px',
           textAlign: 'left'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '20px' }}>🎟️</span>
-            <span style={{ fontSize: '13px', fontWeight: '950', color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-              Your Viral Invite Pass
+            <span style={{ fontSize: '18px' }}>🎟️</span>
+            <span style={{ fontSize: '13px', fontWeight: '900', color: '#fff', letterSpacing: '0.4px' }}>
+              Your Invite Pass
             </span>
           </div>
-          <span style={{ fontSize: '11px', background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '3px 8px', borderRadius: '10px', fontWeight: '800' }}>
+          <span style={{ fontSize: '11px', background: '#1c1c1c', color: '#888', padding: '3px 8px', borderRadius: '8px', fontWeight: '700' }}>
             3 Invites = 1 Reveal
           </span>
         </div>
 
-        <p style={{ fontSize: '13px', color: '#cbd5e1', margin: '0 0 14px 0', lineHeight: '1.4' }}>
-          Share your invite code with friends. When they join, you instantly unlock who secretly voted for you!
+        <p style={{ fontSize: '13px', color: '#888888', margin: '0 0 14px 0', lineHeight: '1.4' }}>
+          Share your invite code with friends. When they join, you unlock who secretly voted for you.
         </p>
 
-        {/* Unique Invite Code Box */}
+        {/* Unique Code Box */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: 'rgba(0, 0, 0, 0.45)',
+          background: '#161616',
           padding: '12px 14px',
-          borderRadius: '16px',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          marginBottom: '14px'
+          borderRadius: '14px',
+          border: '1px solid #222222',
+          marginBottom: '12px'
         }}>
           <div>
-            <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', display: 'block' }}>
-              Your Code (my_invite_code)
+            <span style={{ fontSize: '10px', color: '#777777', fontWeight: '700', textTransform: 'uppercase', display: 'block' }}>
+              Invite Code
             </span>
-            <span style={{ fontSize: '18px', fontWeight: '950', color: '#00f0ff', letterSpacing: '0.5px' }}>
+            <span style={{ fontSize: '17px', fontWeight: '900', color: '#ffffff', letterSpacing: '0.5px' }}>
               @{my_invite_code}
             </span>
           </div>
 
           <motion.button
-            whileTap={{ scale: 0.92 }}
+            whileTap={{ scale: 0.94 }}
             onClick={copyInviteToClipboard}
             style={{
-              padding: '8px 14px',
-              borderRadius: '12px',
-              border: '1px solid rgba(0, 240, 255, 0.3)',
-              background: copySuccess ? 'rgba(16, 185, 129, 0.2)' : 'rgba(0, 240, 255, 0.15)',
-              color: copySuccess ? '#10b981' : '#00f0ff',
+              padding: '7px 12px',
+              borderRadius: '10px',
+              border: '1px solid #333',
+              background: copySuccess ? '#10b98122' : '#222222',
+              color: copySuccess ? '#10b981' : '#ffffff',
               fontSize: '12px',
               fontWeight: '800',
               cursor: 'pointer'
             }}
           >
-            {copySuccess ? '✓ Copied!' : '📋 Copy Link'}
+            {copySuccess ? '✓ Copied' : '📋 Copy'}
           </motion.button>
         </div>
 
         {/* Prominent WhatsApp Share Button */}
         <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
+          whileTap={{ scale: 0.96 }}
           onClick={handleWhatsAppInvite}
           style={{
             width: '100%',
-            padding: '16px',
-            borderRadius: '18px',
+            padding: '14px',
+            borderRadius: '14px',
             border: 'none',
-            background: 'linear-gradient(135deg, #25D366, #128C7E)',
-            color: '#fff',
-            fontSize: '15px',
-            fontWeight: '950',
+            background: '#25D366',
+            color: '#000',
+            fontSize: '14px',
+            fontWeight: '900',
+            cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '10px',
-            cursor: 'pointer',
-            boxShadow: '0 0 25px rgba(37, 211, 102, 0.5), 0 8px 20px rgba(0,0,0,0.4)',
-            letterSpacing: '0.3px'
+            gap: '8px',
           }}
         >
-          <span style={{ fontSize: '20px' }}>📲</span> Invite Friends on WhatsApp
+          <span>📲</span> Invite Friends on WhatsApp
         </motion.button>
-      </motion.div>
+      </div>
 
-      {/* 4. EDIT PROFILE OR DISPLAY PROFILE */}
+      {/* 5. EDIT MODE MODAL / CARD */}
       {isEditing ? (
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{ textAlign: 'left', background: 'rgba(255,255,255,0.05)', padding: '22px', borderRadius: '26px', border: '1px solid rgba(255,255,255,0.12)', marginBottom: '24px' }}
+        <div
+          style={{
+            background: '#111111',
+            borderRadius: '20px',
+            padding: '20px',
+            border: '1px solid #222222',
+            textAlign: 'left',
+            marginBottom: '20px'
+          }}
         >
-          <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '900', color: '#fff' }}>
-            ✏️ Edit Your Profile
-          </h3>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '900', color: '#fff' }}>Edit Profile</h3>
 
-          {/* Profile Picture Updater (File Picker & Text URL) */}
-          <div style={{ marginBottom: '18px' }}>
-            <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '800', display: 'block', marginBottom: '8px' }}>
-              Profile Picture (File Picker or URL)
+          {/* Profile Picture Upload */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '12px', color: '#888', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
+              Profile Photo
             </label>
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
-              <label style={{
-                padding: '10px 16px',
-                borderRadius: '14px',
-                background: 'linear-gradient(135deg, #ff5500, #ff8800)',
-                color: '#fff',
-                fontSize: '12.5px',
-                fontWeight: '900',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
-                <span>📷</span> Choose File Photo
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  style={{ display: 'none' }}
-                />
-              </label>
-              {editProfilePic && (
-                <button
-                  type="button"
-                  onClick={() => setEditProfilePic('')}
-                  style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
-                >
-                  Remove Photo
-                </button>
-              )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                style={{ fontSize: '12px', color: '#888' }}
+              />
             </div>
+          </div>
 
+          {/* Bio Input */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '12px', color: '#888', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
+              Bio
+            </label>
             <input
               type="text"
-              placeholder="Or paste direct image URL (https://...)"
-              value={editProfilePic}
-              onChange={(e) => setEditProfilePic(e.target.value)}
+              value={editBio}
+              onChange={e => setEditBio(e.target.value)}
+              placeholder="Add a bio..."
               style={{
                 width: '100%',
                 padding: '12px',
                 borderRadius: '12px',
-                border: '1px solid rgba(255,255,255,0.2)',
-                background: 'rgba(0,0,0,0.35)',
-                color: '#fff',
-                fontSize: '13px',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          {/* Class / Batch Selector (Classes 9, 10, 11, 12) */}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '800', display: 'block', marginBottom: '6px' }}>
-              Class / Batch (St. Kabir)
-            </label>
-            <select
-              value={editGrade}
-              onChange={(e) => setEditGrade(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '12px',
-                border: '1px solid rgba(255,255,255,0.2)',
-                background: '#18181b',
+                border: '1px solid #262626',
+                background: '#161616',
                 color: '#fff',
                 fontSize: '14px',
-                fontWeight: '800',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                outline: 'none'
               }}
-            >
-              <option value="9">Class 9 (Freshmen)</option>
-              <option value="10">Class 10 (Sophomores)</option>
-              <option value="11">Class 11 (St. Kabir)</option>
-              <option value="12">Class 12 (Seniors)</option>
-            </select>
-          </div>
-
-          {/* Avatar Emoji */}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '800', display: 'block', marginBottom: '6px' }}>Avatar Emoji</label>
-            <input
-              style={{ width: '64px', padding: '10px', fontSize: '22px', textAlign: 'center', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff' }}
-              value={editAvatar}
-              onChange={(e) => setEditAvatar(e.target.value)}
-              maxLength={2}
             />
           </div>
 
-          {/* Bio */}
+          {/* Class / Grade Selector */}
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '800', display: 'block', marginBottom: '6px' }}>Bio</label>
-            <textarea
-              style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff', fontFamily: 'inherit', boxSizing: 'border-box' }}
-              value={editBio}
-              onChange={(e) => setEditBio(e.target.value)}
-              rows={3}
-            />
+            <label style={{ fontSize: '12px', color: '#888', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
+              Class / Grade
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+              {['9', '10', '11', '12'].map(g => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setEditGrade(g)}
+                  style={{
+                    padding: '10px 4px',
+                    borderRadius: '10px',
+                    border: editGrade === g ? '2px solid #ffffff' : '1px solid #262626',
+                    background: editGrade === g ? '#222' : '#141414',
+                    color: editGrade === g ? '#fff' : '#888',
+                    fontWeight: '800',
+                    fontSize: '13px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cl-{g}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <button
-              className="magic-btn"
-              style={{ flex: 1, margin: 0 }}
-              disabled={isSaving}
+              type="button"
               onClick={saveProfile}
+              disabled={isSaving}
+              style={{
+                flex: 1,
+                padding: '12px',
+                borderRadius: '12px',
+                border: 'none',
+                background: '#ffffff',
+                color: '#000000',
+                fontWeight: '900',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
             >
-              {isSaving ? 'Saving Changes... ⚡' : 'Save Profile'}
+              {isSaving ? 'Saving...' : 'Save Profile'}
             </button>
             <button
               type="button"
               onClick={() => setIsEditing(false)}
-              style={{ padding: '12px 18px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontWeight: '800', cursor: 'pointer' }}
+              style={{
+                padding: '12px 18px',
+                borderRadius: '12px',
+                border: '1px solid #333',
+                background: '#181818',
+                color: '#fff',
+                fontWeight: '800',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
             >
               Cancel
             </button>
           </div>
-        </motion.div>
+        </div>
       ) : (
         <div>
-          <p style={{ color: '#cbd5e1', fontSize: '14px', margin: '0 0 20px 0' }}>
+          <p style={{ color: '#888888', fontSize: '14px', margin: '0 0 20px 0' }}>
             {user.bio || `Class ${user.grade || '11'} student at St. Kabir Convent School`}
           </p>
 
-          {/* 5. TOTAL FRIEND COUNT & ACCEPTED FRIENDS' HANDLES LIST */}
+          {/* 6. FRIENDS LIST & HANDLES (CLEAN FLAT SURFACES) */}
           <div style={{
             textAlign: 'left',
-            marginBottom: '22px',
-            background: 'rgba(255,255,255,0.04)',
-            borderRadius: '24px',
+            marginBottom: '20px',
+            background: '#111111',
+            borderRadius: '20px',
             padding: '18px',
-            border: '1px solid rgba(255,255,255,0.08)'
+            border: '1px solid #222222'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div>
-                <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '950', color: '#fff' }}>
+                <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#fff' }}>
                   👥 Friends ({acceptedFriends.length})
                 </h4>
-                <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                <span style={{ fontSize: '11px', color: '#777777' }}>
                   Accepted classmates
                 </span>
               </div>
-
-              <span style={{ fontSize: '11px', color: '#ff8800', fontWeight: '900', background: 'rgba(255, 85, 0, 0.15)', padding: '4px 10px', borderRadius: '12px' }}>
+              <span style={{ fontSize: '11px', color: '#888888', background: '#1c1c1c', padding: '4px 10px', borderRadius: '10px', fontWeight: '700' }}>
                 St. Kabir
               </span>
             </div>
 
             {acceptedFriends.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '16px 8px', color: '#94a3b8' }}>
+              <div style={{ textAlign: 'center', padding: '16px 8px', color: '#777777' }}>
                 <p style={{ margin: 0, fontSize: '13px' }}>
                   No accepted friends yet. Use search below to add your classmates!
                 </p>
@@ -414,22 +488,22 @@ export default function Profile({
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        minWidth: '72px',
-                        maxWidth: '80px',
+                        minWidth: '70px',
+                        maxWidth: '76px',
                         cursor: 'pointer'
                       }}
                     >
                       {renderProfilePic
-                        ? renderProfilePic(f.profile_pic, f.avatar, f.is_pro, f.ring, 50)
+                        ? renderProfilePic(f.profile_pic, f.avatar, f.is_pro, f.selected_ring || f.ring, 48)
                         : (
-                          <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {f.avatar || '😎'}
                           </div>
                         )}
                       <span style={{ fontSize: '11px', fontWeight: '800', color: '#fff', marginTop: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
                         @{f.handle}
                       </span>
-                      <span style={{ fontSize: '10px', color: '#ff8800', fontWeight: '700' }}>
+                      <span style={{ fontSize: '10px', color: '#888', fontWeight: '700' }}>
                         Cl-{f.grade || '11'}
                       </span>
                     </motion.div>
@@ -437,20 +511,20 @@ export default function Profile({
                 </div>
 
                 {/* Handles List Chips */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', paddingTop: '8px', borderTop: '1px solid #1c1c1c' }}>
                   {acceptedFriends.map(f => (
                     <span
                       key={f.id}
                       onClick={() => onViewPublicProfile && onViewPublicProfile(f.id)}
                       style={{
                         fontSize: '11.5px',
-                        fontWeight: '800',
-                        color: f.is_pro ? '#fbbf24' : '#00f0ff',
-                        background: 'rgba(255, 255, 255, 0.07)',
+                        fontWeight: '700',
+                        color: f.is_pro ? '#fbbf24' : '#ffffff',
+                        background: '#161616',
                         padding: '4px 10px',
-                        borderRadius: '12px',
+                        borderRadius: '10px',
                         cursor: 'pointer',
-                        border: '1px solid rgba(255,255,255,0.08)'
+                        border: '1px solid #222222'
                       }}
                     >
                       @{f.handle}
@@ -461,8 +535,8 @@ export default function Profile({
             )}
           </div>
 
-          {/* 6. Classmate Friend Search in Profile */}
-          <div style={{ marginBottom: '24px', textAlign: 'left' }}>
+          {/* 7. Classmate Friend Search in Profile */}
+          <div style={{ marginBottom: '20px', textAlign: 'left' }}>
             <FriendSearch
               currentUser={user}
               API={API}
@@ -471,14 +545,13 @@ export default function Profile({
             />
           </div>
 
-          {/* 7. Action Controls */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '320px', margin: '0 auto' }}>
+          {/* 8. Action Controls */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '300px', margin: '0 auto' }}>
             <button
-              style={{ padding: '14px', borderRadius: '14px', border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff', fontWeight: '800', cursor: 'pointer' }}
+              style={{ padding: '13px', borderRadius: '14px', border: '1px solid #2a2a2a', background: '#161616', color: '#fff', fontWeight: '800', cursor: 'pointer' }}
               onClick={() => {
                 setEditBio(user.bio || '');
                 setEditAvatar(user.avatar || '');
-                setEditRing(user.ring || 'gold');
                 setEditGrade(user.grade ? user.grade.toString() : '11');
                 setEditProfilePic(user.profile_pic || '');
                 setIsEditing(true);
@@ -488,14 +561,14 @@ export default function Profile({
             </button>
 
             <button
-              style={{ padding: '14px', borderRadius: '14px', background: 'rgba(255, 85, 0, 0.15)', border: '1px solid rgba(255, 85, 0, 0.3)', color: '#ff8800', fontWeight: '800', cursor: 'pointer' }}
+              style={{ padding: '13px', borderRadius: '14px', background: '#181818', border: '1px solid #262626', color: '#cbd5e1', fontWeight: '800', cursor: 'pointer' }}
               onClick={onLogout}
             >
               Sign Out
             </button>
 
             <button
-              style={{ padding: '14px', borderRadius: '14px', border: 'none', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', fontWeight: '800', cursor: 'pointer', marginTop: '10px' }}
+              style={{ padding: '12px', borderRadius: '14px', border: 'none', background: 'transparent', color: '#ef4444', fontWeight: '800', fontSize: '13px', cursor: 'pointer', marginTop: '6px' }}
               onClick={onDeleteAccount}
             >
               Delete Account

@@ -5,8 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import bgVideo from './assets/campus_promo.mp4';
 import './App.css';
 
-// 3D Motion Components
-import ThreeDBackground from './components/ThreeDBackground';
+// UI Components
 import TiltCard from './components/TiltCard';
 import HolographicCard from './components/HolographicCard';
 import InteractivePollDemo from './components/InteractivePollDemo';
@@ -15,6 +14,7 @@ import FriendSearch from './components/FriendSearch';
 import HamsterLoader from './components/HamsterLoader';
 import Profile from './components/Profile';
 import Inbox from './components/Inbox';
+import Feed from './components/Feed';
 
 // --- INITIALIZE SUPABASE ---
 const supabaseUrl = 'https://aezhlsfbewfqmzfshuzs.supabase.co';
@@ -75,6 +75,8 @@ export default function App() {
   const [options, setOptions] = useState([]);
   const [hasVoted, setHasVoted] = useState(false);
   const [isLoadingPoll, setIsLoadingPoll] = useState(false);
+  const [cooldownUntil, setCooldownUntil] = useState(null);
+  const [installPrompt, setInstallPrompt] = useState(null);
 
   const [inbox, setInbox] = useState([]);
   const [inviteStats, setInviteStats] = useState({ effectiveInvites: 0, remaining: 3, canReveal: false });
@@ -211,6 +213,16 @@ export default function App() {
     }
   }, []);
 
+  // PWA Install Prompt Listener
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
   // 2. Exact Supabase Auth Listener to catch Google OAuth redirect & eliminate bounce
   useEffect(() => {
     let isMounted = true;
@@ -318,6 +330,11 @@ export default function App() {
       const data = await res.json();
       setCurrentPoll(data.poll);
       setOptions(data.options || []);
+      if (data.cooldown_until) {
+        setCooldownUntil(data.cooldown_until);
+      } else {
+        setCooldownUntil(null);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -328,7 +345,7 @@ export default function App() {
     setOptions(prev => [...prev].sort(() => 0.5 - Math.random()));
   };
 
-  const castVote = (receiverId) => {
+  const castVote = async (receiverId) => {
     confetti({
       particleCount: 120,
       spread: 80,
@@ -336,11 +353,36 @@ export default function App() {
       colors: ['#ff5500', '#ff2e93', '#fbbf24', '#00f0ff']
     });
     setHasVoted(true);
-    fetch(`${API}/vote`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pollId: currentPoll.id, voterId: user.id, receiverId })
-    });
+    try {
+      const res = await fetch(`${API}/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pollId: currentPoll?.id, voterId: user.id, receiverId })
+      });
+      const data = await res.json();
+      if (data.cooldown_until) {
+        setCooldownUntil(data.cooldown_until);
+      }
+    } catch (err) {
+      console.error('Vote error:', err);
+    }
+  };
+
+  const handleSkipCooldown = async () => {
+    try {
+      const res = await fetch(`${API}/cooldown/skip`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCooldownUntil(null);
+        loadNextPoll(gradeFilter || '11');
+      }
+    } catch (e) {
+      console.error('Failed to skip cooldown', e);
+    }
   };
 
   const loadPublicProfile = async (userId) => {
@@ -468,6 +510,7 @@ export default function App() {
           if (verifyData.success) {
             alert('👑 God Mode Unlocked!');
             setUser({ ...user, is_pro: true, ring: 'gold' });
+            setCooldownUntil(null);
             handleNav('inbox');
           } else {
             alert('Payment verification failed: ' + verifyData.error);
@@ -618,24 +661,22 @@ export default function App() {
   };
 
   // ==============================================
-  // VIEW -1: 3D HAMSTER LOADER (ZERO-BOUNCE SESSION CHECK)
+  // VIEW -1: HAMSTER LOADER (ZERO-BOUNCE SESSION CHECK)
   // ==============================================
   if (isCheckingSession || (isAuthenticating && !user && !isOnboarding)) {
     return (
       <div className="gas-landing-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100svh' }}>
-        <ThreeDBackground />
         <HamsterLoader message="Entering St. Kabir Loop..." />
       </div>
     );
   }
 
   // ==============================================
-  // VIEW 0: 3D ONBOARDING WIZARD (FOR NEW GOOGLE USERS)
+  // VIEW 0: ONBOARDING WIZARD (FOR NEW GOOGLE USERS)
   // ==============================================
   if (isOnboarding && onboardingGoogleUser) {
     return (
       <div className="gas-landing-wrapper">
-        <ThreeDBackground />
         <OnboardingWizard
           googleUser={onboardingGoogleUser}
           API={API}
@@ -646,14 +687,11 @@ export default function App() {
   }
 
   // ==============================================
-  // VIEW 1: UNAUTHENTICATED 3D LANDING PAGE
+  // VIEW 1: UNAUTHENTICATED LANDING PAGE
   // ==============================================
   if (!user) {
     return (
       <div className="gas-landing-wrapper">
-        {/* Real-time 3D Particle & Flame Ember Background */}
-        <ThreeDBackground />
-
         {/* --- TOP FIXED NAVBAR --- */}
         <header className="gas-landing-nav">
           <div className="gas-logo">
@@ -1050,10 +1088,62 @@ export default function App() {
   // ==============================================
   return (
     <div className="gas-app-shell">
-      {/* 3D Particle Background for ambient immersion */}
-      <ThreeDBackground />
-
       <div className="gas-app-container">
+        {/* PWA Install Banner */}
+        {installPrompt && (
+          <div
+            style={{
+              background: '#161616',
+              borderBottom: '1px solid #262626',
+              padding: '10px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '12px',
+              zIndex: 100,
+              flexShrink: 0
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fff', fontWeight: '700' }}>
+              <span>📲</span>
+              <span>Install App to Home Screen</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={() => {
+                  installPrompt.prompt();
+                  setInstallPrompt(null);
+                }}
+                style={{
+                  background: '#ffffff',
+                  color: '#000000',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '5px 12px',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  fontSize: '11.5px'
+                }}
+              >
+                Install
+              </button>
+              <button
+                onClick={() => setInstallPrompt(null)}
+                style={{
+                  background: 'transparent',
+                  color: '#888888',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  padding: '2px 4px'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* App Top Header */}
         <header className="gas-app-header">
           <div className="gas-header-title">
@@ -1125,109 +1215,22 @@ export default function App() {
           <AnimatePresence mode="wait">
             {/* --- TAB 1: VOTING FEED --- */}
             {view === 'poll' && (
-              <motion.div key="poll" {...pageVariants} className="gas-poll-wrapper">
-                {/* Grade Switcher Pills (Classes 9, 10, 11, 12 + Whole School) */}
-                <div className="gas-grade-toggle" style={{ flexWrap: 'wrap', gap: '6px' }}>
-                  <button
-                    className={`gas-grade-btn ${gradeFilter === user.grade.toString() ? 'active' : ''}`}
-                    onClick={() => loadNextPoll(user.grade.toString())}
-                  >
-                    My Class ({user.grade})
-                  </button>
-                  {['9', '10', '11', '12'].map((g) => (
-                    <button
-                      key={g}
-                      className={`gas-grade-btn ${gradeFilter === g && gradeFilter !== user.grade.toString() ? 'active' : ''}`}
-                      onClick={() => loadNextPoll(g)}
-                    >
-                      Class {g}
-                    </button>
-                  ))}
-                  <button
-                    className={`gas-grade-btn ${gradeFilter === 'all' ? 'active' : ''}`}
-                    onClick={() => loadNextPoll('all')}
-                  >
-                    Whole School
-                  </button>
-                </div>
-
-                {isLoadingPoll ? (
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '30px 0' }}>
-                    <HamsterLoader message="Finding classmates for next poll..." />
-                  </div>
-                ) : hasVoted ? (
-                  <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}
-                  >
-                    <div style={{ fontSize: '56px', marginBottom: '10px' }}>🚀</div>
-                    <h2 style={{ color: '#fff', fontSize: '28px', fontWeight: '950', margin: '0 0 8px 0' }}>Flame Sent!</h2>
-                    <p style={{ color: '#94a3b8', fontSize: '14px', maxWidth: '240px', marginBottom: '24px' }}>
-                      Your vote was delivered 100% anonymously.
-                    </p>
-                    <button
-                      className="magic-btn"
-                      onClick={() => loadNextPoll(gradeFilter)}
-                    >
-                      Next Question ➔
-                    </button>
-                  </motion.div>
-                ) : (
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    {/* 3D Question Card */}
-                    <TiltCard maxTilt={10} className="gas-question-card">
-                      <h3 className="gas-question-text">
-                        "{currentPoll?.question || 'Ready for the next round?'}"
-                      </h3>
-                    </TiltCard>
-
-                    {/* 4 Classmate Choice Buttons */}
-                    {options.length === 0 ? (
-                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
-                        <p>Not enough classmates in this filter!</p>
-                        <button
-                          style={{ marginTop: '12px', padding: '8px 16px', borderRadius: '12px', background: '#ff5500', color: '#fff', border: 'none', fontWeight: '800', cursor: 'pointer' }}
-                          onClick={() => loadNextPoll('all')}
-                        >
-                          Try Whole School
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="gas-choices-grid">
-                        {options.map((opt) => (
-                          <motion.button
-                            key={opt.id}
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => castVote(opt.id)}
-                            className="gas-choice-btn"
-                          >
-                            {renderProfilePic(opt.profile_pic, opt.avatar, opt.is_pro, opt.ring, 48)}
-                            <span className="gas-choice-name">{opt.handle}</span>
-                          </motion.button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Bottom Controls: Shuffle & Skip */}
-                    <div className="gas-poll-actions">
-                      <button
-                        className="gas-action-pill-btn"
-                        onClick={shuffleCurrentOptions}
-                      >
-                        <span>🔀</span> Shuffle Classmates
-                      </button>
-
-                      <button
-                        className="gas-action-pill-btn"
-                        onClick={() => loadNextPoll(gradeFilter)}
-                      >
-                        Skip ⏭️
-                      </button>
-                    </div>
-                  </div>
-                )}
+              <motion.div key="poll" {...pageVariants} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <Feed
+                  user={user}
+                  currentPoll={currentPoll}
+                  options={options}
+                  gradeFilter={gradeFilter}
+                  isLoadingPoll={isLoadingPoll}
+                  hasVoted={hasVoted}
+                  cooldownUntil={cooldownUntil}
+                  onLoadNextPoll={loadNextPoll}
+                  onCastVote={castVote}
+                  onShuffle={shuffleCurrentOptions}
+                  renderProfilePic={renderProfilePic}
+                  onUpgrade={(amount) => handleUpgrade(amount || 99)}
+                  onSkipCooldown={handleSkipCooldown}
+                />
               </motion.div>
             )}
 
@@ -1260,44 +1263,6 @@ export default function App() {
                   onAction={() => handleUpgrade(99)}
                   actionText={user.is_pro ? '✓ Active Membership' : 'Upgrade Now - ₹99 ⚡'}
                 />
-
-                {user.is_pro && (
-                  <div style={{ width: '100%', maxWidth: '380px', marginTop: '24px', background: 'rgba(255,255,255,0.06)', borderRadius: '20px', padding: '18px', border: '1px solid rgba(251, 191, 36, 0.3)' }}>
-                    <h4 style={{ margin: '0 0 12px 0', color: '#fbbf24', textAlign: 'center' }}>Equip Your God Mode Aura</h4>
-                    <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                      {Object.keys(AURA_RINGS).filter(k => k !== 'none').map((ringKey) => (
-                        <motion.div
-                          key={ringKey}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => {
-                            setEditRing(ringKey);
-                            setUser({ ...user, ring: ringKey });
-                            fetch(`${API}/profile/${user.id}`, {
-                              method: 'PUT',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ bio: user.bio || '', avatar: user.avatar, ring: ringKey })
-                            });
-                          }}
-                          style={{
-                            width: '46px',
-                            height: '46px',
-                            borderRadius: '50%',
-                            cursor: 'pointer',
-                            background: '#18181b',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '20px',
-                            ...AURA_RINGS[ringKey]
-                          }}
-                        >
-                          {user.avatar}
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </motion.div>
             )}
 

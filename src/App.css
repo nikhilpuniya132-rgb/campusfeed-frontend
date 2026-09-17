@@ -5,20 +5,20 @@
 
 /* --- ROOT VARIABLES --- */
 :root {
-  --gas-orange: #ff5500;
-  --gas-orange-glow: rgba(255, 85, 0, 0.45);
-  --gas-pink: #ff2e93;
-  --gas-pink-glow: rgba(255, 46, 147, 0.45);
+  --gas-orange: #6366f1;
+  --gas-orange-glow: none;
+  --gas-pink: #f43f5e;
+  --gas-pink-glow: none;
   --gas-gold: #fbbf24;
-  --gas-gold-glow: rgba(251, 191, 36, 0.5);
-  --gas-cyan: #00f0ff;
-  --gas-cyan-glow: rgba(0, 240, 255, 0.4);
+  --gas-gold-glow: none;
+  --gas-cyan: #38bdf8;
+  --gas-cyan-glow: none;
   --gas-green: #10b981;
-  --gas-dark-bg: #08090f;
-  --gas-card-bg: rgba(24, 25, 38, 0.82);
-  --gas-card-border: rgba(255, 255, 255, 0.12);
+  --gas-dark-bg: #000000;
+  --gas-card-bg: #111111;
+  --gas-card-border: #222222;
   --gas-text: #ffffff;
-  --gas-muted: #94a3b8;
+  --gas-muted: #888888;
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -97,10 +97,8 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  background: rgba(8, 9, 15, 0.75);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #000000;
+  border-bottom: 1px solid #1a1a1a;
   z-index: 100;
   box-sizing: border-box;
 }
@@ -111,20 +109,13 @@ html, body {
   gap: 6px;
   font-size: 17px;
   font-weight: 900;
-  letter-spacing: 1.2px;
+  letter-spacing: 0.5px;
   color: #fff;
   flex-shrink: 0;
 }
 
 .gas-logo .flame-icon {
   font-size: 20px;
-  filter: drop-shadow(0 0 8px #ff5500);
-  animation: pulseFlame 2s ease-in-out infinite alternate;
-}
-
-@keyframes pulseFlame {
-  0% { transform: scale(1) rotate(-5deg); filter: drop-shadow(0 0 6px #ff5500); }
-  100% { transform: scale(1.15) rotate(5deg); filter: drop-shadow(0 0 14px #ff2e93); }
 }
 
 .gas-school-badge {
@@ -384,14 +375,14 @@ html, body {
   max-width: 430px;
   height: 100svh;
   max-height: 920px;
-  background: #0f101a;
+  background: #000000;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(255, 85, 0, 0.12);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
   border-radius: 36px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid #222222;
   z-index: 10;
 }
 
@@ -433,10 +424,8 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(15, 16, 26, 0.88);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #000000;
+  border-bottom: 1px solid #1a1a1a;
   flex-shrink: 0;
   z-index: 20;
   box-sizing: border-box;
@@ -453,13 +442,13 @@ html, body {
 }
 
 .gas-header-votes {
-  background: rgba(255, 85, 0, 0.15);
-  border: 1px solid rgba(255, 85, 0, 0.35);
+  background: #141414;
+  border: 1px solid #222222;
   padding: 4px 10px;
   border-radius: 16px;
   font-size: 12px;
   font-weight: 800;
-  color: #ff8800;
+  color: #fbbf24;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -478,7 +467,7 @@ html, body {
 }
 
 /* ==========================================================================
-   GAS VOTING FEED (3D TACTILE BUTTONS & QUESTION CARDS)
+   GAS VOTING FEED (FLAT MINIMALIST SURFACES)
    ========================================================================== */
 
 .gas-poll-wrapper {
@@ -487,16 +476,16 @@ html, body {
   flex-direction: column;
   padding: 12px 14px;
   position: relative;
-  background: radial-gradient(circle at 50% 15%, rgba(255, 85, 0, 0.16) 0%, rgba(15, 16, 26, 0) 70%);
+  background: transparent;
 }
 
 .gas-grade-toggle {
   display: flex;
-  background: rgba(255, 255, 255, 0.08);
+  background: #111111;
   border-radius: 14px;
   padding: 3px;
   margin-bottom: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #222222;
 }
 
 .gas-grade-btn {
@@ -508,23 +497,23 @@ html, body {
   font-weight: 800;
   cursor: pointer;
   background: transparent;
-  color: #94a3b8;
-  transition: all 0.2s ease;
+  color: #888888;
+  transition: all 0.15s ease;
 }
 
 .gas-grade-btn.active {
-  background: linear-gradient(135deg, #ff5500, #ff8800);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(255, 85, 0, 0.35);
+  background: #ffffff;
+  color: #000000;
+  box-shadow: none;
 }
 
-/* 3D Question Card */
+/* Question Card */
 .gas-question-card {
-  border-radius: 22px;
+  border-radius: 24px;
   padding: 20px 14px;
-  background: linear-gradient(145deg, #1e2030 0%, #131420 100%);
-  border: 1.5px solid rgba(255, 85, 0, 0.3);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  background: #111111;
+  border: 1px solid #222222;
+  box-shadow: none;
   text-align: center;
   margin-bottom: 14px;
   min-height: 105px;
@@ -539,8 +528,7 @@ html, body {
   font-size: clamp(17px, 4.8vw, 22px);
   font-weight: 900;
   color: #fff;
-  line-height: 1.3;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+  line-height: 1.35;
   margin: 0;
 }
 
@@ -552,11 +540,11 @@ html, body {
   margin-bottom: 14px;
 }
 
-/* 3D Tactile Choice Button */
+/* Tactile Choice Button */
 .gas-choice-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 18px;
+  background: #141414;
+  border: 1px solid #222222;
+  border-radius: 20px;
   padding: 14px 6px;
   display: flex;
   flex-direction: column;
@@ -566,23 +554,20 @@ html, body {
   cursor: pointer;
   position: relative;
   outline: none;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(10px);
-  transition: transform 0.12s ease, border-color 0.2s, box-shadow 0.2s;
+  box-shadow: none;
   user-select: none;
   min-height: 92px;
   box-sizing: border-box;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .gas-choice-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 85, 0, 0.5);
-  box-shadow: 0 8px 20px rgba(255, 85, 0, 0.3);
+  background: #1a1a1a;
+  border-color: #333333;
 }
 
 .gas-choice-btn:active {
-  transform: scale(0.94) translateY(2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transform: scale(0.96);
 }
 
 .gas-choice-name {
@@ -609,27 +594,27 @@ html, body {
 }
 
 .gas-action-pill-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #181818;
+  border: 1px solid #262626;
   color: #cbd5e1;
   padding: 9px 15px;
-  border-radius: 18px;
+  border-radius: 16px;
   font-size: 12.5px;
   font-weight: 800;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 5px;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .gas-action-pill-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: #222222;
   color: #fff;
 }
 
 /* ==========================================================================
-   FLOATING BOTTOM NAVIGATION DOCK (MOBILE APP FEEL)
+   FLOATING BOTTOM NAVIGATION DOCK (MINIMALIST NATIVE APP FEEL)
    ========================================================================== */
 
 .gas-bottom-dock {
@@ -639,15 +624,13 @@ html, body {
   right: 10px;
   height: 58px;
   border-radius: 24px;
-  background: rgba(18, 19, 30, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #0d0d0d;
+  border: 1px solid #222222;
   display: flex;
   align-items: center;
   justify-content: space-around;
   padding: 0 4px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
   z-index: 50;
   box-sizing: border-box;
 }
@@ -662,14 +645,13 @@ html, body {
   border-radius: 18px;
   cursor: pointer;
   position: relative;
-  color: #64748b;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: #666666;
+  transition: color 0.15s ease;
   padding: 4px 0;
 }
 
 .gas-dock-item.active {
   color: #fff;
-  transform: translateY(-2px);
 }
 
 .gas-dock-icon {
@@ -690,8 +672,8 @@ html, body {
   width: 12px;
   height: 3px;
   border-radius: 2px;
-  background: #ff5500;
-  box-shadow: 0 0 8px #ff5500;
+  background: #ffffff;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
 }
 
 /* ==========================================================================
@@ -706,25 +688,24 @@ html, body {
 }
 
 .gas-inbox-card {
-  background: rgba(24, 25, 38, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-left: 4px solid #ff5500;
-  border-radius: 16px;
+  background: #111111;
+  border: 1px solid #222222;
+  border-left: 4px solid #262626;
+  border-radius: 20px;
   padding: 14px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   cursor: pointer;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25);
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  box-shadow: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
   box-sizing: border-box;
 }
 
 .gas-inbox-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 85, 0, 0.5);
+  border-color: #333333;
+  background: #141414;
 }
 
 .gas-inbox-q {
@@ -737,7 +718,7 @@ html, body {
 
 .gas-inbox-voter {
   font-size: 12px;
-  color: #94a3b8;
+  color: #888888;
   margin: 0;
   display: flex;
   align-items: center;
@@ -745,28 +726,26 @@ html, body {
 }
 
 .gas-reveal-pill {
-  background: linear-gradient(135deg, rgba(255, 85, 0, 0.25), rgba(255, 46, 147, 0.25));
-  border: 1px solid rgba(255, 85, 0, 0.45);
-  color: #ff8800;
+  background: #18181b;
+  border: 1px solid #27272a;
+  color: #fbbf24;
   padding: 6px 12px;
   border-radius: 16px;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.4px;
   flex-shrink: 0;
   white-space: nowrap;
 }
 
-/* 3D Reveal Bottom Sheet */
+/* Reveal Bottom Sheet */
 .gas-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -774,14 +753,14 @@ html, body {
 }
 
 .gas-modal-sheet {
-  background: #141522;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #111111;
+  border: 1px solid #222222;
   border-top-left-radius: 28px;
   border-top-right-radius: 28px;
   padding: 24px 18px calc(24px + env(safe-area-inset-bottom, 12px)) 18px;
   width: 100%;
   max-width: 440px;
-  box-shadow: 0 -15px 40px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 -15px 40px rgba(0, 0, 0, 0.8);
   box-sizing: border-box;
 }
 
@@ -930,16 +909,14 @@ html, body {
 /* Form Styles */
 .form {
   padding: 24px 18px;
-  background: rgba(20, 21, 34, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: #111111;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.6), 0 0 25px rgba(255, 85, 0, 0.15);
+  border-radius: 24px;
+  border: 1px solid #222222;
+  box-shadow: none;
   width: 100%;
   box-sizing: border-box;
 }
