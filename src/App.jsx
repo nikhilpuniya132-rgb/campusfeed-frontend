@@ -279,32 +279,31 @@ export default function App() {
     return () => window.removeEventListener('campus-navigate', handleNavEvent);
   }, []);
 
-  // REAL-TIME AUTH LISTENER & IMMEDIATE SESSION CHECK
+  // ==============================================
+  // REAL-TIME AUTH LISTENER & NATIVE PKCE HANDLER
+  // ==============================================
   useEffect(() => {
     let isMounted = true;
 
-    // 1. REAL-TIME LISTENER: Active immediately on initial mount
+    // 1. Native Supabase Listener (Handles PKCE ?code= exchange automatically)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
-      console.log('[Supabase Auth Event]', event, session?.user ? 'User authenticated' : 'No user');
 
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || (event === 'INITIAL_SESSION' && session)) {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (session?.user) {
-          // Microsecond React state update - immediately unblock the UI!
           setUser(session.user);
           setIsCheckingSession(false);
           setIsAuthLoading(false);
           setIsAuthenticating(false);
 
-          // Force clean route transition to /feed using useNavigate()
-          navigate('/feed');
-
-          // Clean lingering hash from browser URL immediately
-          if (window.location.hash && window.location.hash.includes('access_token')) {
+          // Clean the URL completely if Supabase left a code or hash behind
+          if (window.location.search.includes('code=') || window.location.hash.includes('access_token')) {
             window.history.replaceState(null, '', '/feed');
+          } else if (window.location.pathname === '/' || window.location.pathname === '/login') {
+            navigate('/feed');
           }
 
-          // Background non-blocking sync with backend database
+          // Sync in background without blocking UI
           syncWithBackend(session.user).catch(err => console.warn('Background sync warning:', err));
         }
       } else if (event === 'SIGNED_OUT') {
@@ -318,56 +317,29 @@ export default function App() {
       }
     });
 
-    // 2. IMMEDIATE SESSION CHECK: Reads local Supabase session without delay
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // 2. Initial Mount Check
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (!isMounted) return;
+      
       if (session?.user) {
-        // Microsecond React state update
         setUser(session.user);
         setIsCheckingSession(false);
         setIsAuthLoading(false);
-        navigate('/feed');
-        syncWithBackend(session.user).catch(err => console.warn('Background sync warning:', err));
+        syncWithBackend(session.user).catch(console.warn);
       } else {
-        setIsCheckingSession(false);
-        setIsAuthLoading(false);
-      }
-    }).catch(err => {
-      console.warn('[GetSession Check Error]:', err);
-      if (isMounted) {
-        setIsCheckingSession(false);
-        setIsAuthLoading(false);
-      }
-    });
-// 3. SAFE HASH ROUTING: Check for access_token in URL hash
-    if (window.location.hash && window.location.hash.includes('access_token')) {
-      const hashTokens = extractTokensFromHash(window.location.hash);
-      
-      if (hashTokens?.access_token) {
-        supabase.auth.setSession({
-          access_token: hashTokens.access_token,
-          refresh_token: hashTokens.refresh_token || ''
-        }).then(({ data, error }) => {
-          if (!error && data?.session?.user && isMounted) {
-            
-            // ✅ CRITICAL FIX: Only clear the URL AFTER the session is successfully saved
-            window.history.replaceState(null, '', '/feed');
-            
-            setUser(data.session.user);
+        // Give PKCE flow 1.5 seconds to complete its background API exchange 
+        // before dropping the user to the login screen.
+        setTimeout(() => {
+          if (isMounted) {
             setIsCheckingSession(false);
             setIsAuthLoading(false);
-            navigate('/feed');
-            syncWithBackend(data.session.user).catch(err => console.warn('Background sync warning:', err));
           }
-        }).catch(err => console.error('OAuth hash setSession error:', err));
+        }, 1500);
       }
-    }
-
-    
+    });
 
     return () => {
       isMounted = false;
-      clearTimeout(safetyTimer);
       subscription?.unsubscribe();
     };
   }, []);
