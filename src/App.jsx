@@ -74,30 +74,6 @@ export default function App() {
   // ==============================================
   // AUTHENTICATION & PAYMENT LIFECYCLE HOOKS
   // ==============================================
-  // 1. Initialize Razorpay SDK
-  useEffect(() => {
-    if (!document.getElementById('razorpay-sdk')) {
-      const script = document.createElement('script');
-      script.id = 'razorpay-sdk';
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      document.body.appendChild(script);
-    }
-  }, []);
-
-  // 2. Actively listening for the Google redirect to unlock the app
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) syncWithBackend(session.user);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) syncWithBackend(session.user);
-      else setUser(null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [grade]);
-
   // Sync Google OAuth User with Backend Supabase DB
   const syncWithBackend = async (sessionUser, targetGrade = grade) => {
     setIsAuthenticating(true);
@@ -118,6 +94,7 @@ export default function App() {
       if (!res.ok) throw new Error(data.error || 'Authentication sync failed');
       if (data.user) {
         setUser(data.user);
+        setView('poll');
         setGradeFilter(data.user.grade ? data.user.grade.toString() : '11');
         loadNextPoll(data.user.grade ? data.user.grade.toString() : '11', data.user.id);
       }
@@ -127,6 +104,35 @@ export default function App() {
       setIsAuthenticating(false);
     }
   };
+
+  // 1. Initialize Razorpay SDK
+  useEffect(() => {
+    if (!document.getElementById('razorpay-sdk')) {
+      const script = document.createElement('script');
+      script.id = 'razorpay-sdk';
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      document.body.appendChild(script);
+    }
+  }, []);
+
+  // 2. Exact Supabase Auth Listener to catch Google OAuth redirect
+  useEffect(() => {
+    // 1. Check if they just returned from Google
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) syncWithBackend(session.user);
+    });
+
+    // 2. Listen for state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        syncWithBackend(session.user);
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const loginWithGoogle = async () => {
     setIsAuthenticating(true);
