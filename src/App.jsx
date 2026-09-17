@@ -342,34 +342,35 @@ export default function App() {
     }
   };
 
-  const handleWhatsAppInvite = () => {
-    const userHandle = (user?.handle || 'campus').replace(/^@/, '').trim();
-    const inviteText = `Someone from St. Kabir voted for you on CampusFeed. Join to see who it is! Use my invite code: ${userHandle}. https://campusfeed.com`;
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(inviteText)}`;
-    window.open(whatsappUrl, '_blank');
+  const fallbackCopy = (text) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text);
+    }
+    alert("Invite link copied to clipboard! Paste it in WhatsApp.");
   };
 
-  const handleShareInvite = async () => {
+  const handleInviteShare = async () => {
     const userHandle = (user?.handle || 'campus').replace(/^@/, '').trim();
-    const shareText = `Someone from St. Kabir voted for you on CampusFeed. Join to see who it is! Use my invite code: ${userHandle}. https://campusfeed.com`;
-
+    const shareData = {
+      title: 'CampusFeed',
+      text: `Someone from St. Kabir voted for you! Join to see who. Use code: ${userHandle}`,
+      url: 'https://campusfeed-frontend.vercel.app'
+    };
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: 'CampusFeed - St. Kabir',
-          text: shareText,
-          url: 'https://campusfeed.com'
-        });
-        setShareToast('Invite sent! 📲');
-        setTimeout(() => setShareToast(''), 4000);
+        await navigator.share(shareData);
       } catch (err) {
         if (err.name !== 'AbortError') {
-          handleWhatsAppInvite();
+          fallbackCopy(shareData.text + " " + shareData.url);
         }
       }
     } else {
-      handleWhatsAppInvite();
+      fallbackCopy(shareData.text + " " + shareData.url);
     }
+  };
+
+  const handleWhatsAppInvite = () => {
+    handleInviteShare();
   };
 
   const handleOpenReveal = async (vote) => {
@@ -378,14 +379,9 @@ export default function App() {
     setRevealData(null);
 
     try {
-      const res = await fetch(`${API}/inbox/reveal`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ voteId: vote.voteId, userId: user.id })
-      });
-
+      const res = await fetch(`${API}/inbox/reveal/${vote.voteId}?userId=${user.id}`);
       const data = await res.json();
-      if (res.status === 403) {
+      if (res.status === 403 || data.locked) {
         setRevealData({
           locked: true,
           remaining: data.remaining !== undefined ? data.remaining : 3,

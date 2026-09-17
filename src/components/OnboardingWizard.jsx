@@ -45,41 +45,34 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
   const [contactsGranted, setContactsGranted] = useState(false);
   const [shareToast, setShareToast] = useState('');
 
-  const copyFallback = async (text) => {
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-      }
-      setContactsGranted(true);
-      setShareToast('Invite link copied! Send it on WhatsApp 💬');
-    } catch {
-      setContactsGranted(true);
-      setShareToast('Invite code: ' + (handle || name || 'campus'));
+  const fallbackCopy = (text) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text);
     }
-    setTimeout(() => setShareToast(''), 4500);
+    alert("Invite link copied to clipboard! Paste it in WhatsApp.");
+    setContactsGranted(true);
   };
 
-  const handleAllowContacts = async () => {
-    const userHandle = (handle || name || 'campus').replace(/^@/, '').trim();
-    const shareText = `Someone from St. Kabir voted for you on CampusFeed. Join to see who it is! Use my invite code: ${userHandle}. https://campusfeed.com`;
-
+  const handleInviteShare = async (userHandle) => {
+    const clean = (userHandle || handle || name || 'campus').replace(/^@/, '').trim();
+    const shareData = {
+      title: 'CampusFeed',
+      text: `Someone from St. Kabir voted for you! Join to see who. Use code: ${clean}`,
+      url: 'https://campusfeed-frontend.vercel.app'
+    };
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: 'CampusFeed - St. Kabir',
-          text: shareText,
-          url: 'https://campusfeed.com'
-        });
+        await navigator.share(shareData);
         setContactsGranted(true);
-        setShareToast('Classmates invite sent! 👥');
-        setTimeout(() => setShareToast(''), 4000);
       } catch (err) {
         if (err.name !== 'AbortError') {
-          copyFallback(shareText);
+          fallbackCopy(shareData.text + " " + shareData.url);
+        } else {
+          setContactsGranted(true);
         }
       }
     } else {
-      copyFallback(shareText);
+      fallbackCopy(shareData.text + " " + shareData.url);
     }
   };
 
@@ -532,7 +525,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
 
                   <button
                     type="button"
-                    onClick={handleAllowContacts}
+                    onClick={() => handleInviteShare(handle || name)}
                     style={{
                       flex: 1,
                       padding: '10px 8px',
