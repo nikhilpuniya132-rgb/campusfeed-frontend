@@ -19,8 +19,9 @@ const Inbox = lazy(() => import('./components/Inbox'));
 const Feed = lazy(() => import('./components/Feed'));
 const Explore = lazy(() => import('./components/Explore'));
 
-// --- INITIALIZE CONFIGURED SUPABASE CLIENT ---
+// --- INITIALIZE CONFIGURED SUPABASE CLIENT & NAVIGATION ---
 import { supabase } from './supabase';
+import { useNavigate } from './useNavigate';
 
 const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ? 'http://localhost:5000/api'
@@ -68,6 +69,7 @@ export default function App() {
   const [legalView, setLegalView] = useState(null);
   const [activePlan, setActivePlan] = useState('weekly'); // 'basic', 'weekly', or 'monthly'
   const [showManualLogin, setShowManualLogin] = useState(false);
+  const navigate = useNavigate();
 
   // Logged-in App States
   const [view, setView] = useState(() => {
@@ -106,6 +108,7 @@ export default function App() {
   // ==============================================
   // Sync Google OAuth User with Backend Supabase DB
   const syncWithBackend = async (sessionUser, targetGrade = grade) => {
+    if (!sessionUser) return;
     setIsAuthenticating(true);
     try {
       const selectedGrade = localStorage.getItem('campus_grade') || targetGrade || grade || '11';
@@ -126,7 +129,7 @@ export default function App() {
         setOnboardingGoogleUser(data.googleUser);
         setIsOnboarding(true);
       } else if (data.user) {
-        setUser(data.user);
+        setUser(prev => ({ ...(prev || {}), ...data.user }));
         setIsOnboarding(false);
         setOnboardingGoogleUser(null);
         setView('poll');
@@ -138,6 +141,17 @@ export default function App() {
       }
     } catch (err) {
       console.error('Google Auth Sync Error:', err);
+      // Fallback synthesizer so user is never locked out on cold starts
+      setUser(prev => prev || {
+        id: sessionUser.id,
+        email: sessionUser.email,
+        handle: sessionUser.email?.split('@')[0] || 'Member',
+        name: sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || 'Classmate',
+        avatar: sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '😎',
+        grade: localStorage.getItem('campus_grade') || '11',
+        flames: 0,
+        is_pro: false
+      });
     } finally {
       setIsAuthenticating(false);
       setIsCheckingSession(false);
@@ -251,95 +265,114 @@ export default function App() {
     return null;
   };
 
-  // 2. Hash Parsing, Manual setSession & Non-blocking Auth Listener
+  // Custom navigation listener for useNavigate hook
   useEffect(() => {
-    let isMounted = true;
-    const hashTokens = extractTokensFromHash();
-
-    const resolveSession = async () => {
-      // Direct check on page load for access_token in URL hash
-      if (hashTokens?.access_token) {
-        try {
-          // Immediately clean hash from URL to prevent router confusion or 404
-          window.history.replaceState(null, '', '/feed');
-
-          // Manually set session in Supabase client
-          const { data, error } = await supabase.auth.setSession({
-            access_token: hashTokens.access_token,
-            refresh_token: hashTokens.refresh_token
-          });
-
-          if (!error && data?.session && isMounted) {
-            await syncWithBackend(data.session.user);
-            setView('poll');
-            window.history.replaceState(null, '', '/feed');
-            return;
-          }
-        } catch (err) {
-          console.error('Manual setSession error:', err);
-        }
-      }
-
-      // Check existing session in storage
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session && isMounted) {
-          await syncWithBackend(session.user);
-          if (window.location.pathname === '/' || window.location.pathname === '/feed') {
-            window.history.replaceState(null, '', '/feed');
-          }
-        }
-      } catch (err) {
-        console.warn('Session check fallback:', err);
-      } finally {
-        if (isMounted) {
-          setIsCheckingSession(false);
-          setIsAuthLoading(false);
-        }
+    const handleNavEvent = (e) => {
+      const targetView = e.detail?.view;
+      if (targetView === 'feed' || targetView === 'poll' || !targetView) {
+        setView('poll');
+      } else {
+        setView(targetView);
       }
     };
+    window.addEventListener('campus-navigate', handleNavEvent);
+    return () => window.removeEventListener('campus-navigate', handleNavEvent);
+  }, []);
 
-    resolveSession();
+  // REAL-TIME AUTH LISTENER & IMMEDIATE SESSION CHECK
+  useEffect(() => {
+    let isMounted = true;
 
-    // Reactive listener for SIGNED_IN, TOKEN_REFRESHED, and SIGNED_OUT
+    // 1. REAL-TIME LISTENER: Active immediately on initial mount
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
-      console.log('[Supabase Auth Event]', event, session ? 'Session found' : 'No session');
+      console.log('[Supabase Auth Event]', event, session?.user ? 'User authenticated' : 'No user');
 
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || (event === 'INITIAL_SESSION' && session)) {
-        if (session) {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || (event === 'INITIAL_SESSION' && session)) {
+        if (session?.user) {
+          // Microsecond React state update - immediately unblock the UI!
+          setUser(session.user);
+          setIsCheckingSession(false);
+          setIsAuthLoading(false);
+          setIsAuthenticating(false);
+
+          // Force clean route transition to /feed using useNavigate()
+          navigate('/feed');
+
+          // Clean lingering hash from browser URL immediately
           if (window.location.hash && window.location.hash.includes('access_token')) {
             window.history.replaceState(null, '', '/feed');
           }
-          await syncWithBackend(session.user);
-          setView('poll');
-          window.history.replaceState(null, '', '/feed');
+
+          // Background non-blocking sync with backend database
+          syncWithBackend(session.user).catch(err => console.warn('Background sync warning:', err));
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
+        setIsCheckingSession(false);
+        setIsAuthLoading(false);
+        setIsAuthenticating(false);
         setIsOnboarding(false);
         setOnboardingGoogleUser(null);
-        window.history.replaceState(null, '', '/');
+        navigate('/');
       }
+    });
 
+    // 2. IMMEDIATE SESSION CHECK: Reads local Supabase session without delay
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+      if (session?.user) {
+        // Microsecond React state update
+        setUser(session.user);
+        setIsCheckingSession(false);
+        setIsAuthLoading(false);
+        navigate('/feed');
+        syncWithBackend(session.user).catch(err => console.warn('Background sync warning:', err));
+      } else {
+        setIsCheckingSession(false);
+        setIsAuthLoading(false);
+      }
+    }).catch(err => {
+      console.warn('[GetSession Check Error]:', err);
       if (isMounted) {
         setIsCheckingSession(false);
         setIsAuthLoading(false);
       }
     });
 
-    // Safety timeout in case of slow or hanging network requests
-    const timeoutTimer = setTimeout(() => {
+    // 3. DIRECT HASH ROUTING: Check for access_token in URL hash
+    if (window.location.hash && window.location.hash.includes('access_token')) {
+      const hashTokens = extractTokensFromHash(window.location.hash);
+      // Clean hash from browser URL immediately
+      window.history.replaceState(null, '', '/feed');
+      if (hashTokens?.access_token) {
+        supabase.auth.setSession({
+          access_token: hashTokens.access_token,
+          refresh_token: hashTokens.refresh_token || ''
+        }).then(({ data, error }) => {
+          if (!error && data?.session?.user && isMounted) {
+            setUser(data.session.user);
+            setIsCheckingSession(false);
+            setIsAuthLoading(false);
+            navigate('/feed');
+            syncWithBackend(data.session.user).catch(err => console.warn('Background sync warning:', err));
+          }
+        }).catch(err => console.error('OAuth hash setSession error:', err));
+      }
+    }
+
+    // Safety timeout: Ensure HamsterLoader never hangs
+    const safetyTimer = setTimeout(() => {
       if (isMounted) {
         setIsCheckingSession(false);
         setIsAuthLoading(false);
       }
-    }, 4500);
+    }, 2500);
 
     return () => {
       isMounted = false;
-      clearTimeout(timeoutTimer);
-      subscription.unsubscribe();
+      clearTimeout(safetyTimer);
+      subscription?.unsubscribe();
     };
   }, []);
 
@@ -750,7 +783,7 @@ export default function App() {
   // ==============================================
   // VIEW -1: NON-BLOCKING AUTH HAMSTER LOADER
   // ==============================================
-  if (isAuthLoading || (isAuthenticating && !user && !isOnboarding)) {
+  if (isCheckingSession || isAuthLoading || (isAuthenticating && !user && !isOnboarding)) {
     return (
       <div style={{
         display: 'flex',
