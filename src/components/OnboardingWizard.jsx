@@ -2,27 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
-const slideVariants = {
+// Hardware-accelerated step transitions (opacity + transform only)
+const stepVariants = {
   enter: (direction) => ({
-    x: direction > 0 ? 120 : -120,
+    x: direction > 0 ? 30 : -30,
     opacity: 0,
-    scale: 0.95,
   }),
   center: {
     x: 0,
     opacity: 1,
-    scale: 1,
-    transition: { type: 'spring', damping: 24, stiffness: 280 }
+    transition: {
+      type: 'spring',
+      damping: 26,
+      stiffness: 320,
+    }
   },
   exit: (direction) => ({
-    x: direction < 0 ? 120 : -120,
+    x: direction < 0 ? 30 : -30,
     opacity: 0,
-    scale: 0.95,
-    transition: { duration: 0.2 }
+    transition: {
+      duration: 0.15,
+      ease: [0.16, 1, 0.3, 1]
+    }
   })
 };
 
 export default function OnboardingWizard({ googleUser, API, onComplete }) {
+  // Step navigation (1 through 6 UI steps, completing leads to step 7 / feed)
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,7 +36,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
 
   // Form State
   const initialName = googleUser?.name || '';
-  const initialHandle = initialName ? initialName.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+  const initialHandle = initialName ? initialName.toLowerCase().replace(/[^a-z0-9_]/g, '') : '';
 
   const [name, setName] = useState(initialName);
   const [handle, setHandle] = useState(initialHandle);
@@ -38,8 +44,9 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
   const [showPassword, setShowPassword] = useState(false);
   const [gender, setGender] = useState('boy');
   const [profilePic, setProfilePic] = useState(googleUser?.avatar || '');
+  const [avatarEmoji, setAvatarEmoji] = useState('😎');
   const [grade, setGrade] = useState('11');
-  const [refCode, setRefCode] = useState(() => {
+  const [refCode] = useState(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const fromUrl = urlParams.get('ref');
@@ -70,52 +77,38 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
     }
   }, [step, grade, API]);
 
-  const shareUrl = `${window.location.origin}/?ref=${handle || 'campus'}`;
-  const shareText = `Someone from St. Kabir voted for you on CampusFeed! Join to see who it is! Use my invite link:`;
+  // Dynamic invite link
+  const safeHandle = (handle || 'campus').replace(/^@/, '').toLowerCase();
+  const shareUrl = `${window.location.origin}/?ref=${safeHandle}`;
+  const shareText = `Someone from St. Kabir voted for you on CampusFeed! Join to see who it is. Use my invite link: ${shareUrl}`;
 
   const handleCopyLink = () => {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+      navigator.clipboard.writeText(shareText);
     }
-    setShareToast('✓ Invite link copied! Share with classmates.');
+    setShareToast('Link copied to clipboard!');
     setTimeout(() => setShareToast(''), 3000);
   };
 
   const handleWhatsAppShare = async () => {
-    const shareData = {
-      title: 'CampusFeed',
-      text: shareText,
-      url: shareUrl
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        setShareToast('✓ Shared successfully!');
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          handleCopyLink();
-        }
-      }
-    } else {
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`, '_blank');
-      setShareToast('✓ Opening WhatsApp...');
-    }
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+    window.open(waUrl, '_blank');
+    setShareToast('Opening WhatsApp...');
     setTimeout(() => setShareToast(''), 3000);
   };
 
   const handleInstagramShare = () => {
     handleCopyLink();
     window.open('https://www.instagram.com', '_blank');
-    setShareToast('✓ Link copied! Paste in your Instagram story or bio.');
+    setShareToast('Link copied! Paste in your Instagram story or bio.');
     setTimeout(() => setShareToast(''), 3500);
   };
 
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      return setErrorMsg('File size exceeds 2MB. Please choose a smaller photo.');
+    if (file.size > 2.5 * 1024 * 1024) {
+      return setErrorMsg('Photo exceeds 2.5MB. Please choose a smaller image.');
     }
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -141,17 +134,20 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
     }
     if (step === 2) {
       if (!handle.trim()) {
-        return setErrorMsg('Please choose a handle for classmates to vote for you');
+        return setErrorMsg('Please enter a username');
+      }
+      if (handle.trim().length < 3) {
+        return setErrorMsg('Username must be at least 3 characters');
       }
       if (!password.trim()) {
-        return setErrorMsg('Please create a password for your account');
+        return setErrorMsg('Please create an account password');
       }
-      if (password.length < 4) {
+      if (password.trim().length < 4) {
         return setErrorMsg('Password should be at least 4 characters');
       }
     }
     setDirection(1);
-    setStep(prev => prev + 1);
+    setStep(prev => Math.min(6, prev + 1));
   };
 
   const prevStep = () => {
@@ -160,11 +156,13 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
     setStep(prev => Math.max(1, prev - 1));
   };
 
+  // STEP 7: Final Routing & Submission
   const handleFinish = async () => {
     setIsSubmitting(true);
     setErrorMsg('');
     try {
       const cleanRef = (refCode || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
+      const finalAvatar = gender === 'girl' ? (avatarEmoji === '😎' ? '🌸' : avatarEmoji) : avatarEmoji;
 
       const res = await fetch(`${API}/user/complete-onboarding`, {
         method: 'POST',
@@ -173,13 +171,13 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
           googleId: googleUser?.googleId,
           email: googleUser?.email,
           name: name.trim(),
-          handle: handle.trim().replace(/^@/, ''),
+          handle: handle.trim().replace(/^@/, '').toLowerCase(),
           password: password.trim(),
           gender,
           school: 'St. Kabir Convent Senior Secondary School',
           city: 'Bathinda',
           grade: parseInt(grade) || 11,
-          avatar: gender === 'girl' ? '🌸' : gender === 'boy' ? '😎' : '✨',
+          avatar: finalAvatar,
           profilePic: profilePic || '',
           refCode: cleanRef
         })
@@ -200,16 +198,16 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       }
 
       confetti({
-        particleCount: 150,
-        spread: 90,
+        particleCount: 100,
+        spread: 70,
         origin: { y: 0.5 },
-        colors: ['#ff5500', '#00f0ff', '#ff2e93', '#fbbf24']
+        colors: ['#ffffff', '#fbbf24', '#38bdf8', '#34d399']
       });
 
-      // Clear referral code once registered
+      // Clear referral code from storage
       localStorage.removeItem('campus_ref_code');
 
-      // Lands directly on 3D Voting Game page (bypassing landing page entirely)
+      // Direct zero-jank transition to voting game feed
       onComplete(data.user);
     } catch (err) {
       console.error('Onboarding finish error:', err);
@@ -225,121 +223,179 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
         position: 'relative',
         zIndex: 10,
         width: '100%',
-        maxWidth: '460px',
+        maxWidth: '440px',
         margin: '0 auto',
-        padding: '24px 16px',
+        padding: '16px 16px 32px 16px',
         minHeight: '100svh',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
         boxSizing: 'border-box',
+        background: '#000000',
+        color: '#ffffff',
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Geist', 'Segoe UI', Roboto, sans-serif"
       }}
     >
-      {/* Header & 6-Step Indicator */}
-      <div style={{ marginBottom: '18px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+      {/* Top Header & Minimalist Step Indicator */}
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
           {step > 1 ? (
             <button
               type="button"
               onClick={prevStep}
               style={{
-                background: 'none',
+                background: 'transparent',
                 border: 'none',
-                color: '#94a3b8',
-                fontSize: '14px',
-                fontWeight: '800',
+                color: '#888888',
+                fontSize: '13px',
+                fontWeight: '700',
                 cursor: 'pointer',
-                padding: '4px 8px',
+                padding: '4px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
-              ← Back
+              <span>←</span> Back
             </button>
-          ) : <div style={{ width: '60px' }} />}
+          ) : (
+            <div style={{ width: '48px' }} />
+          )}
 
-          <span style={{ fontSize: '12px', fontWeight: '900', letterSpacing: '1px', color: '#ff8800', textTransform: 'uppercase' }}>
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: '800',
+              letterSpacing: '0.08em',
+              color: '#888888',
+              textTransform: 'uppercase'
+            }}
+          >
             Step {step} of 6
           </span>
 
-          <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 'bold' }}>
-            🔥 St. Kabir
+          <span
+            style={{
+              fontSize: '11px',
+              color: '#666666',
+              fontWeight: '700',
+              letterSpacing: '0.02em'
+            }}
+          >
+            St. Kabir
           </span>
         </div>
 
-        {/* Progress Bar Indicator */}
-        <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+        {/* Surface Step Progress Line */}
+        <div
+          style={{
+            width: '100%',
+            height: '2px',
+            background: '#1c1c1f',
+            borderRadius: '1px',
+            overflow: 'hidden'
+          }}
+        >
           <motion.div
             animate={{ width: `${(step / 6) * 100}%` }}
-            transition={{ duration: 0.35, ease: 'easeInOut' }}
-            style={{ height: '100%', background: 'linear-gradient(90deg, #ff5500, #ff2e93)', boxShadow: '0 0 10px #ff5500' }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            style={{ height: '100%', background: '#ffffff' }}
           />
         </div>
       </div>
 
-      {/* 3D Glassmorphic Card Container */}
+      {/* Surface 1: Main Minimalist Container Enclosure */}
       <div
         style={{
-          background: 'rgba(24, 25, 38, 0.92)',
-          border: '1px solid rgba(255, 255, 255, 0.14)',
-          borderRadius: '28px',
+          background: '#0f1011',
+          border: '1px solid #222222',
+          borderRadius: '24px',
           padding: '28px 20px',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(255, 85, 0, 0.15)',
-          backdropFilter: 'blur(20px)',
-          minHeight: '400px',
+          minHeight: '430px',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
-          overflow: 'hidden',
-          boxSizing: 'border-box',
+          boxSizing: 'border-box'
         }}
       >
         <AnimatePresence mode="wait" custom={direction}>
-          {/* STEP 1: NAME & BASIC INFO */}
+          {/* ========================================================
+              STEP 1: NAME & BASIC INFO
+             ======================================================== */}
           {step === 1 && (
             <motion.div
               key="step1"
               custom={direction}
-              variants={slideVariants}
+              variants={stepVariants}
               initial="enter"
               animate="center"
               exit="exit"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <div style={{ textAlign: 'center', marginBottom: '22px' }}>
-                <span style={{ fontSize: '42px', display: 'inline-block', marginBottom: '8px' }}>👋</span>
-                <h2 style={{ fontSize: '26px', fontWeight: '950', color: '#fff', margin: '0 0 6px 0' }}>What's your name?</h2>
-                <p style={{ fontSize: '13.5px', color: '#94a3b8', margin: 0 }}>Classmates at St. Kabir will recognize you by this</p>
+              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#ffffff', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+                  What's your name?
+                </h2>
+                <p style={{ fontSize: '13px', color: '#888888', margin: 0, lineHeight: '1.4' }}>
+                  Classmates at St. Kabir will see this on polls.
+                </p>
               </div>
 
-              <div style={{ margin: 'auto 0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ margin: 'auto 0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>
-                    Full Name (from Google)
+                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
+                    Full Name
                   </label>
                   <input
                     type="text"
-                    placeholder="Full Name"
+                    placeholder="Enter your name"
                     value={name}
                     onChange={e => setName(e.target.value)}
                     autoFocus
                     style={{
                       width: '100%',
-                      padding: '16px',
-                      borderRadius: '16px',
-                      border: '1.5px solid rgba(255, 85, 0, 0.4)',
-                      background: 'rgba(0, 0, 0, 0.4)',
-                      color: '#fff',
-                      fontSize: '18px',
-                      fontWeight: '800',
+                      padding: '14px 16px',
+                      borderRadius: '14px',
+                      border: '1px solid #262626',
+                      background: '#161616',
+                      color: '#ffffff',
+                      fontSize: '15px',
+                      fontWeight: '700',
                       outline: 'none',
-                      textAlign: 'center',
-                      boxSizing: 'border-box',
-                      boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.5)',
+                      boxSizing: 'border-box'
                     }}
                   />
                 </div>
 
+                {/* Locked School Badge */}
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
+                    School
+                  </label>
+                  <div
+                    style={{
+                      padding: '12px 14px',
+                      background: '#141416',
+                      border: '1px solid #222222',
+                      borderRadius: '14px',
+                      fontSize: '12.5px',
+                      fontWeight: '600',
+                      color: '#cbd5e1',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <span style={{ fontSize: '14px' }}>🏫</span>
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      St. Kabir Convent Senior Secondary School
+                    </span>
+                  </div>
+                </div>
+
+                {/* Grade Selection */}
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
                     Class / Grade
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
@@ -349,84 +405,106 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                         type="button"
                         onClick={() => setGrade(g)}
                         style={{
-                          padding: '12px 6px',
-                          borderRadius: '14px',
-                          border: grade === g ? '2px solid #ff5500' : '1px solid rgba(255,255,255,0.1)',
-                          background: grade === g ? 'rgba(255, 85, 0, 0.2)' : 'rgba(255,255,255,0.05)',
-                          color: grade === g ? '#ff8800' : '#fff',
-                          fontWeight: '900',
-                          fontSize: '14px',
+                          padding: '11px 4px',
+                          borderRadius: '12px',
+                          border: grade === g ? '1px solid #ffffff' : '1px solid #222222',
+                          background: grade === g ? '#ffffff' : '#141416',
+                          color: grade === g ? '#000000' : '#888888',
+                          fontWeight: '800',
+                          fontSize: '13px',
                           cursor: 'pointer',
+                          transition: 'background 0.15s ease, color 0.15s ease'
                         }}
                       >
-                        Cl-{g}
+                        Class {g}
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
 
-              {errorMsg && <p style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', margin: '8px 0 0 0' }}>{errorMsg}</p>}
+              {errorMsg && (
+                <p style={{ color: '#f87171', fontSize: '12.5px', textAlign: 'center', margin: '8px 0 0 0' }}>
+                  {errorMsg}
+                </p>
+              )}
 
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={nextStep}
-                className="magic-btn"
-                style={{ width: '100%', marginTop: '24px' }}
+                style={{
+                  width: '100%',
+                  marginTop: '24px',
+                  padding: '14px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  background: '#ffffff',
+                  color: '#000000',
+                  fontSize: '14.5px',
+                  fontWeight: '800',
+                  cursor: 'pointer'
+                }}
               >
-                Next: Choose Handle ➔
+                Continue ➔
               </motion.button>
             </motion.div>
           )}
 
-          {/* STEP 2: USERNAME & PASSWORD */}
+          {/* ========================================================
+              STEP 2: ACCOUNT CREATION (HANDLE & PASSWORD)
+             ======================================================== */}
           {step === 2 && (
             <motion.div
               key="step2"
               custom={direction}
-              variants={slideVariants}
+              variants={stepVariants}
               initial="enter"
               animate="center"
               exit="exit"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                <span style={{ fontSize: '42px', display: 'inline-block', marginBottom: '8px' }}>🔒</span>
-                <h2 style={{ fontSize: '26px', fontWeight: '950', color: '#fff', margin: '0 0 6px 0' }}>Account Details</h2>
-                <p style={{ fontSize: '13.5px', color: '#94a3b8', margin: 0 }}>Create your unique handle & password</p>
+              <div style={{ textAlign: 'center', marginBottom: '22px' }}>
+                <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#ffffff', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+                  Account details
+                </h2>
+                <p style={{ fontSize: '13px', color: '#888888', margin: 0, lineHeight: '1.4' }}>
+                  Set your username and secure account password.
+                </p>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', margin: 'auto 0' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', margin: 'auto 0' }}>
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
                     Username (Handle)
                   </label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ position: 'absolute', left: '16px', color: '#ff8800', fontWeight: '900', fontSize: '18px' }}>@</span>
+                    <span style={{ position: 'absolute', left: '16px', color: '#888888', fontWeight: '800', fontSize: '15px' }}>
+                      @
+                    </span>
                     <input
                       type="text"
                       placeholder="username"
                       value={handle}
                       onChange={e => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                      autoFocus
                       style={{
                         width: '100%',
-                        padding: '14px 16px 14px 38px',
-                        borderRadius: '16px',
-                        border: '1.5px solid rgba(255, 255, 255, 0.15)',
-                        background: 'rgba(0, 0, 0, 0.4)',
-                        color: '#fff',
-                        fontSize: '16px',
-                        fontWeight: '800',
+                        padding: '14px 16px 14px 34px',
+                        borderRadius: '14px',
+                        border: '1px solid #262626',
+                        background: '#161616',
+                        color: '#ffffff',
+                        fontSize: '15px',
+                        fontWeight: '700',
                         outline: 'none',
-                        boxSizing: 'border-box',
+                        boxSizing: 'border-box'
                       }}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
                     Account Password
                   </label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -438,527 +516,656 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                       style={{
                         width: '100%',
                         padding: '14px 44px 14px 16px',
-                        borderRadius: '16px',
-                        border: '1.5px solid rgba(255, 255, 255, 0.15)',
-                        background: 'rgba(0, 0, 0, 0.4)',
-                        color: '#fff',
-                        fontSize: '16px',
-                        fontWeight: '800',
+                        borderRadius: '14px',
+                        border: '1px solid #262626',
+                        background: '#161616',
+                        color: '#ffffff',
+                        fontSize: '15px',
+                        fontWeight: '700',
                         outline: 'none',
-                        boxSizing: 'border-box',
+                        boxSizing: 'border-box'
                       }}
                     />
-                    <span
+                    <button
+                      type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      style={{ position: 'absolute', right: '14px', cursor: 'pointer', fontSize: '18px' }}
+                      style={{
+                        position: 'absolute',
+                        right: '12px',
+                        background: 'none',
+                        border: 'none',
+                        color: '#888888',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        padding: '6px',
+                        fontWeight: '700'
+                      }}
                     >
-                      {showPassword ? '👁️' : '🔒'}
-                    </span>
+                      {showPassword ? 'Hide' : 'Show'}
+                    </button>
                   </div>
+                  <span style={{ fontSize: '11.5px', color: '#666666', marginTop: '4px', display: 'block' }}>
+                    Use this password to sign back in from any device.
+                  </span>
                 </div>
-
-                {refCode && (
-                  <div style={{ padding: '8px 12px', borderRadius: '12px', background: 'rgba(251, 191, 36, 0.12)', border: '1px solid rgba(251, 191, 36, 0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px' }}>🎟️</span>
-                    <span style={{ fontSize: '12px', color: '#fbbf24', fontWeight: '800' }}>
-                      Referred by: @{refCode}
-                    </span>
-                  </div>
-                )}
               </div>
 
-              {errorMsg && <p style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', margin: '8px 0 0 0' }}>{errorMsg}</p>}
+              {errorMsg && (
+                <p style={{ color: '#f87171', fontSize: '12.5px', textAlign: 'center', margin: '8px 0 0 0' }}>
+                  {errorMsg}
+                </p>
+              )}
 
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={nextStep}
-                className="magic-btn"
-                style={{ width: '100%', marginTop: '24px' }}
+                style={{
+                  width: '100%',
+                  marginTop: '24px',
+                  padding: '14px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  background: '#ffffff',
+                  color: '#000000',
+                  fontSize: '14.5px',
+                  fontWeight: '800',
+                  cursor: 'pointer'
+                }}
               >
-                Next: Select Gender ➔
+                Next: Choose Gender ➔
               </motion.button>
             </motion.div>
           )}
 
-          {/* STEP 3: GENDER SELECTION (3D TACTILE BUTTONS) */}
+          {/* ========================================================
+              STEP 3: GENDER SELECTION
+             ======================================================== */}
           {step === 3 && (
             <motion.div
               key="step3"
               custom={direction}
-              variants={slideVariants}
+              variants={stepVariants}
               initial="enter"
               animate="center"
               exit="exit"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                <span style={{ fontSize: '42px', display: 'inline-block', marginBottom: '8px' }}>✨</span>
-                <h2 style={{ fontSize: '26px', fontWeight: '950', color: '#fff', margin: '0 0 6px 0' }}>Select your gender</h2>
-                <p style={{ fontSize: '13.5px', color: '#94a3b8', margin: 0 }}>Customizes compliments & voting questions</p>
+              <div style={{ textAlign: 'center', marginBottom: '22px' }}>
+                <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#ffffff', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+                  Select your gender
+                </h2>
+                <p style={{ fontSize: '13px', color: '#888888', margin: 0, lineHeight: '1.4' }}>
+                  Helps friends identify who voted for them via flame colors.
+                </p>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', margin: 'auto 0' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', margin: 'auto 0' }}>
                 {[
-                  { id: 'boy', label: 'Boy', emoji: '👦', desc: 'Gets blue flame votes' },
-                  { id: 'girl', label: 'Girl', emoji: '👧', desc: 'Gets pink flame votes' },
-                  { id: 'nonbinary', label: 'Non-binary / Other', emoji: '✨', desc: 'Gets purple flame votes' },
-                ].map((g) => (
-                  <motion.button
-                    key={g.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => {
-                      setGender(g.id);
-                      setDirection(1);
-                      setStep(4);
-                    }}
-                    style={{
-                      padding: '16px 20px',
-                      borderRadius: '18px',
-                      border: gender === g.id ? '2px solid #ff5500' : '1px solid rgba(255, 255, 255, 0.14)',
-                      background: gender === g.id ? 'rgba(255, 85, 0, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                      color: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      cursor: 'pointer',
-                      backdropFilter: 'blur(10px)',
-                      boxShadow: gender === g.id ? '0 0 20px rgba(255, 85, 0, 0.3)' : 'none',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <span style={{ fontSize: '28px' }}>{g.emoji}</span>
-                      <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontSize: '16px', fontWeight: '900' }}>{g.label}</div>
-                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{g.desc}</div>
+                  { id: 'boy', label: 'Boy', emoji: '😎', flameNote: 'Blue Flame on votes' },
+                  { id: 'girl', label: 'Girl', emoji: '🌸', flameNote: 'Pink Flame on votes' },
+                  { id: 'non-binary', label: 'Non-binary', emoji: '✨', flameNote: 'Gold Flame on votes' }
+                ].map(item => {
+                  const isSelected = gender === item.id;
+                  return (
+                    <motion.button
+                      key={item.id}
+                      type="button"
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        setGender(item.id);
+                        setAvatarEmoji(item.emoji);
+                      }}
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: '16px',
+                        border: isSelected ? '1px solid #ffffff' : '1px solid #222222',
+                        background: isSelected ? '#ffffff' : '#141416',
+                        color: isSelected ? '#000000' : '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        transition: 'background 0.15s ease, border-color 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '22px' }}>{item.emoji}</span>
+                        <div style={{ textAlign: 'left' }}>
+                          <span style={{ fontSize: '15px', fontWeight: '800', display: 'block' }}>
+                            {item.label}
+                          </span>
+                          <span style={{ fontSize: '12px', color: isSelected ? '#444444' : '#888888' }}>
+                            {item.flameNote}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    {gender === g.id && <span style={{ color: '#ff8800', fontWeight: '900', fontSize: '18px' }}>✓</span>}
-                  </motion.button>
-                ))}
+                      <div
+                        style={{
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          border: isSelected ? '5px solid #000000' : '2px solid #444444',
+                          background: isSelected ? '#ffffff' : 'transparent',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </motion.button>
+                  );
+                })}
               </div>
+
+              {errorMsg && (
+                <p style={{ color: '#f87171', fontSize: '12.5px', textAlign: 'center', margin: '8px 0 0 0' }}>
+                  {errorMsg}
+                </p>
+              )}
 
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={nextStep}
-                className="magic-btn"
-                style={{ width: '100%', marginTop: '24px' }}
+                style={{
+                  width: '100%',
+                  marginTop: '24px',
+                  padding: '14px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  background: '#ffffff',
+                  color: '#000000',
+                  fontSize: '14.5px',
+                  fontWeight: '800',
+                  cursor: 'pointer'
+                }}
               >
-                Next: Profile Photo ➔
+                Continue ➔
               </motion.button>
             </motion.div>
           )}
 
-          {/* STEP 4: PROFILE PICTURE UPLOAD */}
+          {/* ========================================================
+              STEP 4: PROFILE PICTURE
+             ======================================================== */}
           {step === 4 && (
             <motion.div
               key="step4"
               custom={direction}
-              variants={slideVariants}
+              variants={stepVariants}
               initial="enter"
               animate="center"
               exit="exit"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
               <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                <span style={{ fontSize: '42px', display: 'inline-block', marginBottom: '8px' }}>📸</span>
-                <h2 style={{ fontSize: '26px', fontWeight: '950', color: '#fff', margin: '0 0 6px 0' }}>Profile Picture</h2>
-                <p style={{ fontSize: '13.5px', color: '#94a3b8', margin: 0 }}>Add a photo so friends recognise you</p>
+                <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#ffffff', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+                  Profile picture
+                </h2>
+                <p style={{ fontSize: '13px', color: '#888888', margin: 0, lineHeight: '1.4' }}>
+                  Upload a photo or choose an avatar icon.
+                </p>
               </div>
 
-              <div style={{ margin: 'auto 0', textAlign: 'center' }}>
-                {/* Photo Preview */}
-                <div style={{ position: 'relative', width: '110px', height: '110px', margin: '0 auto 18px auto' }}>
+              {/* Avatar Preview */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: 'auto 0' }}>
+                <div style={{ position: 'relative', marginBottom: '14px' }}>
                   {profilePic ? (
                     <img
                       src={profilePic}
-                      alt="preview"
+                      alt="profile preview"
                       style={{
-                        width: '110px',
-                        height: '110px',
+                        width: '88px',
+                        height: '88px',
                         borderRadius: '50%',
                         objectFit: 'cover',
-                        border: '3px solid #ff5500',
-                        boxShadow: '0 0 25px rgba(255, 85, 0, 0.4)',
+                        border: '2px solid #ffffff'
                       }}
                     />
                   ) : (
                     <div
                       style={{
-                        width: '110px',
-                        height: '110px',
+                        width: '88px',
+                        height: '88px',
                         borderRadius: '50%',
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '2px dashed rgba(255, 255, 255, 0.25)',
+                        background: '#161616',
+                        border: '1px solid #262626',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '48px',
+                        fontSize: '44px'
                       }}
                     >
-                      {gender === 'girl' ? '🌸' : gender === 'boy' ? '😎' : '✨'}
+                      {avatarEmoji}
                     </div>
                   )}
 
-                  <label
-                    htmlFor="onboarding-pic-input"
-                    style={{
-                      position: 'absolute',
-                      bottom: '0',
-                      right: '0',
-                      background: 'linear-gradient(135deg, #ff5500, #ff2e93)',
-                      color: '#fff',
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                    }}
-                  >
-                    ✏️
-                  </label>
+                  {profilePic && (
+                    <button
+                      type="button"
+                      onClick={() => setProfilePic('')}
+                      style={{
+                        position: 'absolute',
+                        bottom: '0px',
+                        right: '-4px',
+                        background: '#18181b',
+                        border: '1px solid #333333',
+                        borderRadius: '50%',
+                        width: '24px',
+                        height: '24px',
+                        color: '#f87171',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Remove photo"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Upload Action */}
+                <label
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: '12px',
+                    background: '#18181b',
+                    border: '1px solid #2a2a2e',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    marginBottom: '18px'
+                  }}
+                >
+                  <span>📷</span>
+                  <span>{profilePic ? 'Change Photo' : 'Upload Photo'}</span>
                   <input
-                    id="onboarding-pic-input"
                     type="file"
                     accept="image/*"
                     onChange={handleImageUpload}
                     style={{ display: 'none' }}
                   />
-                </div>
-
-                <label
-                  htmlFor="onboarding-pic-input"
-                  style={{
-                    display: 'inline-block',
-                    padding: '10px 20px',
-                    borderRadius: '14px',
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: '#fff',
-                    fontSize: '13px',
-                    fontWeight: '800',
-                    cursor: 'pointer',
-                    marginBottom: '12px',
-                  }}
-                >
-                  📁 Choose from Gallery / Camera
                 </label>
 
-                <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0 }}>
-                  PNG, JPG, or WebP up to 2MB (or keep avatar)
-                </p>
+                {/* Quick Emoji Avatar Fallbacks */}
+                <div>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#666666', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', textAlign: 'center', marginBottom: '8px' }}>
+                    Or pick an avatar
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    {['😎', '🌸', '⚡', '👑', '🦄', '🚀'].map(emoji => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => {
+                          setAvatarEmoji(emoji);
+                          setProfilePic('');
+                        }}
+                        style={{
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '12px',
+                          border: (!profilePic && avatarEmoji === emoji) ? '1px solid #ffffff' : '1px solid #222222',
+                          background: (!profilePic && avatarEmoji === emoji) ? '#222222' : '#141416',
+                          fontSize: '18px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              {errorMsg && <p style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', margin: '8px 0 0 0' }}>{errorMsg}</p>}
+              {errorMsg && (
+                <p style={{ color: '#f87171', fontSize: '12.5px', textAlign: 'center', margin: '8px 0 0 0' }}>
+                  {errorMsg}
+                </p>
+              )}
 
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={nextStep}
-                className="magic-btn"
-                style={{ width: '100%', marginTop: '24px' }}
+                style={{
+                  width: '100%',
+                  marginTop: '24px',
+                  padding: '14px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  background: '#ffffff',
+                  color: '#000000',
+                  fontSize: '14.5px',
+                  fontWeight: '800',
+                  cursor: 'pointer'
+                }}
               >
-                Next: Viral Share ➔
+                Continue ➔
               </motion.button>
             </motion.div>
           )}
 
-          {/* STEP 5: VIRAL INVITE STEP (WHATSAPP / INSTAGRAM WITH SKIP) */}
+          {/* ========================================================
+              STEP 5: THE VIRAL LOOP (INVITE FRIENDS)
+             ======================================================== */}
           {step === 5 && (
             <motion.div
               key="step5"
               custom={direction}
-              variants={slideVariants}
+              variants={stepVariants}
               initial="enter"
               animate="center"
               exit="exit"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-                <span style={{ fontSize: '42px', display: 'inline-block', marginBottom: '6px' }}>🚀</span>
-                <h2 style={{ fontSize: '26px', fontWeight: '950', color: '#fff', margin: '0 0 6px 0' }}>Invite Your Friends</h2>
-                <p style={{ fontSize: '13.5px', color: '#94a3b8', margin: 0 }}>
-                  Someone from <strong style={{ color: '#ff8800' }}>St. Kabir</strong> is already voting on you!
+              <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+                <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#ffffff', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+                  Invite your friends
+                </h2>
+                <p style={{ fontSize: '13px', color: '#888888', margin: 0, lineHeight: '1.4' }}>
+                  CampusFeed is built for you and your classmates.
                 </p>
               </div>
 
-              {/* Referral Link Box */}
+              {/* Referral Link Card */}
               <div
                 style={{
-                  margin: 'auto 0',
-                  padding: '16px',
-                  borderRadius: '20px',
-                  background: 'linear-gradient(145deg, rgba(255, 85, 0, 0.12), rgba(0, 240, 255, 0.08))',
-                  border: '1.5px solid rgba(255, 85, 0, 0.35)',
-                  textAlign: 'center',
+                  background: '#141416',
+                  border: '1px solid #222222',
+                  borderRadius: '16px',
+                  padding: '14px',
+                  marginBottom: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '10px'
                 }}
               >
-                <div style={{ fontSize: '11px', fontWeight: '900', color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
-                  🎟️ YOUR REFERRAL INVITE LINK
+                <div style={{ overflow: 'hidden', textAlign: 'left' }}>
+                  <span style={{ fontSize: '10.5px', fontWeight: '700', color: '#666666', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>
+                    Your Personal Invite Link
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: '700', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                    {shareUrl.replace(/^https?:\/\//, '')}
+                  </span>
                 </div>
-                <div style={{ fontSize: '13px', fontWeight: '800', color: '#00f0ff', wordBreak: 'break-all', marginBottom: '10px' }}>
-                  {shareUrl}
-                </div>
-
-                <div
+                <button
+                  type="button"
                   onClick={handleCopyLink}
                   style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '6px 14px',
-                    borderRadius: '12px',
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    color: '#fff',
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid #333333',
+                    background: '#222222',
+                    color: '#ffffff',
                     fontSize: '12px',
-                    fontWeight: '800',
+                    fontWeight: '700',
                     cursor: 'pointer',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    flexShrink: 0
                   }}
                 >
-                  <span>📋</span> Copy Link
-                </div>
+                  Copy
+                </button>
               </div>
 
-              {shareToast && (
-                <div style={{ color: '#10b981', fontSize: '12px', fontWeight: '800', textAlign: 'center', margin: '8px 0' }}>
-                  {shareToast}
-                </div>
-              )}
-
-              {/* Prominent WhatsApp & Instagram Share Buttons */}
-              <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Direct Social Share Buttons */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.96 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
                   onClick={handleWhatsAppShare}
                   style={{
                     width: '100%',
-                    padding: '14px',
-                    borderRadius: '16px',
+                    padding: '13px',
+                    borderRadius: '14px',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #25D366, #128C7E)',
-                    color: '#fff',
-                    fontSize: '14.5px',
-                    fontWeight: '900',
+                    background: '#25D366',
+                    color: '#000000',
+                    fontSize: '13.5px',
+                    fontWeight: '800',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '8px',
-                    boxShadow: '0 8px 20px rgba(37, 211, 102, 0.35)',
+                    gap: '8px'
                   }}
                 >
-                  <span style={{ fontSize: '18px' }}>📲</span> Share on WhatsApp
+                  <span>📲</span>
+                  <span>Share on WhatsApp</span>
                 </motion.button>
 
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.96 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
                   onClick={handleInstagramShare}
                   style={{
                     width: '100%',
-                    padding: '14px',
-                    borderRadius: '16px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)',
-                    color: '#fff',
-                    fontSize: '14.5px',
-                    fontWeight: '900',
+                    padding: '13px',
+                    borderRadius: '14px',
+                    border: '1px solid #2a2a2e',
+                    background: '#18181b',
+                    color: '#ffffff',
+                    fontSize: '13.5px',
+                    fontWeight: '800',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '8px',
-                    boxShadow: '0 8px 20px rgba(253, 29, 29, 0.35)',
+                    gap: '8px'
                   }}
                 >
-                  <span style={{ fontSize: '18px' }}>📸</span> Share on Instagram
+                  <span>📸</span>
+                  <span>Share on Instagram</span>
+                </motion.button>
+              </div>
+
+              {shareToast && (
+                <p style={{ color: '#34d399', fontSize: '12px', textAlign: 'center', margin: '4px 0 0 0', fontWeight: '700' }}>
+                  ✓ {shareToast}
+                </p>
+              )}
+
+              {/* Primary Next Action + Explicit Skip For Now Button */}
+              <div style={{ marginTop: 'auto', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={nextStep}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: '14px',
+                    border: 'none',
+                    background: '#ffffff',
+                    color: '#000000',
+                    fontSize: '14.5px',
+                    fontWeight: '800',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Continue to Classmates ➔
                 </motion.button>
 
-                <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                  {/* Clear Skip Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDirection(1);
-                      setStep(6);
-                    }}
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      borderRadius: '14px',
-                      border: '1px solid rgba(255,255,255,0.15)',
-                      background: 'rgba(255,255,255,0.06)',
-                      color: '#94a3b8',
-                      fontSize: '13px',
-                      fontWeight: '800',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Skip for now ➔
-                  </button>
-
-                  {/* Next Step Button */}
-                  <button
-                    type="button"
-                    onClick={nextStep}
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      borderRadius: '14px',
-                      border: 'none',
-                      background: 'linear-gradient(135deg, #ff5500, #ff2e93)',
-                      color: '#fff',
-                      fontSize: '13px',
-                      fontWeight: '900',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Next: Add Friends ➔
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#666666',
+                    fontSize: '12.5px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    padding: '8px'
+                  }}
+                >
+                  Skip for now
+                </button>
               </div>
             </motion.div>
           )}
 
-          {/* STEP 6: ADD FRIENDS STEP (WITH SKIP & DIRECT VOTING DESTINATION) */}
+          {/* ========================================================
+              STEP 6: ADD CLASSMATES (BENTO GRID)
+             ======================================================== */}
           {step === 6 && (
             <motion.div
               key="step6"
               custom={direction}
-              variants={slideVariants}
+              variants={stepVariants}
               initial="enter"
               animate="center"
               exit="exit"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
               <div style={{ textAlign: 'center', marginBottom: '14px' }}>
-                <span style={{ fontSize: '40px', display: 'inline-block', marginBottom: '4px' }}>👥</span>
-                <h2 style={{ fontSize: '24px', fontWeight: '950', color: '#fff', margin: '0 0 4px 0' }}>Add Classmates</h2>
-                <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
-                  Connect with students at St. Kabir to see poll results
+                <h2 style={{ fontSize: '21px', fontWeight: '800', color: '#ffffff', margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>
+                  Add classmates
+                </h2>
+                <p style={{ fontSize: '12.5px', color: '#888888', margin: 0, lineHeight: '1.4' }}>
+                  Send quick friend requests to classmates at St. Kabir.
                 </p>
               </div>
 
-              {/* Classmates List Container */}
-              <div
-                style={{
-                  flex: 1,
-                  maxHeight: '230px',
-                  overflowY: 'auto',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  paddingRight: '4px',
-                  margin: '4px 0 14px 0',
-                }}
-              >
+              {/* Classmates Bento Grid */}
+              <div style={{ flex: 1, overflowY: 'auto', maxHeight: '250px', paddingRight: '2px', marginBottom: '14px' }}>
                 {isLoadingClassmates ? (
-                  <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: '13px' }}>
-                    Finding classmates in Class {grade}... ⚡
+                  <div style={{ padding: '40px 0', textAlign: 'center', color: '#888888', fontSize: '13px' }}>
+                    Finding classmates in Class {grade}...
                   </div>
                 ) : suggestedClassmates.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: '13px' }}>
-                    You're the pioneer in your class! Invite your friends to start the feed.
+                  <div style={{ padding: '30px 10px', textAlign: 'center', color: '#888888', background: '#141416', borderRadius: '16px', border: '1px solid #222222' }}>
+                    <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#ffffff', fontWeight: '700' }}>You're an early bird!</p>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#777777' }}>Share your link so friends can join your class feed.</p>
                   </div>
                 ) : (
-                  suggestedClassmates.map(c => {
-                    const isAdded = addedFriends.has(c.id);
-                    return (
-                      <div
-                        key={c.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '10px 12px',
-                          borderRadius: '16px',
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid rgba(255, 255, 255, 0.08)',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                            {c.profile_pic ? (
-                              <img src={c.profile_pic} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            ) : (
-                              <span>{c.avatar || '😎'}</span>
-                            )}
-                          </div>
-                          <div style={{ textAlign: 'left' }}>
-                            <div style={{ fontSize: '13.5px', fontWeight: '900', color: '#fff' }}>
-                              @{c.handle}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                              Class {c.grade || grade} • St. Kabir
-                            </div>
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => toggleAddFriend(c.id)}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    {suggestedClassmates.map(c => {
+                      const isAdded = addedFriends.has(c.id);
+                      return (
+                        <div
+                          key={c.id}
                           style={{
-                            padding: '6px 12px',
-                            borderRadius: '10px',
-                            border: isAdded ? '1px solid #10b981' : '1px solid rgba(255, 85, 0, 0.4)',
-                            background: isAdded ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 85, 0, 0.2)',
-                            color: isAdded ? '#10b981' : '#ff8800',
-                            fontSize: '12px',
-                            fontWeight: '900',
-                            cursor: 'pointer',
+                            background: '#141416',
+                            border: '1px solid #222222',
+                            borderRadius: '16px',
+                            padding: '10px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            textAlign: 'center',
+                            boxSizing: 'border-box'
                           }}
                         >
-                          {isAdded ? '✓ Added' : '➕ Add'}
-                        </button>
-                      </div>
-                    );
-                  })
+                          {c.profile_pic ? (
+                            <img
+                              src={c.profile_pic}
+                              alt={c.handle}
+                              style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', marginBottom: '6px' }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: '38px',
+                                height: '38px',
+                                borderRadius: '50%',
+                                background: '#1c1c1f',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '18px',
+                                marginBottom: '6px'
+                              }}
+                            >
+                              {c.avatar || '😎'}
+                            </div>
+                          )}
+
+                          <span style={{ fontSize: '12px', fontWeight: '800', color: '#ffffff', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            @{c.handle}
+                          </span>
+                          <span style={{ fontSize: '10.5px', color: '#777777', marginBottom: '8px' }}>
+                            Class {c.grade || grade}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => toggleAddFriend(c.id)}
+                            style={{
+                              width: '100%',
+                              padding: '6px 0',
+                              borderRadius: '10px',
+                              border: isAdded ? '1px solid #2a2a2e' : 'none',
+                              background: isAdded ? '#1c1c1f' : '#ffffff',
+                              color: isAdded ? '#a1a1aa' : '#000000',
+                              fontSize: '11.5px',
+                              fontWeight: '800',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            {isAdded ? '✓ Added' : '+ Add'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
 
-              {errorMsg && <p style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', margin: '0 0 10px 0' }}>{errorMsg}</p>}
+              {errorMsg && (
+                <p style={{ color: '#f87171', fontSize: '12.5px', textAlign: 'center', margin: '0 0 8px 0' }}>
+                  {errorMsg}
+                </p>
+              )}
 
-              {/* Action Buttons: Skip & Start Voting */}
-              <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
-                {/* Clear Skip Button */}
+              {/* STEP 7: Route to Feed on finish or skip */}
+              <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  disabled={isSubmitting}
+                  onClick={handleFinish}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: '14px',
+                    border: 'none',
+                    background: '#ffffff',
+                    color: '#000000',
+                    fontSize: '14.5px',
+                    fontWeight: '800',
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                    opacity: isSubmitting ? 0.6 : 1
+                  }}
+                >
+                  {isSubmitting
+                    ? 'Entering St. Kabir...'
+                    : addedFriends.size > 0
+                    ? `Add ${addedFriends.size} Friend${addedFriends.size > 1 ? 's' : ''} & Start ➔`
+                    : 'Finish & Start Voting ➔'}
+                </motion.button>
+
                 <button
                   type="button"
                   disabled={isSubmitting}
                   onClick={handleFinish}
                   style={{
-                    flex: 1,
-                    padding: '14px',
-                    borderRadius: '16px',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    background: 'rgba(255, 255, 255, 0.07)',
-                    color: '#94a3b8',
-                    fontSize: '14px',
-                    fontWeight: '800',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#666666',
+                    fontSize: '12.5px',
+                    fontWeight: '700',
                     cursor: 'pointer',
+                    padding: '6px'
                   }}
                 >
-                  Skip ➔
+                  Skip
                 </button>
-
-                {/* Final Destination: Start Voting Game Button */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  disabled={isSubmitting}
-                  onClick={handleFinish}
-                  className="magic-btn"
-                  style={{ flex: 2, margin: 0, padding: '14px' }}
-                >
-                  {isSubmitting ? 'Entering St. Kabir Loop... ⚡' : 'Start Voting ➔'}
-                </motion.button>
               </div>
             </motion.div>
           )}
