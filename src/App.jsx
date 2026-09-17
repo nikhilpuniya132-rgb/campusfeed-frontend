@@ -19,10 +19,8 @@ const Inbox = lazy(() => import('./components/Inbox'));
 const Feed = lazy(() => import('./components/Feed'));
 const Explore = lazy(() => import('./components/Explore'));
 
-// --- INITIALIZE SUPABASE ---
-const supabaseUrl = 'https://aezhlsfbewfqmzfshuzs.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlemhsc2ZiZXdmcW16ZnNodXpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MTQwMjAsImV4cCI6MjEwNDA5MDAyMH0.XoDOE3ODevwYIzGz1ivsjmTvwQmIDtpC9jfg-TWSqUI';
-const supabase = createClient(supabaseUrl, supabaseKey);
+// --- INITIALIZE CONFIGURED SUPABASE CLIENT ---
+import { supabase } from './supabase';
 
 const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ? 'http://localhost:5000/api'
@@ -72,7 +70,15 @@ export default function App() {
   const [showManualLogin, setShowManualLogin] = useState(false);
 
   // Logged-in App States
-  const [view, setView] = useState('poll');
+  const [view, setView] = useState(() => {
+    const path = window.location.pathname.replace(/^\//, '');
+    if (path === 'feed' || path === 'poll') return 'poll';
+    if (path === 'inbox') return 'inbox';
+    if (path === 'pro' || path === 'vip') return 'pro';
+    if (path === 'explore') return 'explore';
+    if (path === 'profile') return 'profile';
+    return 'poll';
+  });
   const [gradeFilter, setGradeFilter] = useState('11');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPoll, setCurrentPoll] = useState(null);
@@ -228,60 +234,95 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
-  // 2. Non-blocking Supabase Auth Listener with hash cleaner & zero freezing
+  // Helper to extract session tokens directly from URL hash
+  const extractTokensFromHash = (hash = window.location.hash) => {
+    if (!hash || !hash.includes('access_token')) return null;
+    try {
+      const cleanHash = hash.replace(/^#\/?/, '').replace(/^#/, '');
+      const params = new URLSearchParams(cleanHash);
+      const access_token = params.get('access_token');
+      const refresh_token = params.get('refresh_token');
+      if (access_token) {
+        return { access_token, refresh_token: refresh_token || '' };
+      }
+    } catch (e) {
+      console.error('Failed to parse auth hash:', e);
+    }
+    return null;
+  };
+
+  // 2. Hash Parsing, Manual setSession & Non-blocking Auth Listener
   useEffect(() => {
     let isMounted = true;
-    const hasAuthHash = window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token'));
+    const hashTokens = extractTokensFromHash();
 
-    // Non-blocking initial session check in background
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isMounted) return;
-      if (session) {
-        if (hasAuthHash) {
-          window.history.replaceState(null, '', window.location.pathname);
-        }
-        syncWithBackend(session.user).finally(() => {
-          if (isMounted) {
-            setIsCheckingSession(false);
-            setIsAuthLoading(false);
+    const resolveSession = async () => {
+      // Direct check on page load for access_token in URL hash
+      if (hashTokens?.access_token) {
+        try {
+          // Immediately clean hash from URL to prevent router confusion or 404
+          window.history.replaceState(null, '', '/feed');
+
+          // Manually set session in Supabase client
+          const { data, error } = await supabase.auth.setSession({
+            access_token: hashTokens.access_token,
+            refresh_token: hashTokens.refresh_token
+          });
+
+          if (!error && data?.session && isMounted) {
+            await syncWithBackend(data.session.user);
+            setView('poll');
+            window.history.replaceState(null, '', '/feed');
+            return;
           }
-        });
-      } else if (!hasAuthHash) {
-        setIsCheckingSession(false);
-        setIsAuthLoading(false);
+        } catch (err) {
+          console.error('Manual setSession error:', err);
+        }
       }
-    }).catch(err => {
-      console.warn('Session check fallback:', err);
-      if (isMounted && !hasAuthHash) {
-        setIsCheckingSession(false);
-        setIsAuthLoading(false);
-      }
-    });
 
-    // Reactive listener for SIGNED_IN & state transitions
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Check existing session in storage
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && isMounted) {
+          await syncWithBackend(session.user);
+          if (window.location.pathname === '/' || window.location.pathname === '/feed') {
+            window.history.replaceState(null, '', '/feed');
+          }
+        }
+      } catch (err) {
+        console.warn('Session check fallback:', err);
+      } finally {
+        if (isMounted) {
+          setIsCheckingSession(false);
+          setIsAuthLoading(false);
+        }
+      }
+    };
+
+    resolveSession();
+
+    // Reactive listener for SIGNED_IN, TOKEN_REFRESHED, and SIGNED_OUT
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
       console.log('[Supabase Auth Event]', event, session ? 'Session found' : 'No session');
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || (event === 'INITIAL_SESSION' && session)) {
         if (session) {
           if (window.location.hash && window.location.hash.includes('access_token')) {
-            window.history.replaceState(null, '', window.location.pathname);
+            window.history.replaceState(null, '', '/feed');
           }
-          syncWithBackend(session.user).finally(() => {
-            if (isMounted) {
-              setIsCheckingSession(false);
-              setIsAuthLoading(false);
-            }
-          });
+          await syncWithBackend(session.user);
+          setView('poll');
+          window.history.replaceState(null, '', '/feed');
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setIsOnboarding(false);
         setOnboardingGoogleUser(null);
-        setIsCheckingSession(false);
-        setIsAuthLoading(false);
-      } else if (!hasAuthHash) {
+        window.history.replaceState(null, '', '/');
+      }
+
+      if (isMounted) {
         setIsCheckingSession(false);
         setIsAuthLoading(false);
       }
@@ -307,7 +348,9 @@ export default function App() {
     localStorage.setItem('campus_grade', grade);
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin } // Force return to current URL
+      options: {
+        redirectTo: `${window.location.origin}/feed`
+      }
     });
     if (error) {
       alert("Login Failed: " + error.message);
@@ -439,18 +482,22 @@ export default function App() {
 
   const handleNav = (newView) => {
     setView(newView);
-    if (newView === 'inbox') fetchInbox(user.id);
+    const targetPath = newView === 'poll' ? '/feed' : `/${newView}`;
+    if (window.location.pathname !== targetPath) {
+      window.history.replaceState(null, '', targetPath);
+    }
+    if (newView === 'inbox') fetchInbox(user?.id);
     if (newView === 'explore') fetch(`${API}/explore/leaderboard`).then(r => r.json()).then(d => setLeaderboard(d.leaderboard || []));
     if (newView === 'profile') {
-      fetchAcceptedFriends(user.id);
-      fetchPendingRequests(user.id);
-      fetch(`${API}/profile/${user.id}`).then(r => r.json()).then(d => {
+      fetchAcceptedFriends(user?.id);
+      fetchPendingRequests(user?.id);
+      fetch(`${API}/profile/${user?.id}`).then(r => r.json()).then(d => {
         setProfileData(d);
-        setEditBio(d.user.bio || '');
-        setEditAvatar(d.user.avatar || '');
-        setEditRing(d.user.ring || 'gold');
-        setEditGrade(d.user.grade ? d.user.grade.toString() : '11');
-        setEditProfilePic(d.user.profile_pic || '');
+        setEditBio(d.user?.bio || '');
+        setEditAvatar(d.user?.avatar || '');
+        setEditRing(d.user?.ring || 'gold');
+        setEditGrade(d.user?.grade ? d.user.grade.toString() : '11');
+        setEditProfilePic(d.user?.profile_pic || '');
       });
     }
   };
