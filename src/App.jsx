@@ -64,6 +64,56 @@ export default function App() {
       document.body.appendChild(script);
     }
   }, []);
+  // --- SUPABASE AUTH LISTENER ---
+  useEffect(() => {
+    // 1. Check if user is already logged in when they open the app
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) syncWithBackend(session.user);
+    });
+
+    // 2. Listen for when they successfully return from the Google popup
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        syncWithBackend(session.user);
+      } else {
+        setUser(null); // Logs them out of the UI if they sign out
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [grade]); // Added grade as dependency so we know their class
+
+  // --- BRIDGE SUPABASE TO YOUR BACKEND ---
+  const syncWithBackend = async (googleUser) => {
+    setIsAuthenticating(true);
+    try {
+      // Send the Google data to your Render backend to create/fetch their profile
+      const res = await fetch(`${API}/auth/google`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ 
+          googleId: googleUser.id,
+          email: googleUser.email,
+          name: googleUser.user_metadata.full_name,
+          avatar: googleUser.user_metadata.avatar_url,
+          grade: grade // from your class dropdown!
+        }) 
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      
+      // Update React state to unlock the app!
+      setUser(data.user);
+      setGradeFilter(data.user.grade.toString());
+      loadNextPoll(data.user.grade.toString(), data.user.id);
+      
+    } catch (err) { 
+      console.error(err);
+      alert("Error syncing Google account to CampusFeed backend."); 
+    }
+    setIsAuthenticating(false);
+  };
 
   // --- HELPERS ---
   const renderProfilePic = (pic, ava, isPro, ring = 'gold', size = 100) => {
