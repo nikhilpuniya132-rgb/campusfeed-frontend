@@ -16,7 +16,9 @@ const supabaseUrl = 'https://aezhlsfbewfqmzfshuzs.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlemhsc2ZiZXdmcW16ZnNodXpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MTQwMjAsImV4cCI6MjEwNDA5MDAyMH0.XoDOE3ODevwYIzGz1ivsjmTvwQmIDtpC9jfg-TWSqUI';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const API = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://campusfeed-backend-po4g.onrender.com/api';
+const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:5000/api'
+  : 'https://campusfeed-backend-po4g.onrender.com/api';
 
 const AURA_RINGS = {
   none: { border: 'none', boxShadow: 'none' },
@@ -72,38 +74,35 @@ export default function App() {
   // ==============================================
   // AUTHENTICATION & PAYMENT LIFECYCLE HOOKS
   // ==============================================
+  // 1. Initialize Razorpay SDK
   useEffect(() => {
-    // 1. Initialize Razorpay SDK
     if (!document.getElementById('razorpay-sdk')) {
       const script = document.createElement('script');
       script.id = 'razorpay-sdk';
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       document.body.appendChild(script);
     }
-
-    // 2. Supabase Auth Session Check on Mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        syncWithBackend(session.user);
-      }
-    });
-
-    // 3. Supabase Auth State Change Listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        syncWithBackend(session.user);
-      }
-    });
-
-    return () => {
-      subscription?.unsubscribe();
-    };
   }, []);
+
+  // 2. Actively listening for the Google redirect to unlock the app
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) syncWithBackend(session.user);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) syncWithBackend(session.user);
+      else setUser(null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [grade]);
 
   // Sync Google OAuth User with Backend Supabase DB
   const syncWithBackend = async (sessionUser, targetGrade = grade) => {
     setIsAuthenticating(true);
     try {
+      const selectedGrade = localStorage.getItem('campus_grade') || targetGrade || grade || '11';
       const res = await fetch(`${API}/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -112,7 +111,7 @@ export default function App() {
           email: sessionUser.email,
           name: sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0],
           avatar: sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '',
-          grade: targetGrade || '11'
+          grade: selectedGrade
         })
       });
       const data = await res.json();
@@ -131,14 +130,13 @@ export default function App() {
 
   const loginWithGoogle = async () => {
     setIsAuthenticating(true);
-    const { error } = await supabase.auth.signInWithOAuth({
+    localStorage.setItem('campus_grade', grade);
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: window.location.origin
-      }
+      options: { redirectTo: window.location.origin } // Force return to current URL
     });
     if (error) {
-      alert('Login Failed: ' + error.message);
+      alert("Login Failed: " + error.message);
       setIsAuthenticating(false);
     }
   };
