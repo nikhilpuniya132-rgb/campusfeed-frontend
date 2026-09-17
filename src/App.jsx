@@ -3,6 +3,12 @@ import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import bgVideo from './assets/campus_promo.mp4'; 
 import './App.css';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase
+const supabaseUrl = 'https://aezhlsfbewfqmzfshuzs.supabase.co'; // Paste your URL here
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlemhsc2ZiZXdmcW16ZnNodXpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MTQwMjAsImV4cCI6MjEwNDA5MDAyMH0.XoDOE3ODevwYIzGz1ivsjmTvwQmIDtpC9jfg-TWSqUI'; // Paste your Anon Key here
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const API = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://campusfeed-backend-po4g.onrender.com/api';
 
@@ -77,11 +83,21 @@ export default function App() {
     );
   };
 
-  // --- ACTIONS ---
-  const loginWithGoogle = () => {
-    alert("Google Auth Triggered - We will wire this to Supabase next!");
+  const loginWithGoogle = async () => {
+    setIsAuthenticating(true);
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin // Redirects back to whatever domain the user is on
+      }
+    });
+    
+    if (error) {
+      alert("Login Failed: " + error.message);
+      setIsAuthenticating(false);
+    }
   };
-
+  
   const login = async () => {
     if (!handle || !password) return alert('Enter credentials');
     setIsAuthenticating(true);
