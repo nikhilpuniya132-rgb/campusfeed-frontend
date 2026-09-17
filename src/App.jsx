@@ -1,20 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@supabase/supabase-js';
 import bgVideo from './assets/campus_promo.mp4';
 import './App.css';
 
-// UI Components
-import TiltCard from './components/TiltCard';
-import HolographicCard from './components/HolographicCard';
-import InteractivePollDemo from './components/InteractivePollDemo';
-import OnboardingWizard from './components/OnboardingWizard';
-import FriendSearch from './components/FriendSearch';
+// UI Components (HamsterLoader eagerly loaded for zero-lag suspense fallback)
 import HamsterLoader from './components/HamsterLoader';
-import Profile from './components/Profile';
-import Inbox from './components/Inbox';
-import Feed from './components/Feed';
+
+// Lazily loaded components for bundle optimization & rapid initial render
+const TiltCard = lazy(() => import('./components/TiltCard'));
+const HolographicCard = lazy(() => import('./components/HolographicCard'));
+const InteractivePollDemo = lazy(() => import('./components/InteractivePollDemo'));
+const OnboardingWizard = lazy(() => import('./components/OnboardingWizard'));
+const FriendSearch = lazy(() => import('./components/FriendSearch'));
+const Profile = lazy(() => import('./components/Profile'));
+const Inbox = lazy(() => import('./components/Inbox'));
+const Feed = lazy(() => import('./components/Feed'));
+const Explore = lazy(() => import('./components/Explore'));
 
 // --- INITIALIZE SUPABASE ---
 const supabaseUrl = 'https://aezhlsfbewfqmzfshuzs.supabase.co';
@@ -51,6 +54,7 @@ export default function App() {
   const [avatar, setAvatar] = useState('😎');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [onboardingGoogleUser, setOnboardingGoogleUser] = useState(null);
 
@@ -131,6 +135,7 @@ export default function App() {
     } finally {
       setIsAuthenticating(false);
       setIsCheckingSession(false);
+      setIsAuthLoading(false);
     }
   };
 
@@ -223,38 +228,76 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
-  // 2. Exact Supabase Auth Listener to catch Google OAuth redirect & eliminate bounce
+  // 2. Non-blocking Supabase Auth Listener with hash cleaner & zero freezing
   useEffect(() => {
     let isMounted = true;
-    // 1. Check if they just returned from Google or already have a session
+    const hasAuthHash = window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token'));
+
+    // Non-blocking initial session check in background
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!isMounted) return;
       if (session) {
+        if (hasAuthHash) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
         syncWithBackend(session.user).finally(() => {
-          if (isMounted) setIsCheckingSession(false);
+          if (isMounted) {
+            setIsCheckingSession(false);
+            setIsAuthLoading(false);
+          }
         });
-      } else {
+      } else if (!hasAuthHash) {
         setIsCheckingSession(false);
+        setIsAuthLoading(false);
+      }
+    }).catch(err => {
+      console.warn('Session check fallback:', err);
+      if (isMounted && !hasAuthHash) {
+        setIsCheckingSession(false);
+        setIsAuthLoading(false);
       }
     });
 
-    // 2. Listen for state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Reactive listener for SIGNED_IN & state transitions
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
-      if (session) {
-        syncWithBackend(session.user).finally(() => {
-          if (isMounted) setIsCheckingSession(false);
-        });
-      } else {
+      console.log('[Supabase Auth Event]', event, session ? 'Session found' : 'No session');
+
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || (event === 'INITIAL_SESSION' && session)) {
+        if (session) {
+          if (window.location.hash && window.location.hash.includes('access_token')) {
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+          syncWithBackend(session.user).finally(() => {
+            if (isMounted) {
+              setIsCheckingSession(false);
+              setIsAuthLoading(false);
+            }
+          });
+        }
+      } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setIsOnboarding(false);
         setOnboardingGoogleUser(null);
         setIsCheckingSession(false);
+        setIsAuthLoading(false);
+      } else if (!hasAuthHash) {
+        setIsCheckingSession(false);
+        setIsAuthLoading(false);
       }
     });
 
+    // Safety timeout in case of slow or hanging network requests
+    const timeoutTimer = setTimeout(() => {
+      if (isMounted) {
+        setIsCheckingSession(false);
+        setIsAuthLoading(false);
+      }
+    }, 4500);
+
     return () => {
       isMounted = false;
+      clearTimeout(timeoutTimer);
       subscription.unsubscribe();
     };
   }, []);
@@ -329,7 +372,7 @@ export default function App() {
       const res = await fetch(`${API}/play/${targetId}?gradeFilter=${targetGrade}`);
       const data = await res.json();
       setCurrentPoll(data.poll);
-      setOptions(data.options || []);
+      setOptions((data.options || []).slice(0, 4));
       if (data.cooldown_until) {
         setCooldownUntil(data.cooldown_until);
       } else {
@@ -346,18 +389,15 @@ export default function App() {
   };
 
   const castVote = async (receiverId) => {
-    confetti({
-      particleCount: 120,
-      spread: 80,
-      origin: { y: 0.6 },
-      colors: ['#ff5500', '#ff2e93', '#fbbf24', '#00f0ff']
-    });
     setHasVoted(true);
+    // Optimistic user flame update
+    setUser(prev => prev ? { ...prev, total_votes: (prev.total_votes || 0) + 1 } : prev);
+
     try {
       const res = await fetch(`${API}/vote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pollId: currentPoll?.id, voterId: user.id, receiverId })
+        body: JSON.stringify({ pollId: currentPoll?.id, voterId: user?.id, receiverId })
       });
       const data = await res.json();
       if (data.cooldown_until) {
@@ -661,11 +701,19 @@ export default function App() {
   };
 
   // ==============================================
-  // VIEW -1: HAMSTER LOADER (ZERO-BOUNCE SESSION CHECK)
+  // VIEW -1: NON-BLOCKING AUTH HAMSTER LOADER
   // ==============================================
-  if (isCheckingSession || (isAuthenticating && !user && !isOnboarding)) {
+  if (isAuthLoading || (isAuthenticating && !user && !isOnboarding)) {
     return (
-      <div className="gas-landing-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100svh' }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100svh',
+        background: '#09090b',
+        color: '#ffffff',
+        width: '100%'
+      }}>
         <HamsterLoader message="Entering St. Kabir Loop..." />
       </div>
     );
@@ -677,11 +725,13 @@ export default function App() {
   if (isOnboarding && onboardingGoogleUser) {
     return (
       <div className="gas-landing-wrapper">
-        <OnboardingWizard
-          googleUser={onboardingGoogleUser}
-          API={API}
-          onComplete={handleOnboardingComplete}
-        />
+        <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100svh', background: '#09090b' }}><HamsterLoader message="Loading Onboarding..." /></div>}>
+          <OnboardingWizard
+            googleUser={onboardingGoogleUser}
+            API={API}
+            onComplete={handleOnboardingComplete}
+          />
+        </Suspense>
       </div>
     );
   }
@@ -845,7 +895,9 @@ export default function App() {
             </motion.div>
 
             {/* Live Interactive 3D Poll Sandbox */}
-            <InteractivePollDemo onCtaClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })} />
+            <Suspense fallback={<div style={{ minHeight: '320px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><HamsterLoader message="Loading Preview..." /></div>}>
+              <InteractivePollDemo onCtaClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })} />
+            </Suspense>
           </motion.div>
 
           {/* Mobile Only: CTA buttons and stats below the 3D card */}
@@ -896,20 +948,22 @@ export default function App() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: '900px' }}>
             {/* 3D Holographic Card Preview (Desktop Only) */}
             <div className="gas-pricing-desktop-only">
-              <HolographicCard
-                title="GOD MODE"
-                subtitle="See Who Voted For You"
-                price={activePlan === 'weekly' ? '₹99' : activePlan === 'monthly' ? '₹149' : '₹0'}
-                period={activePlan === 'weekly' ? '/week' : activePlan === 'monthly' ? '/month' : '/forever'}
-                onAction={() => {
-                  if (activePlan === 'basic') {
-                    document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' });
-                  } else {
-                    handleUpgrade(activePlan === 'weekly' ? 99 : 149);
-                  }
-                }}
-                actionText={activePlan === 'basic' ? 'Get Started Free ➔' : `Pay ₹${activePlan === 'weekly' ? '99' : '149'} Instantly ⚡`}
-              />
+              <Suspense fallback={<div style={{ minHeight: '380px' }} />}>
+                <HolographicCard
+                  title="GOD MODE"
+                  subtitle="See Who Voted For You"
+                  price={activePlan === 'weekly' ? '₹99' : activePlan === 'monthly' ? '₹149' : '₹0'}
+                  period={activePlan === 'weekly' ? '/week' : activePlan === 'monthly' ? '/month' : '/forever'}
+                  onAction={() => {
+                    if (activePlan === 'basic') {
+                      document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                      handleUpgrade(activePlan === 'weekly' ? 99 : 149);
+                    }
+                  }}
+                  actionText={activePlan === 'basic' ? 'Get Started Free ➔' : `Pay ₹${activePlan === 'weekly' ? '99' : '149'} Instantly ⚡`}
+                />
+              </Suspense>
             </div>
 
             {/* Plan Switcher Card (Phone & Desktop) */}
@@ -1212,204 +1266,129 @@ export default function App() {
 
         {/* Main View Area with 3D Transitions */}
         <main className="gas-app-body">
-          <AnimatePresence mode="wait">
-            {/* --- TAB 1: VOTING FEED --- */}
-            {view === 'poll' && (
-              <motion.div key="poll" {...pageVariants} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <Feed
-                  user={user}
-                  currentPoll={currentPoll}
-                  options={options}
-                  gradeFilter={gradeFilter}
-                  isLoadingPoll={isLoadingPoll}
-                  hasVoted={hasVoted}
-                  cooldownUntil={cooldownUntil}
-                  onLoadNextPoll={loadNextPoll}
-                  onCastVote={castVote}
-                  onShuffle={shuffleCurrentOptions}
-                  renderProfilePic={renderProfilePic}
-                  onUpgrade={(amount) => handleUpgrade(amount || 99)}
-                  onSkipCooldown={handleSkipCooldown}
-                />
-              </motion.div>
-            )}
+          <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '340px', width: '100%' }}><HamsterLoader message="Loading..." /></div>}>
+            <AnimatePresence mode="wait">
+              {/* --- TAB 1: VOTING FEED --- */}
+              {view === 'poll' && (
+                <motion.div key="poll" {...pageVariants} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <Feed
+                    user={user}
+                    currentPoll={currentPoll}
+                    options={options}
+                    gradeFilter={gradeFilter}
+                    isLoadingPoll={isLoadingPoll}
+                    hasVoted={hasVoted}
+                    cooldownUntil={cooldownUntil}
+                    onLoadNextPoll={loadNextPoll}
+                    onCastVote={castVote}
+                    onShuffle={shuffleCurrentOptions}
+                    renderProfilePic={renderProfilePic}
+                    onUpgrade={(amount) => handleUpgrade(amount || 99)}
+                    onSkipCooldown={handleSkipCooldown}
+                  />
+                </motion.div>
+              )}
 
-            {/* --- TAB 2: FLAME INBOX --- */}
-            {view === 'inbox' && (
-              <motion.div key="inbox" {...pageVariants}>
-                <Inbox
-                  user={user}
-                  inbox={inbox}
-                  inviteStats={inviteStats}
-                  onOpenReveal={handleOpenReveal}
-                  onInviteShare={handleInviteShare}
-                  showFriendSearch={showFriendSearch}
-                  setShowFriendSearch={setShowFriendSearch}
-                  API={API}
-                  supabase={supabase}
-                  onFriendAdded={() => fetchAcceptedFriends(user.id)}
-                />
-              </motion.div>
-            )}
+              {/* --- TAB 2: FLAME INBOX --- */}
+              {view === 'inbox' && (
+                <motion.div key="inbox" {...pageVariants}>
+                  <Inbox
+                    user={user}
+                    inbox={inbox}
+                    inviteStats={inviteStats}
+                    onOpenReveal={handleOpenReveal}
+                    onInviteShare={handleInviteShare}
+                    showFriendSearch={showFriendSearch}
+                    setShowFriendSearch={setShowFriendSearch}
+                    API={API}
+                    supabase={supabase}
+                    onFriendAdded={() => fetchAcceptedFriends(user.id)}
+                  />
+                </motion.div>
+              )}
 
-            {/* --- TAB 3: GOD MODE VIP --- */}
-            {view === 'pro' && (
-              <motion.div key="pro" {...pageVariants} style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <HolographicCard
-                  title={user.is_pro ? 'GOD MODE ACTIVE' : 'GOD MODE VIP'}
-                  subtitle={user.is_pro ? 'All Features Unlocked' : 'Reveal Every Name'}
-                  price="₹99"
-                  period="/week"
-                  onAction={() => handleUpgrade(99)}
-                  actionText={user.is_pro ? '✓ Active Membership' : 'Upgrade Now - ₹99 ⚡'}
-                />
-              </motion.div>
-            )}
+              {/* --- TAB 3: GOD MODE VIP --- */}
+              {view === 'pro' && (
+                <motion.div key="pro" {...pageVariants} style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <HolographicCard
+                    title={user.is_pro ? 'GOD MODE ACTIVE' : 'GOD MODE VIP'}
+                    subtitle={user.is_pro ? 'All Features Unlocked' : 'Reveal Every Name'}
+                    price="₹99"
+                    period="/week"
+                    onAction={() => handleUpgrade(99)}
+                    actionText={user.is_pro ? '✓ Active Membership' : 'Upgrade Now - ₹99 ⚡'}
+                  />
+                </motion.div>
+              )}
 
-            {/* --- TAB 4: LEADERBOARD --- */}
-            {view === 'explore' && (
-              <motion.div key="explore" {...pageVariants} style={{ padding: '16px' }}>
-                <h3 style={{ margin: '0 0 14px 0', fontSize: '20px', fontWeight: '900', textAlign: 'center' }}>
-                  🏆 School Flame Leaderboard
-                </h3>
+              {/* --- TAB 4: EXPLORE PAGE (SEARCH, TRENDING, LEGENDS & RANKS) --- */}
+              {view === 'explore' && (
+                <motion.div key="explore" {...pageVariants}>
+                  <Explore
+                    currentUser={user}
+                    API={API}
+                    supabase={supabase}
+                    renderProfilePic={renderProfilePic}
+                    onViewPublicProfile={loadPublicProfile}
+                    onFriendAdded={() => fetchAcceptedFriends(user.id)}
+                  />
+                </motion.div>
+              )}
 
-                <input
-                  type="text"
-                  placeholder="Search classmate handles..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '14px 16px',
-                    borderRadius: '16px',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    color: '#fff',
-                    fontSize: '14px',
-                    outline: 'none',
-                    marginBottom: '20px'
-                  }}
-                />
+              {/* --- TAB 5: USER PROFILE --- */}
+              {view === 'profile' && (
+                <motion.div key="profile" {...pageVariants}>
+                  <Profile
+                    user={user}
+                    profileData={profileData}
+                    acceptedFriends={acceptedFriends}
+                    API={API}
+                    supabase={supabase}
+                    onUpdateUser={(updatedUser) => {
+                      setUser(updatedUser);
+                      setProfileData({ user: updatedUser });
+                    }}
+                    onLogout={handleLogout}
+                    onDeleteAccount={deleteAccount}
+                    onViewPublicProfile={loadPublicProfile}
+                    renderProfilePic={renderProfilePic}
+                    onInviteShare={handleInviteShare}
+                    onRefreshFriends={() => fetchAcceptedFriends(user.id)}
+                  />
+                </motion.div>
+              )}
 
-                {/* Top 3 Podium (If available) */}
-                {leaderboard.length >= 3 && !searchQuery && (
-                  <div className="gas-podium-row">
-                    {/* 2nd Place */}
-                    <div className="gas-podium-item" style={{ order: 1 }}>
-                      <span className="gas-podium-rank-badge">🥈</span>
-                      {renderProfilePic(leaderboard[1].profile_pic, leaderboard[1].avatar, leaderboard[1].is_pro, leaderboard[1].ring, 54)}
-                      <span style={{ fontSize: '12px', fontWeight: '800', marginTop: '6px' }}>@{leaderboard[1].handle}</span>
-                      <span style={{ fontSize: '11px', color: '#ff8800', fontWeight: '800' }}>{leaderboard[1].total_votes} 🔥</span>
-                    </div>
-
-                    {/* 1st Place */}
-                    <div className="gas-podium-item" style={{ order: 2, transform: 'translateY(-10px)' }}>
-                      <span className="gas-podium-rank-badge">👑</span>
-                      {renderProfilePic(leaderboard[0].profile_pic, leaderboard[0].avatar, leaderboard[0].is_pro, leaderboard[0].ring, 68)}
-                      <span style={{ fontSize: '13px', fontWeight: '900', color: '#fbbf24', marginTop: '6px' }}>@{leaderboard[0].handle}</span>
-                      <span style={{ fontSize: '12px', color: '#ff8800', fontWeight: '900' }}>{leaderboard[0].total_votes} 🔥</span>
-                    </div>
-
-                    {/* 3rd Place */}
-                    <div className="gas-podium-item" style={{ order: 3 }}>
-                      <span className="gas-podium-rank-badge">🥉</span>
-                      {renderProfilePic(leaderboard[2].profile_pic, leaderboard[2].avatar, leaderboard[2].is_pro, leaderboard[2].ring, 50)}
-                      <span style={{ fontSize: '12px', fontWeight: '800', marginTop: '6px' }}>@{leaderboard[2].handle}</span>
-                      <span style={{ fontSize: '11px', color: '#ff8800', fontWeight: '800' }}>{leaderboard[2].total_votes} 🔥</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Leaderboard List */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {leaderboard
-                    .filter(u => u.handle.toLowerCase().includes(searchQuery.toLowerCase()))
-                    .map((leader, index) => (
-                      <motion.div
-                        key={leader.id}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => loadPublicProfile(leader.id)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          padding: '12px 16px',
-                          borderRadius: '16px',
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid rgba(255, 255, 255, 0.08)',
-                          cursor: 'pointer'
-                        }}
+              {/* --- PUBLIC PROFILE MODAL --- */}
+              {view === 'publicProfile' && (
+                <motion.div key="publicProfile" {...pageVariants} style={{ padding: '24px 16px', textAlign: 'center' }}>
+                  {publicProfile ? (
+                    <div>
+                      <div style={{ marginBottom: '16px' }}>
+                        {renderProfilePic(publicProfile.profile_pic, publicProfile.avatar, publicProfile.is_pro, publicProfile.ring, 100)}
+                      </div>
+                      <h2 style={{ margin: '0 0 6px 0', fontWeight: '900', color: publicProfile.is_pro ? '#fbbf24' : '#fff' }}>
+                        @{publicProfile.handle}
+                      </h2>
+                      <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '20px' }}>
+                        {publicProfile.bio || 'Classmate at St. Kabir'}
+                      </p>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 85, 0, 0.15)', padding: '6px 14px', borderRadius: '20px', color: '#ff8800', fontWeight: '800' }}>
+                        <span>🔥</span> {publicProfile.total_votes || 0} Flames Received
+                      </div>
+                      <button
+                        style={{ marginTop: '30px', padding: '12px 24px', borderRadius: '14px', border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff', fontWeight: '800', cursor: 'pointer' }}
+                        onClick={() => setView('explore')}
                       >
-                        <span style={{ fontWeight: '900', width: '28px', color: index < 3 ? '#fbbf24' : '#94a3b8' }}>
-                          #{index + 1}
-                        </span>
-                        {renderProfilePic(leader.profile_pic, leader.avatar, leader.is_pro, leader.ring, 38)}
-                        <div style={{ flex: 1, marginLeft: '12px' }}>
-                          <span style={{ fontWeight: '800', color: leader.is_pro ? '#fbbf24' : '#fff' }}>
-                            @{leader.handle}
-                          </span>
-                        </div>
-                        <span style={{ color: '#ff8800', fontWeight: '900', fontSize: '14px' }}>
-                          {leader.total_votes} 🔥
-                        </span>
-                      </motion.div>
-                    ))}
-                </div>
-              </motion.div>
-            )}
-
-            {/* --- TAB 5: USER PROFILE --- */}
-            {view === 'profile' && (
-              <motion.div key="profile" {...pageVariants}>
-                <Profile
-                  user={user}
-                  profileData={profileData}
-                  acceptedFriends={acceptedFriends}
-                  API={API}
-                  supabase={supabase}
-                  onUpdateUser={(updatedUser) => {
-                    setUser(updatedUser);
-                    setProfileData({ user: updatedUser });
-                  }}
-                  onLogout={handleLogout}
-                  onDeleteAccount={deleteAccount}
-                  onViewPublicProfile={loadPublicProfile}
-                  renderProfilePic={renderProfilePic}
-                  onInviteShare={handleInviteShare}
-                  onRefreshFriends={() => fetchAcceptedFriends(user.id)}
-                />
-              </motion.div>
-            )}
-
-            {/* --- PUBLIC PROFILE MODAL --- */}
-            {view === 'publicProfile' && (
-              <motion.div key="publicProfile" {...pageVariants} style={{ padding: '24px 16px', textAlign: 'center' }}>
-                {publicProfile ? (
-                  <div>
-                    <div style={{ marginBottom: '16px' }}>
-                      {renderProfilePic(publicProfile.profile_pic, publicProfile.avatar, publicProfile.is_pro, publicProfile.ring, 100)}
+                        ← Back to Explore
+                      </button>
                     </div>
-                    <h2 style={{ margin: '0 0 6px 0', fontWeight: '900', color: publicProfile.is_pro ? '#fbbf24' : '#fff' }}>
-                      @{publicProfile.handle}
-                    </h2>
-                    <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '20px' }}>
-                      {publicProfile.bio || 'Classmate at St. Kabir'}
-                    </p>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 85, 0, 0.15)', padding: '6px 14px', borderRadius: '20px', color: '#ff8800', fontWeight: '800' }}>
-                      <span>🔥</span> {publicProfile.total_votes || 0} Flames Received
-                    </div>
-                    <button
-                      style={{ marginTop: '30px', padding: '12px 24px', borderRadius: '14px', border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff', fontWeight: '800', cursor: 'pointer' }}
-                      onClick={() => setView('explore')}
-                    >
-                      ← Back to Leaderboard
-                    </button>
-                  </div>
-                ) : (
-                  <p>Loading profile...</p>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  ) : (
+                    <p>Loading profile...</p>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Suspense>
         </main>
 
         {/* --- 3D FLOATING BOTTOM NAVIGATION DOCK --- */}
@@ -1418,7 +1397,7 @@ export default function App() {
             { id: 'poll', label: 'Feed', icon: '🔥' },
             { id: 'inbox', label: 'Inbox', icon: '📬' },
             { id: 'pro', label: 'God Mode', icon: '👑' },
-            { id: 'explore', label: 'Rank', icon: '🏆' },
+            { id: 'explore', label: 'Explore', icon: '🧭' },
             { id: 'profile', label: 'Profile', icon: '👤' }
           ].map(tab => (
             <motion.div

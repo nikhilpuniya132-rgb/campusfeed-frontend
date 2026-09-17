@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import FriendSearch from './FriendSearch';
 
 const AURA_OPTIONS = [
-  { id: 'none', label: 'None', color: '#666' },
-  { id: 'gold', label: 'Gold', color: '#fbbf24' },
-  { id: 'neon', label: 'Neon Blue', color: '#38bdf8' },
-  { id: 'ruby', label: 'Ruby Red', color: '#f43f5e' },
-  { id: 'purple', label: 'Purple', color: '#a855f7' },
-  { id: 'emerald', label: 'Emerald', color: '#10b981' }
+  { id: 'none', label: 'None (Default)', color: '#52525b', desc: 'No special aura ring' },
+  { id: 'gold', label: 'Gold Ring', color: '#fbbf24', desc: 'Luminous 24k champion aura' },
+  { id: 'neon', label: 'Neon Blue Ring', color: '#38bdf8', desc: 'Electric cybernetic energy pulse' },
+  { id: 'ruby', label: 'Ruby Red Ring', color: '#f43f5e', desc: 'Fiery crimson flame intensity' },
+  { id: 'purple', label: 'Cosmic Purple Ring', color: '#a855f7', desc: 'Deep ultraviolet nebula glow' },
+  { id: 'emerald', label: 'Emerald Green Ring', color: '#10b981', desc: 'Radiant mystic jade aura' }
 ];
 
 export default function Profile({
@@ -31,8 +30,20 @@ export default function Profile({
   const [editAvatar, setEditAvatar] = useState(user?.avatar || '😎');
   const [editGrade, setEditGrade] = useState(user?.grade ? user.grade.toString() : '11');
   const [editProfilePic, setEditProfilePic] = useState(user?.profile_pic || '');
+  
+  // Settings 3-dots dropdown
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const settingsMenuRef = useRef(null);
+
+  // Friends Modal
+  const [showFriendsModal, setShowFriendsModal] = useState(false);
+
+  // Aura Ring state
   const [selectedRing, setSelectedRing] = useState(user?.selected_ring || user?.ring || 'gold');
   const [ringSavedToast, setRingSavedToast] = useState(false);
+  const [isSavingRing, setIsSavingRing] = useState(false);
+
+  // Invite state
   const [copySuccess, setCopySuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -41,6 +52,19 @@ export default function Profile({
       setSelectedRing(user.selected_ring || user.ring);
     }
   }, [user?.selected_ring, user?.ring]);
+
+  // Close 3-dots menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target)) {
+        setShowSettingsMenu(false);
+      }
+    };
+    if (showSettingsMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSettingsMenu]);
 
   const my_invite_code = (user?.invite_code || user?.handle || 'campus').replace(/^@/, '').trim();
   const inviteLink = `${window.location.origin}/?ref=${my_invite_code}`;
@@ -84,22 +108,47 @@ export default function Profile({
     reader.readAsDataURL(file);
   };
 
+  // Fixed & Resilient Ring Selection Handler
   const handleRingSelect = async (ringId) => {
     setSelectedRing(ringId);
-    if (onUpdateUser) {
-      onUpdateUser({ ...user, ring: ringId, selected_ring: ringId });
-    }
-    setRingSavedToast(true);
-    setTimeout(() => setRingSavedToast(false), 2000);
+    setIsSavingRing(true);
 
+    const updatedUser = { ...user, ring: ringId, selected_ring: ringId };
+    if (onUpdateUser) {
+      onUpdateUser(updatedUser);
+    }
+
+    setRingSavedToast(true);
+    setTimeout(() => setRingSavedToast(false), 2200);
+
+    // 1. Direct Supabase Update (fixes client-side sync)
+    if (supabase && user?.id) {
+      try {
+        await supabase
+          .from('users')
+          .update({ selected_ring: ringId, ring: ringId })
+          .eq('id', user.id);
+      } catch (err) {
+        try {
+          await supabase
+            .from('users')
+            .update({ ring: ringId })
+            .eq('id', user.id);
+        } catch (_) {}
+      }
+    }
+
+    // 2. Backend API Endpoint update
     try {
       await fetch(`${API}/user/ring`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, selected_ring: ringId })
+        body: JSON.stringify({ userId: user?.id, selected_ring: ringId })
       });
     } catch (err) {
-      console.error('Save ring error:', err);
+      console.warn('API ring update fallback error:', err);
+    } finally {
+      setIsSavingRing(false);
     }
   };
 
@@ -118,6 +167,22 @@ export default function Profile({
 
       if (onUpdateUser) onUpdateUser(updatedUser);
 
+      // Update in Supabase
+      if (supabase && user?.id) {
+        await supabase
+          .from('users')
+          .update({
+            bio: editBio,
+            avatar: editAvatar,
+            ring: selectedRing,
+            selected_ring: selectedRing,
+            grade: parseInt(editGrade) || 11,
+            profile_pic: editProfilePic
+          })
+          .eq('id', user.id);
+      }
+
+      // Update via Backend
       await fetch(`${API}/profile/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -141,99 +206,425 @@ export default function Profile({
   };
 
   return (
-    <div style={{ padding: '16px 16px 80px 16px', textAlign: 'center', maxWidth: '440px', margin: '0 auto', boxSizing: 'border-box' }}>
-      {/* 1. Header Profile Display */}
-      <div style={{ marginBottom: '12px' }}>
-        {renderProfilePic
-          ? renderProfilePic(editProfilePic || user.profile_pic, editAvatar || user.avatar, user.is_pro, selectedRing, 92)
-          : (
-            <div style={{ fontSize: '50px', width: '92px', height: '92px', borderRadius: '50%', background: '#161616', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-              {user.avatar || '😎'}
-            </div>
+    <div style={{ padding: '16px 16px 80px 16px', maxWidth: '440px', margin: '0 auto', boxSizing: 'border-box', position: 'relative' }}>
+      
+      {/* Top Bar: Settings 3-Dots Menu */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', position: 'relative', marginBottom: '8px' }} ref={settingsMenuRef}>
+        <motion.button
+          whileTap={{ scale: 0.92 }}
+          onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+          aria-label="Settings"
+          style={{
+            background: '#18181b',
+            border: '1px solid #27272a',
+            borderRadius: '12px',
+            width: '36px',
+            height: '36px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: '#a1a1aa',
+            fontSize: '18px',
+            fontWeight: '900',
+            lineHeight: 1
+          }}
+        >
+          •••
+        </motion.button>
+
+        {/* 3-Dots Dropdown Menu */}
+        <AnimatePresence>
+          {showSettingsMenu && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -6 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -6 }}
+              transition={{ duration: 0.12 }}
+              style={{
+                position: 'absolute',
+                top: '44px',
+                right: 0,
+                background: '#121214',
+                border: '1px solid #27272a',
+                borderRadius: '16px',
+                padding: '6px',
+                minWidth: '170px',
+                zIndex: 50,
+                boxShadow: '0 12px 30px rgba(0, 0, 0, 0.8)'
+              }}
+            >
+              <button
+                onClick={() => {
+                  setShowSettingsMenu(false);
+                  if (onLogout) onLogout();
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#ffffff',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#18181b'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <span>🚪</span>
+                <span>Sign Out</span>
+              </button>
+
+              <div style={{ height: '1px', background: '#27272a', margin: '4px 6px' }} />
+
+              <button
+                onClick={() => {
+                  setShowSettingsMenu(false);
+                  if (onDeleteAccount) onDeleteAccount();
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#ef4444',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <span>⚠️</span>
+                <span>Delete Account</span>
+              </button>
+            </motion.div>
           )}
+        </AnimatePresence>
       </div>
 
-      <h2 style={{ margin: '0 0 4px 0', fontSize: '22px', fontWeight: '900', color: user.is_pro ? '#fbbf24' : '#fff' }}>
-        @{user.handle}
-      </h2>
+      {/* 1. Header Profile Display */}
+      <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+        <div style={{ display: 'inline-block', position: 'relative', marginBottom: '10px' }}>
+          {renderProfilePic
+            ? renderProfilePic(editProfilePic || user.profile_pic, editAvatar || user.avatar, user.is_pro, selectedRing, 92)
+            : (
+              <div style={{ fontSize: '50px', width: '92px', height: '92px', borderRadius: '50%', background: '#161616', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                {user.avatar || '😎'}
+              </div>
+            )}
+        </div>
 
-      <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#888888', fontWeight: '600' }}>
-        St. Kabir Convent School • Class {user.grade || '11'}
-      </p>
+        <h2 style={{ margin: '0 0 4px 0', fontSize: '22px', fontWeight: '900', color: user.is_pro ? '#fbbf24' : '#fff' }}>
+          @{user.handle}
+        </h2>
 
-      {/* 2. Campus Social Stats Matrix (Flat & Minimalist) */}
+        <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#888888', fontWeight: '600' }}>
+          St. Kabir Convent School • Class {user.grade || '11'}
+        </p>
+
+        {/* Bio */}
+        <p style={{ color: '#a1a1aa', fontSize: '13.5px', margin: '0 0 10px 0', lineHeight: '1.4' }}>
+          {user.bio || `Class ${user.grade || '11'} student at St. Kabir Convent School`}
+        </p>
+
+        {/* Small, Elegant "Edit Profile" Text Link Directly Under Bio */}
+        {!isEditing && (
+          <button
+            onClick={() => {
+              setEditBio(user.bio || '');
+              setEditAvatar(user.avatar || '');
+              setEditGrade(user.grade ? user.grade.toString() : '11');
+              setEditProfilePic(user.profile_pic || '');
+              setIsEditing(true);
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#38bdf8',
+              fontSize: '12.5px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              textUnderlineOffset: '3px',
+              padding: '4px 8px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              marginBottom: '16px'
+            }}
+          >
+            <span>✏️</span> Edit Profile
+          </button>
+        )}
+      </div>
+
+      {/* 2. Campus Social Stats Matrix */}
       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', margin: '0 0 20px 0', flexWrap: 'wrap' }}>
         <div style={{ background: '#141414', border: '1px solid #222222', padding: '6px 14px', borderRadius: '16px', color: '#ffffff', fontWeight: '700', fontSize: '12.5px' }}>
           🔥 {user.total_votes || 0} Flames
         </div>
-        <div style={{ background: '#141414', border: '1px solid #222222', padding: '6px 14px', borderRadius: '16px', color: '#ffffff', fontWeight: '700', fontSize: '12.5px' }}>
-          👥 {acceptedFriends.length} Friends
-        </div>
+        
+        {/* Clickable Clean Friends Count Display */}
+        <motion.div
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowFriendsModal(true)}
+          style={{
+            background: '#141414',
+            border: '1px solid #222222',
+            padding: '6px 14px',
+            borderRadius: '16px',
+            color: '#ffffff',
+            fontWeight: '700',
+            fontSize: '12.5px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          <span>👥</span>
+          <span>{acceptedFriends.length} Friends</span>
+          <span style={{ fontSize: '10px', color: '#71717a' }}>▼</span>
+        </motion.div>
+
         <div style={{ background: '#141414', border: '1px solid #222222', padding: '6px 14px', borderRadius: '16px', color: '#ffffff', fontWeight: '700', fontSize: '12.5px' }}>
           ⚡ {Math.round((user.total_votes || 0) * 12 + acceptedFriends.length * 25)} Aura
         </div>
       </div>
 
-      {/* 3. RELOCATED AURA RING SELECTOR (PERSISTENT IN PROFILE TAB) */}
-      <div
-        style={{
-          background: '#111111',
-          border: '1px solid #222222',
-          borderRadius: '20px',
-          padding: '16px',
-          marginBottom: '20px',
-          textAlign: 'left'
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <div>
-            <span style={{ fontSize: '13.5px', fontWeight: '900', color: '#fff', display: 'block' }}>
-              💍 Profile Aura Ring
-            </span>
-            <span style={{ fontSize: '11px', color: '#777', display: 'block' }}>
-              Equip an aura ring for your profile & feed
-            </span>
+      {/* 3. FRIENDS POPUP MODAL (Clean, Minimalist Sheet) */}
+      <AnimatePresence>
+        {showFriendsModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowFriendsModal(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.75)',
+              backdropFilter: 'blur(8px)',
+              zIndex: 60,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px'
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: '#121214',
+                border: '1px solid #27272a',
+                borderRadius: '24px',
+                padding: '20px',
+                width: '100%',
+                maxWidth: '380px',
+                maxHeight: '75vh',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#ffffff' }}>
+                    Friends
+                  </h3>
+                  <span style={{ fontSize: '12px', color: '#71717a' }}>
+                    {acceptedFriends.length} {acceptedFriends.length === 1 ? 'Classmate' : 'Classmates'}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowFriendsModal(false)}
+                  style={{
+                    background: '#18181b',
+                    border: '1px solid #27272a',
+                    borderRadius: '50%',
+                    width: '30px',
+                    height: '30px',
+                    color: '#a1a1aa',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {acceptedFriends.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '30px 10px', color: '#71717a' }}>
+                  <p style={{ margin: '0 0 10px 0', fontSize: '13.5px' }}>
+                    You haven't added any classmates yet.
+                  </p>
+                  <span style={{ fontSize: '12px', color: '#a1a1aa' }}>
+                    Use the Explore tab to search & connect with friends!
+                  </span>
+                </div>
+              ) : (
+                <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {acceptedFriends.map((f) => (
+                    <div
+                      key={f.id}
+                      onClick={() => {
+                        setShowFriendsModal(false);
+                        if (onViewPublicProfile) onViewPublicProfile(f.id);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        borderRadius: '14px',
+                        background: '#18181b',
+                        border: '1px solid #27272a',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {renderProfilePic
+                          ? renderProfilePic(f.profile_pic, f.avatar, f.is_pro, f.selected_ring || f.ring, 40)
+                          : (
+                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {f.avatar || '😎'}
+                            </div>
+                          )}
+                        <div>
+                          <span style={{ fontSize: '13px', fontWeight: '800', color: f.is_pro ? '#fbbf24' : '#ffffff', display: 'block' }}>
+                            @{f.handle}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#71717a' }}>
+                            Class {f.grade || '11'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span style={{ fontSize: '11px', color: '#ff8800', fontWeight: '800' }}>
+                        {f.total_votes || 0} 🔥
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 4. AURA RINGS (GATED STRICTLY TO GOD MODE SUBSCRIBERS + VERTICAL LIST) */}
+      {user?.is_pro && (
+        <div
+          style={{
+            background: '#111111',
+            border: '1px solid rgba(251, 191, 36, 0.25)',
+            borderRadius: '20px',
+            padding: '16px',
+            marginBottom: '20px',
+            textAlign: 'left'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '16px' }}>💍</span>
+                <span style={{ fontSize: '14px', fontWeight: '900', color: '#fbbf24' }}>
+                  Aura Ring Equipment
+                </span>
+              </div>
+              <span style={{ fontSize: '11px', color: '#71717a', display: 'block', marginTop: '2px' }}>
+                God Mode VIP: Pick your halo ring for your profile & feed
+              </span>
+            </div>
+            {ringSavedToast && (
+              <span style={{ fontSize: '11.5px', color: '#10b981', fontWeight: '800' }}>
+                ✓ Equipped!
+              </span>
+            )}
           </div>
-          {ringSavedToast && (
-            <span style={{ fontSize: '12px', color: '#10b981', fontWeight: '800' }}>
-              ✓ Saved!
-            </span>
-          )}
-        </div>
 
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
-          {AURA_OPTIONS.map((r) => {
-            const isSelected = selectedRing === r.id;
-            return (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => handleRingSelect(r.id)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '12px',
-                  border: isSelected ? `2px solid ${r.color}` : '1px solid #262626',
-                  background: isSelected ? '#1c1c1c' : '#141414',
-                  color: isSelected ? '#ffffff' : '#888888',
-                  fontSize: '12px',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: r.color, display: 'inline-block' }} />
-                <span>{r.label}</span>
-                {isSelected && <span style={{ color: r.color, fontSize: '11px' }}>✓</span>}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+          {/* Clean Vertical Ring List */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {AURA_OPTIONS.map((r) => {
+              const isSelected = selectedRing === r.id;
+              return (
+                <motion.button
+                  key={r.id}
+                  type="button"
+                  whileTap={{ scale: 0.98 }}
+                  disabled={isSavingRing}
+                  onClick={() => handleRingSelect(r.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 14px',
+                    borderRadius: '14px',
+                    border: isSelected ? `2px solid ${r.color}` : '1px solid #27272a',
+                    background: isSelected ? 'rgba(255, 255, 255, 0.06)' : '#161616',
+                    color: '#ffffff',
+                    cursor: 'pointer',
+                    textAlign: 'left'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {/* Visual Ring Indicator with Glow */}
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      border: `3px solid ${r.color}`,
+                      boxShadow: r.id !== 'none' ? `0 0 10px ${r.color}66` : 'none',
+                      background: 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }} />
 
-      {/* 4. VIRAL INVITE PASS (CLEAN FLAT MINIMALIST) */}
+                    <div>
+                      <span style={{ fontSize: '13px', fontWeight: '800', color: isSelected ? '#ffffff' : '#e4e4e7', display: 'block' }}>
+                        {r.label}
+                      </span>
+                      <span style={{ fontSize: '11px', color: '#71717a' }}>
+                        {r.desc}
+                      </span>
+                    </div>
+                  </div>
+
+                  {isSelected && (
+                    <span style={{
+                      color: r.color,
+                      fontWeight: '900',
+                      fontSize: '13px',
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      padding: '2px 8px',
+                      borderRadius: '8px'
+                    }}>
+                      ✓ Active
+                    </span>
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 5. VIRAL INVITE PASS */}
       <div
         style={{
           background: '#111111',
@@ -298,7 +689,7 @@ export default function Profile({
           </motion.button>
         </div>
 
-        {/* Prominent WhatsApp Share Button */}
+        {/* WhatsApp Share Button */}
         <motion.button
           whileTap={{ scale: 0.96 }}
           onClick={handleWhatsAppInvite}
@@ -322,8 +713,8 @@ export default function Profile({
         </motion.button>
       </div>
 
-      {/* 5. EDIT MODE MODAL / CARD */}
-      {isEditing ? (
+      {/* 6. EDIT PROFILE MODAL / DRAWER */}
+      {isEditing && (
         <div
           style={{
             background: '#111111',
@@ -341,14 +732,12 @@ export default function Profile({
             <label style={{ fontSize: '12px', color: '#888', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
               Profile Photo
             </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                style={{ fontSize: '12px', color: '#888' }}
-              />
-            </div>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              style={{ fontSize: '12px', color: '#888' }}
+            />
           </div>
 
           {/* Bio Input */}
@@ -359,50 +748,51 @@ export default function Profile({
             <input
               type="text"
               value={editBio}
-              onChange={e => setEditBio(e.target.value)}
-              placeholder="Add a bio..."
+              onChange={(e) => setEditBio(e.target.value)}
+              placeholder="e.g. St. Kabir Convent • Class 11"
               style={{
                 width: '100%',
-                padding: '12px',
+                padding: '12px 14px',
                 borderRadius: '12px',
-                border: '1px solid #262626',
-                background: '#161616',
+                border: '1px solid #333',
+                background: '#181818',
                 color: '#fff',
                 fontSize: '14px',
-                boxSizing: 'border-box',
-                outline: 'none'
+                outline: 'none',
+                boxSizing: 'border-box'
               }}
             />
           </div>
 
-          {/* Class / Grade Selector */}
+          {/* Grade Picker */}
           <div style={{ marginBottom: '20px' }}>
             <label style={{ fontSize: '12px', color: '#888', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
               Class / Grade
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-              {['9', '10', '11', '12'].map(g => (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+              {['9', '10', '11', '12'].map((g) => (
                 <button
                   key={g}
                   type="button"
                   onClick={() => setEditGrade(g)}
                   style={{
-                    padding: '10px 4px',
+                    padding: '8px',
                     borderRadius: '10px',
-                    border: editGrade === g ? '2px solid #ffffff' : '1px solid #262626',
-                    background: editGrade === g ? '#222' : '#141414',
-                    color: editGrade === g ? '#fff' : '#888',
+                    border: editGrade === g ? '2px solid #ffffff' : '1px solid #333',
+                    background: editGrade === g ? '#ffffff' : '#181818',
+                    color: editGrade === g ? '#000000' : '#888888',
                     fontWeight: '800',
-                    fontSize: '13px',
+                    fontSize: '12px',
                     cursor: 'pointer'
                   }}
                 >
-                  Cl-{g}
+                  Class {g}
                 </button>
               ))}
             </div>
           </div>
 
+          {/* Actions */}
           <div style={{ display: 'flex', gap: '10px' }}>
             <button
               type="button"
@@ -437,141 +827,6 @@ export default function Profile({
               }}
             >
               Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div>
-          <p style={{ color: '#888888', fontSize: '14px', margin: '0 0 20px 0' }}>
-            {user.bio || `Class ${user.grade || '11'} student at St. Kabir Convent School`}
-          </p>
-
-          {/* 6. FRIENDS LIST & HANDLES (CLEAN FLAT SURFACES) */}
-          <div style={{
-            textAlign: 'left',
-            marginBottom: '20px',
-            background: '#111111',
-            borderRadius: '20px',
-            padding: '18px',
-            border: '1px solid #222222'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <div>
-                <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#fff' }}>
-                  👥 Friends ({acceptedFriends.length})
-                </h4>
-                <span style={{ fontSize: '11px', color: '#777777' }}>
-                  Accepted classmates
-                </span>
-              </div>
-              <span style={{ fontSize: '11px', color: '#888888', background: '#1c1c1c', padding: '4px 10px', borderRadius: '10px', fontWeight: '700' }}>
-                St. Kabir
-              </span>
-            </div>
-
-            {acceptedFriends.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '16px 8px', color: '#777777' }}>
-                <p style={{ margin: 0, fontSize: '13px' }}>
-                  No accepted friends yet. Use search below to add your classmates!
-                </p>
-              </div>
-            ) : (
-              <div>
-                {/* Horizontal Friends Avatars */}
-                <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '10px' }}>
-                  {acceptedFriends.map(f => (
-                    <motion.div
-                      key={f.id}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => onViewPublicProfile && onViewPublicProfile(f.id)}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        minWidth: '70px',
-                        maxWidth: '76px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {renderProfilePic
-                        ? renderProfilePic(f.profile_pic, f.avatar, f.is_pro, f.selected_ring || f.ring, 48)
-                        : (
-                          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {f.avatar || '😎'}
-                          </div>
-                        )}
-                      <span style={{ fontSize: '11px', fontWeight: '800', color: '#fff', marginTop: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
-                        @{f.handle}
-                      </span>
-                      <span style={{ fontSize: '10px', color: '#888', fontWeight: '700' }}>
-                        Cl-{f.grade || '11'}
-                      </span>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {/* Handles List Chips */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', paddingTop: '8px', borderTop: '1px solid #1c1c1c' }}>
-                  {acceptedFriends.map(f => (
-                    <span
-                      key={f.id}
-                      onClick={() => onViewPublicProfile && onViewPublicProfile(f.id)}
-                      style={{
-                        fontSize: '11.5px',
-                        fontWeight: '700',
-                        color: f.is_pro ? '#fbbf24' : '#ffffff',
-                        background: '#161616',
-                        padding: '4px 10px',
-                        borderRadius: '10px',
-                        cursor: 'pointer',
-                        border: '1px solid #222222'
-                      }}
-                    >
-                      @{f.handle}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* 7. Classmate Friend Search in Profile */}
-          <div style={{ marginBottom: '20px', textAlign: 'left' }}>
-            <FriendSearch
-              currentUser={user}
-              API={API}
-              supabase={supabase}
-              onFriendAdded={() => onRefreshFriends && onRefreshFriends()}
-            />
-          </div>
-
-          {/* 8. Action Controls */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '300px', margin: '0 auto' }}>
-            <button
-              style={{ padding: '13px', borderRadius: '14px', border: '1px solid #2a2a2a', background: '#161616', color: '#fff', fontWeight: '800', cursor: 'pointer' }}
-              onClick={() => {
-                setEditBio(user.bio || '');
-                setEditAvatar(user.avatar || '');
-                setEditGrade(user.grade ? user.grade.toString() : '11');
-                setEditProfilePic(user.profile_pic || '');
-                setIsEditing(true);
-              }}
-            >
-              Edit Profile
-            </button>
-
-            <button
-              style={{ padding: '13px', borderRadius: '14px', background: '#181818', border: '1px solid #262626', color: '#cbd5e1', fontWeight: '800', cursor: 'pointer' }}
-              onClick={onLogout}
-            >
-              Sign Out
-            </button>
-
-            <button
-              style={{ padding: '12px', borderRadius: '14px', border: 'none', background: 'transparent', color: '#ef4444', fontWeight: '800', fontSize: '13px', cursor: 'pointer', marginTop: '6px' }}
-              onClick={onDeleteAccount}
-            >
-              Delete Account
             </button>
           </div>
         </div>
