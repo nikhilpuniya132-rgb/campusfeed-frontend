@@ -190,8 +190,19 @@ export default function App() {
     }
   };
 
-  // 1. Initialize Razorpay SDK
+  // 1. Initialize Razorpay SDK & Capture ?ref= Referral Parameter
   useEffect(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const refParam = urlParams.get('ref');
+      if (refParam) {
+        const cleanRef = refParam.trim().replace(/^@/, '');
+        localStorage.setItem('campus_ref_code', cleanRef);
+      }
+    } catch (e) {
+      console.error('Ref parameter capture error:', e);
+    }
+
     if (!document.getElementById('razorpay-sdk')) {
       const script = document.createElement('script');
       script.id = 'razorpay-sdk';
@@ -540,7 +551,8 @@ export default function App() {
           voterAvatar: data.voterAvatar,
           voterPic: data.voterPic,
           isPro: data.isPro,
-          ring: data.ring
+          ring: data.ring,
+          isLocked: false
         } : item));
 
         confetti({
@@ -1568,57 +1580,111 @@ export default function App() {
                       </motion.div>
                     </motion.div>
 
-                    <h4 style={{ fontSize: '20px', fontWeight: '950', color: '#fff', margin: '0 0 8px 0' }}>
+                    {activeRevealPopup?.vote?.voterGender && (
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '4px 12px',
+                        borderRadius: '12px',
+                        background: activeRevealPopup.vote.voterGender === 'girl' ? 'rgba(255, 46, 147, 0.18)' : 'rgba(0, 240, 255, 0.18)',
+                        border: activeRevealPopup.vote.voterGender === 'girl' ? '1px solid rgba(255, 46, 147, 0.4)' : '1px solid rgba(0, 240, 255, 0.4)',
+                        color: activeRevealPopup.vote.voterGender === 'girl' ? '#ff2e93' : '#00f0ff',
+                        fontWeight: '900',
+                        fontSize: '12px',
+                        marginBottom: '8px'
+                      }}>
+                        <span>{activeRevealPopup.vote.voterGender === 'girl' ? '🌸🔥' : '💙🔥'}</span>
+                        <span>{activeRevealPopup.vote.voterGender === 'girl' ? 'Sent by a Girl in St. Kabir' : 'Sent by a Boy in St. Kabir'}</span>
+                      </div>
+                    )}
+
+                    <h4 style={{ fontSize: '20px', fontWeight: '950', color: '#fff', margin: '0 0 6px 0' }}>
                       Secret Voter Locked
                     </h4>
 
                     {/* Exact User Prompt Requirement */}
-                    <p style={{ color: '#cbd5e1', fontSize: '14.5px', lineHeight: '1.5', margin: '0 0 20px 0', padding: '0 12px' }}>
-                      Invite <strong style={{ color: '#00f0ff', fontSize: '16px' }}>{revealData.remaining}</strong> more {revealData.remaining === 1 ? 'friend' : 'friends'} this week on WhatsApp to unlock this name!
+                    <p style={{ color: '#cbd5e1', fontSize: '13.5px', lineHeight: '1.4', margin: '0 0 16px 0', padding: '0 8px' }}>
+                      Invite <strong style={{ color: '#00f0ff', fontSize: '15px' }}>{revealData.remaining}</strong> more {revealData.remaining === 1 ? 'friend' : 'friends'} on WhatsApp or upgrade to God Mode to reveal instantly!
                     </p>
 
-                    {/* Glowing 3D Share Button */}
+                    {/* Option 1: Viral Loop Invite Button */}
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleInviteShare}
                       style={{
                         width: '100%',
-                        background: 'linear-gradient(135deg, #00f0ff, #0099ff)',
-                        color: '#050c1e',
+                        background: 'linear-gradient(135deg, #25D366, #128C7E)',
+                        color: '#fff',
                         border: 'none',
-                        padding: '16px',
-                        borderRadius: '18px',
-                        fontSize: '15px',
+                        padding: '15px',
+                        borderRadius: '16px',
+                        fontSize: '14.5px',
                         fontWeight: '950',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '8px',
                         cursor: 'pointer',
-                        boxShadow: '0 0 25px rgba(0, 240, 255, 0.6), 0 8px 24px rgba(0,0,0,0.5)',
-                        marginBottom: '12px',
+                        boxShadow: '0 0 25px rgba(37, 211, 102, 0.35), 0 8px 20px rgba(0,0,0,0.4)',
+                        marginBottom: '10px',
                         letterSpacing: '0.3px',
                       }}
                     >
-                      <span style={{ fontSize: '18px' }}>📲</span> Share & Invite on WhatsApp
+                      <span style={{ fontSize: '18px' }}>📲</span> Invite 3 Friends on WhatsApp
                     </motion.button>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '14px 0', color: '#64748b', fontSize: '12px', fontWeight: 'bold' }}>
-                      <hr style={{ flex: 1, borderColor: 'rgba(255,255,255,0.1)' }} /> OR SKIP THE WAIT <hr style={{ flex: 1, borderColor: 'rgba(255,255,255,0.1)' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0', color: '#64748b', fontSize: '11px', fontWeight: 'bold' }}>
+                      <hr style={{ flex: 1, borderColor: 'rgba(255,255,255,0.1)' }} /> OR UNLOCK WITH GOD MODE <hr style={{ flex: 1, borderColor: 'rgba(255,255,255,0.1)' }} />
                     </div>
 
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="magic-btn"
-                      style={{ width: '100%', background: 'linear-gradient(135deg, #fbbf24, #f59e0b)', color: '#000', margin: 0 }}
-                      onClick={() => handleUpgrade(99)}
-                    >
-                      <span>⚡</span> Instant God Mode Reveal (₹99 / Week)
-                      <svg viewBox="0 0 24 24" className="star star-1"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z" /></svg>
-                      <svg viewBox="0 0 24 24" className="star star-2"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z" /></svg>
-                    </motion.button>
+                    {/* Option 2: God Mode Subscription (Direct ₹99 Weekly and ₹149 Monthly buttons) */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="magic-btn"
+                        style={{
+                          width: '100%',
+                          background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                          color: '#000',
+                          margin: 0,
+                          padding: '13px',
+                          fontSize: '14px',
+                          fontWeight: '950',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                        onClick={() => handleUpgrade(99)}
+                      >
+                        <span>⚡</span> ₹99 Weekly God Mode
+                      </motion.button>
+
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="magic-btn"
+                        style={{
+                          width: '100%',
+                          background: 'linear-gradient(135deg, #00f0ff, #0088ff)',
+                          color: '#050c1e',
+                          margin: 0,
+                          padding: '13px',
+                          fontSize: '14px',
+                          fontWeight: '950',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                        onClick={() => handleUpgrade(149)}
+                      >
+                        <span>👑</span> ₹149 Monthly God Mode (Best Value)
+                      </motion.button>
+                    </div>
                   </div>
                 ) : (
                   /* --- UNLOCKED / REVEALED STATE --- */

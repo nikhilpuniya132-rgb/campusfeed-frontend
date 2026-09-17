@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import FriendSearch from './FriendSearch';
 
@@ -73,10 +73,12 @@ export default function Inbox({
       {/* 2. Inbox Header Title */}
       <div style={{ textAlign: 'center', padding: '4px 0 12px 0' }}>
         <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '950', color: user?.is_pro ? '#fbbf24' : '#fff' }}>
-          {user?.is_pro ? '👑 Names Revealed Inbox' : '📬 Secret Votes Inbox'}
+          {user?.is_pro ? '👑 Names Revealed Inbox' : '📬 Secret Flames Inbox'}
         </h3>
         <p style={{ color: '#94a3b8', fontSize: '13px', margin: '4px 0 0 0' }}>
-          {user?.is_pro ? 'God mode active: All voter names are visible!' : 'Tap any flame to reveal who voted for you'}
+          {user?.is_pro
+            ? 'God mode active: All voter names are visible!'
+            : 'Tap any flame card to reveal who secretly voted for you'}
         </p>
       </div>
 
@@ -148,7 +150,7 @@ export default function Inbox({
         </motion.div>
       )}
 
-      {/* 4. Messages List */}
+      {/* 4. Messages List with Color-Coded Flames */}
       {inbox.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
           <div style={{ fontSize: '48px', marginBottom: '12px' }}>📭</div>
@@ -156,109 +158,198 @@ export default function Inbox({
           <p style={{ fontSize: '13px', margin: 0 }}>Answer polls in the feed to get your classmates to vote for you!</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {inbox.map((vote, index) => {
-            const isRevealed = Boolean(vote.voterHandle);
+            const isRevealed = Boolean(vote.voterHandle) && !vote.isLocked;
+            const isGirl = vote.voterGender === 'girl';
+            const isBoy = vote.voterGender === 'boy';
+
+            // Gender styling: Blue flame for Boy, Pink flame for Girl, Purple for Other
+            const flameTheme = isGirl
+              ? {
+                  color: '#ff2e93',
+                  accentGradient: 'linear-gradient(135deg, #ff2e93, #f43f5e)',
+                  bgGradient: 'linear-gradient(145deg, rgba(255, 46, 147, 0.12), rgba(20, 20, 32, 0.9))',
+                  border: '1.5px solid rgba(255, 46, 147, 0.35)',
+                  badgeBg: 'rgba(255, 46, 147, 0.18)',
+                  badgeBorder: '1px solid rgba(255, 46, 147, 0.4)',
+                  icon: '🌸🔥',
+                  label: 'From a Girl in St. Kabir',
+                  glow: '0 8px 24px rgba(0,0,0,0.5), 0 0 20px rgba(255, 46, 147, 0.15)',
+                }
+              : isBoy
+              ? {
+                  color: '#00f0ff',
+                  accentGradient: 'linear-gradient(135deg, #00f0ff, #3b82f6)',
+                  bgGradient: 'linear-gradient(145deg, rgba(0, 240, 255, 0.12), rgba(20, 20, 32, 0.9))',
+                  border: '1.5px solid rgba(0, 240, 255, 0.35)',
+                  badgeBg: 'rgba(0, 240, 255, 0.18)',
+                  badgeBorder: '1px solid rgba(0, 240, 255, 0.4)',
+                  icon: '💙🔥',
+                  label: 'From a Boy in St. Kabir',
+                  glow: '0 8px 24px rgba(0,0,0,0.5), 0 0 20px rgba(0, 240, 255, 0.15)',
+                }
+              : {
+                  color: '#a855f7',
+                  accentGradient: 'linear-gradient(135deg, #a855f7, #ec4899)',
+                  bgGradient: 'linear-gradient(145deg, rgba(168, 85, 247, 0.12), rgba(20, 20, 32, 0.9))',
+                  border: '1.5px solid rgba(168, 85, 247, 0.35)',
+                  badgeBg: 'rgba(168, 85, 247, 0.18)',
+                  badgeBorder: '1px solid rgba(168, 85, 247, 0.4)',
+                  icon: '✨🔥',
+                  label: 'From a Classmate in St. Kabir',
+                  glow: '0 8px 24px rgba(0,0,0,0.5), 0 0 20px rgba(168, 85, 247, 0.15)',
+                };
 
             return (
               <motion.div
                 key={vote.voteId || index}
                 whileHover={{ scale: 1.015 }}
                 whileTap={{ scale: 0.985 }}
-                className="gas-inbox-card"
                 onClick={() => onOpenReveal(vote)}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '10px',
+                  gap: '12px',
                   padding: '16px',
+                  borderRadius: '22px',
+                  background: flameTheme.bgGradient,
+                  border: flameTheme.border,
+                  boxShadow: flameTheme.glow,
                   cursor: 'pointer',
+                  textAlign: 'left',
+                  position: 'relative',
+                  overflow: 'hidden',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1, paddingRight: '8px' }}>
-                    <p className="gas-inbox-q" style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: '800' }}>
-                      "{vote.question}"
-                    </p>
-                    <p className="gas-inbox-voter" style={{ margin: 0, fontSize: '13px' }}>
-                      Voted by:{' '}
-                      {isRevealed ? (
-                        <strong style={{ color: vote.isPro ? '#fbbf24' : '#ff8800' }}>
-                          {vote.voterAvatar} {vote.voterName ? `${vote.voterName} (@${vote.voterHandle})` : `@${vote.voterHandle}`}
-                        </strong>
-                      ) : (
-                        <span style={{ color: '#ff5500', fontWeight: '800' }}>🔒 Hidden (Tap to reveal)</span>
-                      )}
-                    </p>
+                {/* Header: Gender-Coded Flame Pill & Reveal Status */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '4px 10px',
+                      borderRadius: '12px',
+                      background: flameTheme.badgeBg,
+                      border: flameTheme.badgeBorder,
+                    }}
+                  >
+                    <span style={{ fontSize: '15px' }}>{flameTheme.icon}</span>
+                    <span style={{ fontSize: '11.5px', fontWeight: '900', color: flameTheme.color, letterSpacing: '0.3px' }}>
+                      {flameTheme.label}
+                    </span>
                   </div>
 
                   {isRevealed ? (
-                    <span style={{
-                      fontSize: '11px',
-                      fontWeight: '900',
-                      color: '#10b981',
-                      background: 'rgba(16, 185, 129, 0.15)',
-                      padding: '4px 10px',
-                      borderRadius: '12px',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
-                      whiteSpace: 'nowrap'
-                    }}>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: '900',
+                        color: '#10b981',
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
                       ✓ REVEALED
                     </span>
                   ) : (
-                    <div className="gas-reveal-pill" style={{ whiteSpace: 'nowrap' }}>
+                    <div
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: '950',
+                        color: '#fff',
+                        background: 'linear-gradient(135deg, #ff5500, #ff2e93)',
+                        padding: '5px 12px',
+                        borderRadius: '12px',
+                        boxShadow: '0 0 10px rgba(255, 85, 0, 0.5)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
                       REVEAL ➔
                     </div>
                   )}
                 </div>
 
-                {/* --- LOCKED PROGRESS BAR & DIRECT SHARE BUTTON (EXACT REQUIREMENT) --- */}
+                {/* Poll Question */}
+                <div>
+                  <p
+                    style={{
+                      margin: '0 0 6px 0',
+                      fontSize: '16px',
+                      fontWeight: '900',
+                      color: '#fff',
+                      lineHeight: '1.4',
+                    }}
+                  >
+                    "{vote.question}"
+                  </p>
+
+                  {/* Voter Info: STRICTLY HIDDEN UNLESS REVEALED */}
+                  <div style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {isRevealed ? (
+                      <span style={{ color: vote.isPro ? '#fbbf24' : flameTheme.color, fontWeight: '800' }}>
+                        Voted by: {vote.voterAvatar} {vote.voterName ? `${vote.voterName} (@${vote.voterHandle})` : `@${vote.voterHandle}`}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#94a3b8', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>🔒</span>
+                        <span>Secret Voter • Tap to reveal</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Locked Progress Bar & Direct Share CTA */}
                 {!isRevealed && !user?.is_pro && (
                   <div
                     style={{
-                      background: 'rgba(0, 0, 0, 0.35)',
+                      background: 'rgba(0, 0, 0, 0.4)',
                       borderRadius: '14px',
                       padding: '10px 12px',
                       border: '1px solid rgba(255, 255, 255, 0.08)',
-                      marginTop: '4px',
+                      marginTop: '2px',
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                       <span style={{ fontSize: '11px', fontWeight: '800', color: '#cbd5e1' }}>
                         🎯 {effectiveInvites}/3 invites completed
                       </span>
-                      <span style={{ fontSize: '11px', fontWeight: '800', color: '#ff8800' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '800', color: flameTheme.color }}>
                         {remaining === 0 ? 'Ready to reveal!' : `${remaining} more needed`}
                       </span>
                     </div>
 
                     {/* Mini Progress Bar on Card */}
-                    <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
+                    <div style={{ width: '100%', height: '5px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
                       <div
                         style={{
                           width: `${progressPercent}%`,
                           height: '100%',
-                          background: 'linear-gradient(90deg, #ff5500, #00f0ff)',
+                          background: flameTheme.accentGradient,
                           borderRadius: '3px',
                         }}
                       />
                     </div>
 
-                    {/* Direct Share Button on Card */}
+                    {/* Direct WhatsApp Share Button on Card */}
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.96 }}
                       onClick={(e) => {
-                        e.stopPropagation(); // Prevents opening modal if user directly clicks share
+                        e.stopPropagation();
                         onInviteShare();
                       }}
                       style={{
                         width: '100%',
                         padding: '8px 12px',
                         borderRadius: '10px',
-                        border: '1px solid rgba(0, 240, 255, 0.35)',
-                        background: 'linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(0, 136, 255, 0.2))',
-                        color: '#00f0ff',
+                        border: `1px solid ${flameTheme.color}55`,
+                        background: 'rgba(0, 0, 0, 0.3)',
+                        color: flameTheme.color,
                         fontSize: '12px',
                         fontWeight: '900',
                         cursor: 'pointer',
