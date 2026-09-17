@@ -12,6 +12,7 @@ import HolographicCard from './components/HolographicCard';
 import InteractivePollDemo from './components/InteractivePollDemo';
 import OnboardingWizard from './components/OnboardingWizard';
 import FriendSearch from './components/FriendSearch';
+import HamsterLoader from './components/HamsterLoader';
 
 // --- INITIALIZE SUPABASE ---
 const supabaseUrl = 'https://aezhlsfbewfqmzfshuzs.supabase.co';
@@ -47,6 +48,7 @@ export default function App() {
   const [grade, setGrade] = useState('11');
   const [avatar, setAvatar] = useState('😎');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [onboardingGoogleUser, setOnboardingGoogleUser] = useState(null);
 
@@ -55,6 +57,9 @@ export default function App() {
   const [revealLoading, setRevealLoading] = useState(false);
   const [revealData, setRevealData] = useState(null);
   const [showFriendSearch, setShowFriendSearch] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [acceptedFriends, setAcceptedFriends] = useState([]);
   const [shareToast, setShareToast] = useState('');
   const [legalView, setLegalView] = useState(null);
   const [activePlan, setActivePlan] = useState('weekly'); // 'basic', 'weekly', or 'monthly'
@@ -78,6 +83,8 @@ export default function App() {
   const [editBio, setEditBio] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
   const [editRing, setEditRing] = useState('gold');
+  const [editGrade, setEditGrade] = useState('11');
+  const [editProfilePic, setEditProfilePic] = useState('');
 
   // ==============================================
   // AUTHENTICATION & PAYMENT LIFECYCLE HOOKS
@@ -110,11 +117,56 @@ export default function App() {
         setView('poll');
         setGradeFilter(data.user.grade ? data.user.grade.toString() : '11');
         loadNextPoll(data.user.grade ? data.user.grade.toString() : '11', data.user.id);
+        fetchPendingRequests(data.user.id);
+        fetchAcceptedFriends(data.user.id);
       }
     } catch (err) {
       console.error('Google Auth Sync Error:', err);
     } finally {
       setIsAuthenticating(false);
+      setIsCheckingSession(false);
+    }
+  };
+
+  const fetchPendingRequests = async (userId = user?.id) => {
+    if (!userId) return;
+    try {
+      const res = await fetch(`${API}/friends/pending/${userId}`);
+      const data = await res.json();
+      if (data.pending) setPendingRequests(data.pending);
+    } catch (err) {
+      console.error('Pending requests error:', err);
+    }
+  };
+
+  const fetchAcceptedFriends = async (userId = user?.id) => {
+    if (!userId) return;
+    try {
+      const res = await fetch(`${API}/friends/accepted/${userId}`);
+      const data = await res.json();
+      if (data.friends) setAcceptedFriends(data.friends);
+    } catch (err) {
+      console.error('Accepted friends error:', err);
+    }
+  };
+
+  const handleFriendResponse = async (friendshipId, action) => {
+    try {
+      const res = await fetch(`${API}/friends/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ friendshipId, action })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPendingRequests(prev => prev.filter(req => req.friendshipId !== friendshipId));
+        if (action === 'accept') {
+          fetchAcceptedFriends();
+          confetti({ particleCount: 90, spread: 70, origin: { y: 0.4 } });
+        }
+      }
+    } catch (err) {
+      console.error('Friend response error:', err);
     }
   };
 
@@ -128,25 +180,40 @@ export default function App() {
     }
   }, []);
 
-  // 2. Exact Supabase Auth Listener to catch Google OAuth redirect
+  // 2. Exact Supabase Auth Listener to catch Google OAuth redirect & eliminate bounce
   useEffect(() => {
-    // 1. Check if they just returned from Google
+    let isMounted = true;
+    // 1. Check if they just returned from Google or already have a session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) syncWithBackend(session.user);
+      if (!isMounted) return;
+      if (session) {
+        syncWithBackend(session.user).finally(() => {
+          if (isMounted) setIsCheckingSession(false);
+        });
+      } else {
+        setIsCheckingSession(false);
+      }
     });
 
     // 2. Listen for state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
       if (session) {
-        syncWithBackend(session.user);
+        syncWithBackend(session.user).finally(() => {
+          if (isMounted) setIsCheckingSession(false);
+        });
       } else {
         setUser(null);
         setIsOnboarding(false);
         setOnboardingGoogleUser(null);
+        setIsCheckingSession(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loginWithGoogle = async () => {
@@ -176,6 +243,8 @@ export default function App() {
       setUser(data.user);
       setGradeFilter(data.user.grade.toString());
       loadNextPoll(data.user.grade.toString(), data.user.id);
+      fetchPendingRequests(data.user.id);
+      fetchAcceptedFriends(data.user.id);
     } catch (err) {
       alert(err.message);
     }
@@ -187,6 +256,8 @@ export default function App() {
     setUser(null);
     setIsOnboarding(false);
     setOnboardingGoogleUser(null);
+    setPendingRequests([]);
+    setAcceptedFriends([]);
     setView('poll');
   };
 
@@ -197,6 +268,8 @@ export default function App() {
     setView('poll');
     setGradeFilter(newUser.grade ? newUser.grade.toString() : '11');
     loadNextPoll(newUser.grade ? newUser.grade.toString() : '11', newUser.id);
+    fetchPendingRequests(newUser.id);
+    fetchAcceptedFriends(newUser.id);
   };
 
   // ==============================================
@@ -253,23 +326,62 @@ export default function App() {
     setView(newView);
     if (newView === 'inbox') fetch(`${API}/inbox/${user.id}`).then(r => r.json()).then(d => setInbox(d.messages || []));
     if (newView === 'explore') fetch(`${API}/explore/leaderboard`).then(r => r.json()).then(d => setLeaderboard(d.leaderboard || []));
-    if (newView === 'profile') fetch(`${API}/profile/${user.id}`).then(r => r.json()).then(d => {
-      setProfileData(d);
-      setEditBio(d.user.bio || '');
-      setEditAvatar(d.user.avatar || '');
-      setEditRing(d.user.ring || 'gold');
-    });
+    if (newView === 'profile') {
+      fetchAcceptedFriends(user.id);
+      fetchPendingRequests(user.id);
+      fetch(`${API}/profile/${user.id}`).then(r => r.json()).then(d => {
+        setProfileData(d);
+        setEditBio(d.user.bio || '');
+        setEditAvatar(d.user.avatar || '');
+        setEditRing(d.user.ring || 'gold');
+        setEditGrade(d.user.grade ? d.user.grade.toString() : '11');
+        setEditProfilePic(d.user.profile_pic || '');
+      });
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      return alert('File size exceeds 2MB limit. Please choose a smaller photo.');
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setEditProfilePic(reader.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const saveProfile = async () => {
     setIsEditing(false);
-    const updatedUser = { ...profileData.user, bio: editBio, avatar: editAvatar, ring: editRing };
+    const updatedUser = {
+      ...profileData.user,
+      bio: editBio,
+      avatar: editAvatar,
+      ring: editRing,
+      grade: editGrade,
+      profile_pic: editProfilePic
+    };
     setProfileData({ user: updatedUser });
-    setUser({ ...user, avatar: editAvatar, ring: editRing });
+    setUser({
+      ...user,
+      bio: editBio,
+      avatar: editAvatar,
+      ring: editRing,
+      grade: editGrade,
+      profile_pic: editProfilePic
+    });
     await fetch(`${API}/profile/${user.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bio: editBio, avatar: editAvatar, ring: editRing })
+      body: JSON.stringify({
+        bio: editBio,
+        avatar: editAvatar,
+        ring: editRing,
+        grade: editGrade,
+        profile_pic: editProfilePic
+      })
     });
   };
 
@@ -472,6 +584,18 @@ export default function App() {
   };
 
   // ==============================================
+  // VIEW -1: 3D HAMSTER LOADER (ZERO-BOUNCE SESSION CHECK)
+  // ==============================================
+  if (isCheckingSession || (isAuthenticating && !user && !isOnboarding)) {
+    return (
+      <div className="gas-landing-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100svh' }}>
+        <ThreeDBackground />
+        <HamsterLoader message="Entering St. Kabir Loop..." />
+      </div>
+    );
+  }
+
+  // ==============================================
   // VIEW 0: 3D ONBOARDING WIZARD (FOR NEW GOOGLE USERS)
   // ==============================================
   if (isOnboarding && onboardingGoogleUser) {
@@ -504,7 +628,7 @@ export default function App() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span className="gas-school-badge">St. Kabir • Class 11 & 12</span>
+            <span className="gas-school-badge">St. Kabir • Classes 9 to 12</span>
 
             <div className="tooltip-wrapper">
               <li className="nav-link">
@@ -784,8 +908,10 @@ export default function App() {
               </p>
 
               <select value={grade} onChange={(e) => setGrade(e.target.value)}>
+                <option value="9">Class 9 (Freshmen)</option>
+                <option value="10">Class 10 (Sophomores)</option>
                 <option value="11">Class 11 (St. Kabir)</option>
-                <option value="12">Class 12 (St. Kabir)</option>
+                <option value="12">Class 12 (Seniors)</option>
               </select>
 
               <button className="oauthButton" onClick={loginWithGoogle} disabled={isAuthenticating}>
@@ -901,7 +1027,7 @@ export default function App() {
             <span>ST. KABIR • CL-{user.grade}</span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div className="gas-header-votes">
               <span>🔥</span>
               <span>{user.total_votes || 0}</span>
@@ -910,6 +1036,53 @@ export default function App() {
             {user.is_pro && (
               <span style={{ fontSize: '16px', filter: 'drop-shadow(0 0 6px #fbbf24)' }}>👑</span>
             )}
+
+            {/* Friend Request Notifications Bell */}
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              style={{
+                position: 'relative',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                color: '#fff',
+                borderRadius: '12px',
+                width: '36px',
+                height: '36px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: '15px'
+              }}
+              title="Friend Requests"
+            >
+              🔔
+              {pendingRequests.length > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                  style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    background: '#ff2e93',
+                    color: '#fff',
+                    borderRadius: '50%',
+                    width: '18px',
+                    height: '18px',
+                    fontSize: '10px',
+                    fontWeight: '900',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 8px #ff2e93'
+                  }}
+                >
+                  {pendingRequests.length}
+                </motion.span>
+              )}
+            </button>
           </div>
         </header>
 
@@ -919,14 +1092,23 @@ export default function App() {
             {/* --- TAB 1: VOTING FEED --- */}
             {view === 'poll' && (
               <motion.div key="poll" {...pageVariants} className="gas-poll-wrapper">
-                {/* Grade Switcher Pills */}
-                <div className="gas-grade-toggle">
+                {/* Grade Switcher Pills (Classes 9, 10, 11, 12 + Whole School) */}
+                <div className="gas-grade-toggle" style={{ flexWrap: 'wrap', gap: '6px' }}>
                   <button
-                    className={`gas-grade-btn ${gradeFilter !== 'all' ? 'active' : ''}`}
+                    className={`gas-grade-btn ${gradeFilter === user.grade.toString() ? 'active' : ''}`}
                     onClick={() => loadNextPoll(user.grade.toString())}
                   >
                     My Class ({user.grade})
                   </button>
+                  {['9', '10', '11', '12'].map((g) => (
+                    <button
+                      key={g}
+                      className={`gas-grade-btn ${gradeFilter === g && gradeFilter !== user.grade.toString() ? 'active' : ''}`}
+                      onClick={() => loadNextPoll(g)}
+                    >
+                      Class {g}
+                    </button>
+                  ))}
                   <button
                     className={`gas-grade-btn ${gradeFilter === 'all' ? 'active' : ''}`}
                     onClick={() => loadNextPoll('all')}
@@ -936,11 +1118,8 @@ export default function App() {
                 </div>
 
                 {isLoadingPoll ? (
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                    <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} style={{ fontSize: '32px' }}>
-                      ⚡
-                    </motion.div>
-                    <p style={{ marginTop: '12px', fontWeight: '800', color: '#94a3b8' }}>Loading next scenario...</p>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '30px 0' }}>
+                    <HamsterLoader message="Finding classmates for next poll..." />
                   </div>
                 ) : hasVoted ? (
                   <motion.div
@@ -1266,42 +1445,128 @@ export default function App() {
             {view === 'profile' && (
               <motion.div key="profile" {...pageVariants} style={{ padding: '24px 16px', textAlign: 'center' }}>
                 <div style={{ marginBottom: '16px' }}>
-                  {renderProfilePic(user.profile_pic, editAvatar || user.avatar, user.is_pro, editRing, 100)}
+                  {renderProfilePic(editProfilePic || user.profile_pic, editAvatar || user.avatar, user.is_pro, editRing, 100)}
                 </div>
 
                 <h2 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '900', color: user.is_pro ? '#fbbf24' : '#fff' }}>
                   @{user.handle}
                 </h2>
 
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 85, 0, 0.15)', border: '1px solid rgba(255, 85, 0, 0.3)', padding: '6px 14px', borderRadius: '20px', margin: '8px 0 20px 0', color: '#ff8800', fontWeight: '800', fontSize: '13px' }}>
-                  <span>🔥</span> {user.total_votes || 0} Total Flames Received
+                <p style={{ margin: '0 0 14px 0', fontSize: '13px', color: '#94a3b8', fontWeight: '700' }}>
+                  St. Kabir Convent School • Class {user.grade}
+                </p>
+
+                {/* Profile Stats Matrix (Aura, Flames, Friends) */}
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', margin: '4px 0 20px 0', flexWrap: 'wrap' }}>
+                  <div style={{ background: 'rgba(255, 85, 0, 0.15)', border: '1px solid rgba(255, 85, 0, 0.3)', padding: '6px 14px', borderRadius: '20px', color: '#ff8800', fontWeight: '800', fontSize: '13px' }}>
+                    🔥 {user.total_votes || 0} Flames
+                  </div>
+                  <div style={{ background: 'rgba(0, 240, 255, 0.15)', border: '1px solid rgba(0, 240, 255, 0.3)', padding: '6px 14px', borderRadius: '20px', color: '#00f0ff', fontWeight: '800', fontSize: '13px' }}>
+                    👥 {acceptedFriends.length} Friends
+                  </div>
+                  <div style={{ background: 'rgba(251, 191, 36, 0.15)', border: '1px solid rgba(251, 191, 36, 0.3)', padding: '6px 14px', borderRadius: '20px', color: '#fbbf24', fontWeight: '800', fontSize: '13px' }}>
+                    ⚡ {Math.round((user.total_votes || 0) * 12 + acceptedFriends.length * 25)} Aura
+                  </div>
                 </div>
 
                 {isEditing ? (
-                  <div style={{ textAlign: 'left', background: 'rgba(255,255,255,0.05)', padding: '18px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '700' }}>Avatar Emoji</label>
-                    <input
-                      style={{ width: '60px', padding: '8px', fontSize: '20px', textAlign: 'center', margin: '4px 0 14px 0', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff' }}
-                      value={editAvatar}
-                      onChange={(e) => setEditAvatar(e.target.value)}
-                      maxLength={2}
-                    />
+                  <div style={{ textAlign: 'left', background: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    {/* Profile Picture Upload & Preview */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '800', display: 'block', marginBottom: '6px' }}>
+                        Profile Photo
+                      </label>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
+                        <label style={{
+                          padding: '10px 16px',
+                          borderRadius: '12px',
+                          background: 'linear-gradient(135deg, #ff5500, #ff8800)',
+                          color: '#fff',
+                          fontSize: '12.5px',
+                          fontWeight: '800',
+                          cursor: 'pointer',
+                          display: 'inline-block'
+                        }}>
+                          📷 Upload Photo
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            style={{ display: 'none' }}
+                          />
+                        </label>
+                        {editProfilePic && (
+                          <button
+                            type="button"
+                            onClick={() => setEditProfilePic('')}
+                            style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
+                          >
+                            Remove Photo
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Or paste image URL (https://...)"
+                        value={editProfilePic}
+                        onChange={(e) => setEditProfilePic(e.target.value)}
+                        style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                      />
+                    </div>
 
-                    <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '700' }}>Bio</label>
-                    <textarea
-                      style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff', margin: '4px 0 18px 0', fontFamily: 'inherit' }}
-                      value={editBio}
-                      onChange={(e) => setEditBio(e.target.value)}
-                      rows={3}
-                    />
+                    {/* Class Selector (Grades 9 to 12) */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '800', display: 'block', marginBottom: '6px' }}>
+                        Class / Batch
+                      </label>
+                      <select
+                        value={editGrade}
+                        onChange={(e) => setEditGrade(e.target.value)}
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', background: '#18181b', color: '#fff', fontSize: '14px', fontWeight: '800', boxSizing: 'border-box' }}
+                      >
+                        <option value="9">Class 9 (Freshmen)</option>
+                        <option value="10">Class 10 (Sophomores)</option>
+                        <option value="11">Class 11 (St. Kabir)</option>
+                        <option value="12">Class 12 (Seniors)</option>
+                      </select>
+                    </div>
 
-                    <button
-                      className="magic-btn"
-                      style={{ width: '100%' }}
-                      onClick={saveProfile}
-                    >
-                      Save Profile
-                    </button>
+                    <div style={{ marginBottom: '16px' }}>
+                      <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '800', display: 'block', marginBottom: '6px' }}>Avatar Emoji</label>
+                      <input
+                        style={{ width: '60px', padding: '8px', fontSize: '20px', textAlign: 'center', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff' }}
+                        value={editAvatar}
+                        onChange={(e) => setEditAvatar(e.target.value)}
+                        maxLength={2}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: '20px' }}>
+                      <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '800', display: 'block', marginBottom: '6px' }}>Bio</label>
+                      <textarea
+                        style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#fff', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                        value={editBio}
+                        onChange={(e) => setEditBio(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button
+                        className="magic-btn"
+                        style={{ flex: 1, margin: 0 }}
+                        onClick={saveProfile}
+                      >
+                        Save Profile
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditing(false)}
+                        style={{ padding: '12px 18px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontWeight: '800', cursor: 'pointer' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div>
@@ -1309,15 +1574,64 @@ export default function App() {
                       {user.bio || `Class ${user.grade} - St. Kabir`}
                     </p>
 
+                    {/* Accepted Friends Horizontal Carousel / List */}
+                    <div style={{ textAlign: 'left', marginBottom: '24px', background: 'rgba(255,255,255,0.04)', borderRadius: '22px', padding: '16px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#fff' }}>
+                          👥 Friends List ({acceptedFriends.length})
+                        </h4>
+                        <span style={{ fontSize: '11px', color: '#ff8800', fontWeight: '800' }}>St. Kabir</span>
+                      </div>
+
+                      {acceptedFriends.length === 0 ? (
+                        <p style={{ margin: 0, fontSize: '12.5px', color: '#94a3b8' }}>
+                          No accepted friends yet. Use search below to add your classmates!
+                        </p>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '6px' }}>
+                          {acceptedFriends.map(f => (
+                            <motion.div
+                              key={f.id}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => loadPublicProfile(f.id)}
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                minWidth: '70px',
+                                maxWidth: '80px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {renderProfilePic(f.profile_pic, f.avatar, f.is_pro, f.ring, 48)}
+                              <span style={{ fontSize: '11px', fontWeight: '800', color: '#fff', marginTop: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
+                                @{f.handle}
+                              </span>
+                              <span style={{ fontSize: '10px', color: '#94a3b8' }}>
+                                Cl-{f.grade || '11'}
+                              </span>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     {/* Classmate Friend Search in Profile */}
                     <div style={{ marginBottom: '24px', textAlign: 'left' }}>
-                      <FriendSearch currentUser={user} API={API} supabase={supabase} />
+                      <FriendSearch currentUser={user} API={API} supabase={supabase} onFriendAdded={() => fetchAcceptedFriends(user.id)} />
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '320px', margin: '0 auto' }}>
                       <button
                         style={{ padding: '14px', borderRadius: '14px', border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff', fontWeight: '800', cursor: 'pointer' }}
-                        onClick={() => setIsEditing(true)}
+                        onClick={() => {
+                          setEditBio(user.bio || '');
+                          setEditAvatar(user.avatar || '');
+                          setEditRing(user.ring || 'gold');
+                          setEditGrade(user.grade ? user.grade.toString() : '11');
+                          setEditProfilePic(user.profile_pic || '');
+                          setIsEditing(true);
+                        }}
                       >
                         Edit Profile
                       </button>
@@ -1458,17 +1772,8 @@ export default function App() {
 
                 {/* 3D Envelope Stage */}
                 {revealLoading ? (
-                  <div style={{ textAlign: 'center', padding: '30px 10px' }}>
-                    <motion.div
-                      animate={{ y: [0, -10, 0], rotateZ: [0, 5, -5, 0] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                      style={{ fontSize: '54px', marginBottom: '12px' }}
-                    >
-                      ✉️
-                    </motion.div>
-                    <p style={{ color: '#94a3b8', fontSize: '14px', fontWeight: '700' }}>
-                      Checking invite rewards...
-                    </p>
+                  <div style={{ textAlign: 'center', padding: '20px 10px' }}>
+                    <HamsterLoader message="Checking invite rewards..." />
                   </div>
                 ) : revealData?.locked ? (
                   /* --- LOCKED STATE --- */
@@ -1528,7 +1833,7 @@ export default function App() {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={handleShareInvite}
+                      onClick={handleInviteShare}
                       style={{
                         width: '100%',
                         background: 'linear-gradient(135deg, #00f0ff, #0099ff)',
@@ -1640,6 +1945,122 @@ export default function App() {
                     >
                       Answer Polls to Send Flame Back ➔
                     </button>
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* --- FRIEND REQUEST NOTIFICATIONS MODAL --- */}
+        <AnimatePresence>
+          {showNotifications && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="gas-modal-overlay"
+              onClick={() => setShowNotifications(false)}
+            >
+              <motion.div
+                initial={{ y: 50, opacity: 0, scale: 0.95 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 50, opacity: 0, scale: 0.95 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 260 }}
+                className="gas-modal-sheet"
+                style={{ maxWidth: '420px', margin: 'auto', borderRadius: '28px', padding: '24px 20px', background: 'rgba(20, 21, 34, 0.96)', border: '1px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.8)' }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '20px' }}>🔔</span>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '950', color: '#fff' }}>
+                      Friend Requests
+                    </h3>
+                    <span style={{ fontSize: '12px', background: 'rgba(255, 46, 147, 0.2)', color: '#ff2e93', padding: '2px 8px', borderRadius: '12px', fontWeight: '900' }}>
+                      {pendingRequests.length}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowNotifications(false)}
+                    style={{ background: 'rgba(255,255,255,0.08)', border: 'none', color: '#94a3b8', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {pendingRequests.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 10px', color: '#94a3b8' }}>
+                    <div style={{ fontSize: '42px', marginBottom: '10px' }}>📬</div>
+                    <p style={{ margin: 0, fontWeight: '800', color: '#fff', fontSize: '15px' }}>No Pending Requests</p>
+                    <p style={{ fontSize: '12.5px', margin: '6px 0 0 0', color: '#94a3b8' }}>Share your invite link with classmates to connect!</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '360px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {pendingRequests.map(req => (
+                      <motion.div
+                        key={req.friendshipId}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '12px 14px',
+                          borderRadius: '18px',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          {renderProfilePic(req.requester?.profile_pic, req.requester?.avatar, req.requester?.is_pro, req.requester?.ring, 42)}
+                          <div>
+                            <span style={{ fontWeight: '900', color: '#fff', fontSize: '14px', display: 'block' }}>
+                              @{req.requester?.handle}
+                            </span>
+                            <span style={{ color: '#ff8800', fontSize: '11px', fontWeight: '800' }}>
+                              Class {req.requester?.grade || '11'} • St. Kabir
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <motion.button
+                            whileTap={{ scale: 0.94 }}
+                            onClick={() => handleFriendResponse(req.friendshipId, 'accept')}
+                            style={{
+                              padding: '8px 14px',
+                              borderRadius: '12px',
+                              border: 'none',
+                              background: 'linear-gradient(135deg, #10b981, #059669)',
+                              color: '#fff',
+                              fontSize: '12.5px',
+                              fontWeight: '900',
+                              cursor: 'pointer',
+                              boxShadow: '0 0 12px rgba(16, 185, 129, 0.4)'
+                            }}
+                          >
+                            Accept
+                          </motion.button>
+                          <motion.button
+                            whileTap={{ scale: 0.94 }}
+                            onClick={() => handleFriendResponse(req.friendshipId, 'decline')}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: '12px',
+                              border: '1px solid rgba(255,255,255,0.15)',
+                              background: 'rgba(255, 255, 255, 0.06)',
+                              color: '#94a3b8',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            ✕
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
                 )}
               </motion.div>

@@ -593,8 +593,10 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                 <p style={{ fontSize: '13.5px', color: '#94a3b8', margin: 0 }}>You will vote and receive compliments with this batch</p>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', margin: 'auto 0' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', margin: 'auto 0' }}>
                 {[
+                  { val: '9', label: 'Class 9', badge: '🌱 FRESHMEN' },
+                  { val: '10', label: 'Class 10', badge: '⚡ SOPHOMORES' },
                   { val: '11', label: 'Class 11', badge: '🔥 HOT' },
                   { val: '12', label: 'Class 12', badge: '👑 SENIORS' },
                 ].map((c) => (
@@ -604,8 +606,8 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                     whileTap={{ scale: 0.96 }}
                     onClick={() => setGrade(c.val)}
                     style={{
-                      padding: '24px 10px',
-                      borderRadius: '20px',
+                      padding: '18px 8px',
+                      borderRadius: '18px',
                       border: grade === c.val ? '2.5px solid #ff5500' : '1px solid rgba(255, 255, 255, 0.14)',
                       background: grade === c.val ? 'rgba(255, 85, 0, 0.18)' : 'rgba(255, 255, 255, 0.06)',
                       color: '#fff',
@@ -614,12 +616,12 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                       alignItems: 'center',
                       justifyContent: 'center',
                       cursor: 'pointer',
-                      boxShadow: grade === c.val ? '0 0 25px rgba(255, 85, 0, 0.35)' : 'none',
+                      boxShadow: grade === c.val ? '0 0 22px rgba(255, 85, 0, 0.35)' : 'none',
                     }}
                   >
-                    <span style={{ fontSize: '11px', fontWeight: '900', color: '#ff8800', marginBottom: '6px' }}>{c.badge}</span>
-                    <span style={{ fontSize: '20px', fontWeight: '950' }}>{c.label}</span>
-                    <span style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>St. Kabir</span>
+                    <span style={{ fontSize: '10px', fontWeight: '900', color: '#ff8800', marginBottom: '4px' }}>{c.badge}</span>
+                    <span style={{ fontSize: '17px', fontWeight: '950' }}>{c.label}</span>
+                    <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>St. Kabir</span>
                   </motion.button>
                 ))}
               </div>
