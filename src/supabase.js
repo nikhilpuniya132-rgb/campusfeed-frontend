@@ -5,6 +5,7 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
+    flowType: 'pkce', // <-- This forces the clean URL fix
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,

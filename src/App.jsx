@@ -67,7 +67,7 @@ export default function App() {
   const [acceptedFriends, setAcceptedFriends] = useState([]);
   const [shareToast, setShareToast] = useState('');
   const [legalView, setLegalView] = useState(null);
-  const [activePlan, setActivePlan] = useState('weekly'); 
+  const [activePlan, setActivePlan] = useState('weekly'); // 'basic', 'weekly', or 'monthly'
   const [showManualLogin, setShowManualLogin] = useState(false);
   const navigate = useNavigate();
 
@@ -106,6 +106,7 @@ export default function App() {
   // ==============================================
   // AUTHENTICATION & PAYMENT LIFECYCLE HOOKS
   // ==============================================
+  // Sync Google OAuth User with Backend Supabase DB
   const syncWithBackend = async (sessionUser, targetGrade = grade) => {
     if (!sessionUser) return;
     setIsAuthenticating(true);
@@ -140,6 +141,7 @@ export default function App() {
       }
     } catch (err) {
       console.error('Google Auth Sync Error:', err);
+      // Fallback synthesizer so user is never locked out on cold starts
       setUser(prev => prev || {
         id: sessionUser.id,
         email: sessionUser.email,
@@ -215,6 +217,7 @@ export default function App() {
     }
   };
 
+  // 1. Initialize Razorpay SDK & Capture ?ref= Referral Parameter
   useEffect(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -235,6 +238,7 @@ export default function App() {
     }
   }, []);
 
+  // PWA Install Prompt Listener
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
@@ -244,6 +248,7 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
+  // Helper to extract session tokens directly from URL hash
   const extractTokensFromHash = (hash = window.location.hash) => {
     if (!hash || !hash.includes('access_token')) return null;
     try {
@@ -260,6 +265,7 @@ export default function App() {
     return null;
   };
 
+  // Custom navigation listener for useNavigate hook
   useEffect(() => {
     const handleNavEvent = (e) => {
       const targetView = e.detail?.view;
@@ -277,22 +283,28 @@ export default function App() {
   useEffect(() => {
     let isMounted = true;
 
+    // 1. REAL-TIME LISTENER: Active immediately on initial mount
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
+      console.log('[Supabase Auth Event]', event, session?.user ? 'User authenticated' : 'No user');
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || (event === 'INITIAL_SESSION' && session)) {
         if (session?.user) {
+          // Microsecond React state update - immediately unblock the UI!
           setUser(session.user);
           setIsCheckingSession(false);
           setIsAuthLoading(false);
           setIsAuthenticating(false);
 
+          // Force clean route transition to /feed using useNavigate()
           navigate('/feed');
 
+          // Clean lingering hash from browser URL immediately
           if (window.location.hash && window.location.hash.includes('access_token')) {
             window.history.replaceState(null, '', '/feed');
           }
 
+          // Background non-blocking sync with backend database
           syncWithBackend(session.user).catch(err => console.warn('Background sync warning:', err));
         }
       } else if (event === 'SIGNED_OUT') {
@@ -306,9 +318,11 @@ export default function App() {
       }
     });
 
+    // 2. IMMEDIATE SESSION CHECK: Reads local Supabase session without delay
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!isMounted) return;
       if (session?.user) {
+        // Microsecond React state update
         setUser(session.user);
         setIsCheckingSession(false);
         setIsAuthLoading(false);
@@ -325,16 +339,20 @@ export default function App() {
         setIsAuthLoading(false);
       }
     });
-
+// 3. SAFE HASH ROUTING: Check for access_token in URL hash
     if (window.location.hash && window.location.hash.includes('access_token')) {
       const hashTokens = extractTokensFromHash(window.location.hash);
-      window.history.replaceState(null, '', '/feed');
+      
       if (hashTokens?.access_token) {
         supabase.auth.setSession({
           access_token: hashTokens.access_token,
           refresh_token: hashTokens.refresh_token || ''
         }).then(({ data, error }) => {
           if (!error && data?.session?.user && isMounted) {
+            
+            // ✅ CRITICAL FIX: Only clear the URL AFTER the session is successfully saved
+            window.history.replaceState(null, '', '/feed');
+            
             setUser(data.session.user);
             setIsCheckingSession(false);
             setIsAuthLoading(false);
@@ -345,12 +363,7 @@ export default function App() {
       }
     }
 
-    const safetyTimer = setTimeout(() => {
-      if (isMounted) {
-        setIsCheckingSession(false);
-        setIsAuthLoading(false);
-      }
-    }, 2500);
+    
 
     return () => {
       isMounted = false;
@@ -419,6 +432,9 @@ export default function App() {
     fetchInbox(newUser.id);
   };
 
+  // ==============================================
+  // GAMEPLAY & POLL ACTIONS
+  // ==============================================
   const loadNextPoll = async (targetGrade, explicitId = null) => {
     setHasVoted(false);
     setIsLoadingPoll(true);
@@ -446,6 +462,7 @@ export default function App() {
 
   const castVote = async (receiverId) => {
     setHasVoted(true);
+    // Optimistic user flame update
     setUser(prev => prev ? { ...prev, total_votes: (prev.total_votes || 0) + 1 } : prev);
 
     try {
@@ -514,6 +531,51 @@ export default function App() {
     }
   };
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      return alert('File size exceeds 2MB limit. Please choose a smaller photo.');
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setEditProfilePic(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const saveProfile = async () => {
+    setIsEditing(false);
+    const updatedUser = {
+      ...profileData.user,
+      bio: editBio,
+      avatar: editAvatar,
+      ring: editRing,
+      grade: editGrade,
+      profile_pic: editProfilePic
+    };
+    setProfileData({ user: updatedUser });
+    setUser({
+      ...user,
+      bio: editBio,
+      avatar: editAvatar,
+      ring: editRing,
+      grade: editGrade,
+      profile_pic: editProfilePic
+    });
+    await fetch(`${API}/profile/${user.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bio: editBio,
+        avatar: editAvatar,
+        ring: editRing,
+        grade: editGrade,
+        profile_pic: editProfilePic
+      })
+    });
+  };
+
   const deleteAccount = async () => {
     const pass = prompt('Warning: This is permanent. Enter password to delete account:');
     if (!pass) return;
@@ -525,6 +587,9 @@ export default function App() {
     if (res.ok) setUser(null); else alert('Incorrect password.');
   };
 
+  // ==============================================
+  // IMMUTABLE RAZORPAY PAYMENT LOGIC
+  // ==============================================
   const handleUpgrade = async (amount = 99) => {
     try {
       const amountInPaise = amount * 100;
@@ -608,6 +673,10 @@ export default function App() {
     }
   };
 
+  const handleWhatsAppInvite = () => {
+    handleInviteShare();
+  };
+
   const handleOpenReveal = async (vote) => {
     setActiveRevealPopup({ id: vote.voteId, text: vote.question, vote });
     setRevealLoading(true);
@@ -633,6 +702,7 @@ export default function App() {
           ring: data.ring
         });
 
+        // Permanently reveal in local inbox list
         setInbox(prev => prev.map(item => item.voteId === vote.voteId ? {
           ...item,
           voterHandle: data.voterHandle,
@@ -662,6 +732,7 @@ export default function App() {
     }
   };
 
+  // Avatar + 3D Aura Renderer
   const renderProfilePic = (pic, ava, isPro, ring = 'gold', size = 80) => {
     const activeAura = isPro ? (AURA_RINGS[ring] || AURA_RINGS.gold) : AURA_RINGS.none;
     return (
@@ -705,6 +776,9 @@ export default function App() {
     );
   };
 
+  // ==============================================
+  // VIEW -1: NON-BLOCKING AUTH HAMSTER LOADER
+  // ==============================================
   if (isCheckingSession || isAuthLoading || (isAuthenticating && !user && !isOnboarding)) {
     return (
       <div style={{
@@ -721,6 +795,9 @@ export default function App() {
     );
   }
 
+  // ==============================================
+  // VIEW 0: ONBOARDING WIZARD (FOR NEW GOOGLE USERS)
+  // ==============================================
   if (isOnboarding && onboardingGoogleUser) {
     return (
       <div className="gas-landing-wrapper">
@@ -735,9 +812,13 @@ export default function App() {
     );
   }
 
+  // ==============================================
+  // VIEW 1: UNAUTHENTICATED LANDING PAGE
+  // ==============================================
   if (!user) {
     return (
       <div className="gas-landing-wrapper">
+        {/* --- TOP FIXED NAVBAR --- */}
         <header className="gas-landing-nav">
           <div className="gas-logo">
             <span className="flame-icon">🔥</span>
@@ -775,7 +856,9 @@ export default function App() {
           </div>
         </header>
 
+        {/* --- 3D HERO SECTION (SPLIT SHOWCASE) --- */}
         <section className="gas-hero-section">
+          {/* Left Hero Column */}
           <div className="gas-hero-text">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -805,6 +888,7 @@ export default function App() {
               The 100% anonymous school voting network. Answer viral polls about your classmates, see who voted for you, and discover your secret admirers.
             </motion.p>
 
+            {/* Desktop Only: Stats & CTA buttons inside left column */}
             <div className="gas-desktop-only">
               <motion.div
                 initial={{ opacity: 0 }}
@@ -862,12 +946,14 @@ export default function App() {
             </div>
           </div>
 
+          {/* 3D Interactive Showcase Stage */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1, delay: 0.3 }}
             className="gas-hero-3d-stage"
           >
+            {/* Floating 3D status chips */}
             <motion.div
               animate={{ y: [0, -8, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
@@ -884,11 +970,13 @@ export default function App() {
               <span>👑</span> Altaf unlocked God Mode
             </motion.div>
 
+            {/* Live Interactive 3D Poll Sandbox */}
             <Suspense fallback={<div style={{ minHeight: '320px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><HamsterLoader message="Loading Preview..." /></div>}>
               <InteractivePollDemo onCtaClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })} />
             </Suspense>
           </motion.div>
 
+          {/* Mobile Only: CTA buttons and stats below the 3D card */}
           <div className="gas-mobile-only" style={{ width: '100%', maxWidth: '360px', margin: '0 auto' }}>
             <div className="gas-hero-cta-group" style={{ marginBottom: '16px' }}>
               <button
@@ -919,6 +1007,7 @@ export default function App() {
           </div>
         </section>
 
+        {/* --- 3D HOLOGRAPHIC GOD MODE PRICING SECTION --- */}
         <section id="pricing-portal" className="pricing-section">
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <span className="gas-pill-badge" style={{ borderColor: '#fbbf24', color: '#fbbf24' }}>
@@ -933,6 +1022,7 @@ export default function App() {
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: '900px' }}>
+            {/* 3D Holographic Card Preview (Desktop Only) */}
             <div className="gas-pricing-desktop-only">
               <Suspense fallback={<div style={{ minHeight: '380px' }} />}>
                 <HolographicCard
@@ -952,6 +1042,7 @@ export default function App() {
               </Suspense>
             </div>
 
+            {/* Plan Switcher Card (Phone & Desktop) */}
             <div className="pricing-modal">
               <h3 className="pricing-title">Choose Your Access</h3>
               <p className="pricing-description">Instantly activates across all St. Kabir Class 11 & 12 polls.</p>
@@ -1009,6 +1100,7 @@ export default function App() {
           </div>
         </section>
 
+        {/* --- 3D LOGIN PORTAL --- */}
         <section id="login-portal" style={{ minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', position: 'relative' }}>
           <div style={{ width: '100%', maxWidth: '380px', position: 'relative', zIndex: 10 }}>
             <div className="form">
@@ -1034,6 +1126,7 @@ export default function App() {
                 {isAuthenticating ? 'Syncing...' : 'Continue with Google'}
               </button>
 
+              {/* Manual Seed Account Login Toggle */}
               <div style={{ width: '100%', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px', textAlign: 'center' }}>
                 <button
                   type="button"
@@ -1085,6 +1178,7 @@ export default function App() {
           </div>
         </section>
 
+        {/* --- LEGAL MODAL --- */}
         <AnimatePresence>
           {legalView && (
             <motion.div
@@ -1119,9 +1213,13 @@ export default function App() {
     );
   }
 
+  // ==============================================
+  // VIEW 2: AUTHENTICATED IN-APP GAS EXPERIENCE
+  // ==============================================
   return (
     <div className="gas-app-shell">
       <div className="gas-app-container">
+        {/* PWA Install Banner */}
         {installPrompt && (
           <div
             style={{
@@ -1176,6 +1274,7 @@ export default function App() {
           </div>
         )}
 
+        {/* App Top Header */}
         <header className="gas-app-header">
           <div className="gas-header-title">
             <span style={{ fontSize: '18px' }}>🔥</span>
@@ -1192,6 +1291,7 @@ export default function App() {
               <span style={{ fontSize: '16px', filter: 'drop-shadow(0 0 6px #fbbf24)' }}>👑</span>
             )}
 
+            {/* Friend Request Notifications Bell */}
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               style={{
@@ -1240,9 +1340,11 @@ export default function App() {
           </div>
         </header>
 
+        {/* Main View Area with 3D Transitions */}
         <main className="gas-app-body">
           <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '340px', width: '100%' }}><HamsterLoader message="Loading..." /></div>}>
             <AnimatePresence mode="wait">
+              {/* --- TAB 1: VOTING FEED --- */}
               {view === 'poll' && (
                 <motion.div key="poll" {...pageVariants} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <Feed
@@ -1263,6 +1365,7 @@ export default function App() {
                 </motion.div>
               )}
 
+              {/* --- TAB 2: FLAME INBOX --- */}
               {view === 'inbox' && (
                 <motion.div key="inbox" {...pageVariants}>
                   <Inbox
@@ -1280,6 +1383,7 @@ export default function App() {
                 </motion.div>
               )}
 
+              {/* --- TAB 3: GOD MODE VIP --- */}
               {view === 'pro' && (
                 <motion.div key="pro" {...pageVariants} style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <HolographicCard
@@ -1293,6 +1397,7 @@ export default function App() {
                 </motion.div>
               )}
 
+              {/* --- TAB 4: EXPLORE PAGE (SEARCH, TRENDING, LEGENDS & RANKS) --- */}
               {view === 'explore' && (
                 <motion.div key="explore" {...pageVariants}>
                   <Explore
@@ -1306,6 +1411,7 @@ export default function App() {
                 </motion.div>
               )}
 
+              {/* --- TAB 5: USER PROFILE --- */}
               {view === 'profile' && (
                 <motion.div key="profile" {...pageVariants}>
                   <Profile
@@ -1328,6 +1434,7 @@ export default function App() {
                 </motion.div>
               )}
 
+              {/* --- PUBLIC PROFILE MODAL --- */}
               {view === 'publicProfile' && (
                 <motion.div key="publicProfile" {...pageVariants} style={{ padding: '24px 16px', textAlign: 'center' }}>
                   {publicProfile ? (
@@ -1360,6 +1467,7 @@ export default function App() {
           </Suspense>
         </main>
 
+        {/* --- 3D FLOATING BOTTOM NAVIGATION DOCK --- */}
         <nav className="gas-bottom-dock">
           {[
             { id: 'poll', label: 'Feed', icon: '🔥' },
@@ -1383,6 +1491,7 @@ export default function App() {
           ))}
         </nav>
 
+        {/* --- 3D REVEAL BOTTOM SHEET MODAL --- */}
         <AnimatePresence>
           {activeRevealPopup && (
             <motion.div
@@ -1405,6 +1514,7 @@ export default function App() {
               >
                 <div className="gas-sheet-handle"></div>
 
+                {/* Close Button Top Right */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-8px' }}>
                   <button
                     onClick={() => {
@@ -1430,6 +1540,7 @@ export default function App() {
                   </button>
                 </div>
 
+                {/* Question Text */}
                 <div style={{ textAlign: 'center', marginBottom: '18px' }}>
                   <p style={{ color: '#ff8800', fontSize: '12px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 6px 0' }}>
                     🔥 Secret Flame
@@ -1439,12 +1550,15 @@ export default function App() {
                   </h3>
                 </div>
 
+                {/* 3D Envelope Stage */}
                 {revealLoading ? (
                   <div style={{ textAlign: 'center', padding: '20px 10px' }}>
                     <HamsterLoader message="Checking invite rewards..." />
                   </div>
                 ) : revealData?.locked ? (
+                  /* --- LOCKED STATE --- */
                   <div style={{ textAlign: 'center' }}>
+                    {/* 3D Wax-sealed Locked Envelope Card */}
                     <motion.div
                       initial={{ scale: 0.9, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
@@ -1509,10 +1623,12 @@ export default function App() {
                       Secret Voter Locked
                     </h4>
 
+                    {/* Exact User Prompt Requirement */}
                     <p style={{ color: '#cbd5e1', fontSize: '13.5px', lineHeight: '1.4', margin: '0 0 16px 0', padding: '0 8px' }}>
                       Invite <strong style={{ color: '#00f0ff', fontSize: '15px' }}>{revealData.remaining}</strong> more {revealData.remaining === 1 ? 'friend' : 'friends'} on WhatsApp or upgrade to God Mode to reveal instantly!
                     </p>
 
+                    {/* Option 1: Viral Loop Invite Button */}
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -1543,6 +1659,7 @@ export default function App() {
                       <hr style={{ flex: 1, borderColor: 'rgba(255,255,255,0.1)' }} /> OR UNLOCK WITH GOD MODE <hr style={{ flex: 1, borderColor: 'rgba(255,255,255,0.1)' }} />
                     </div>
 
+                    {/* Option 2: God Mode Subscription (Direct ₹99 Weekly and ₹149 Monthly buttons) */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <motion.button
                         whileHover={{ scale: 1.02 }}
@@ -1590,7 +1707,9 @@ export default function App() {
                     </div>
                   </div>
                 ) : (
+                  /* --- UNLOCKED / REVEALED STATE --- */
                   <div style={{ textAlign: 'center' }}>
+                    {/* 3D Open Golden Envelope Card */}
                     <motion.div
                       initial={{ scale: 0.7, rotateX: 60 }}
                       animate={{ scale: 1, rotateX: 0 }}
@@ -1667,6 +1786,7 @@ export default function App() {
           )}
         </AnimatePresence>
 
+        {/* --- FRIEND REQUEST NOTIFICATIONS MODAL --- */}
         <AnimatePresence>
           {showNotifications && (
             <motion.div
