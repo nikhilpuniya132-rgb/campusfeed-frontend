@@ -43,6 +43,61 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
   // Mock Native App Permissions
   const [locationGranted, setLocationGranted] = useState(true);
   const [contactsGranted, setContactsGranted] = useState(false);
+  const [shareToast, setShareToast] = useState('');
+
+  const copyFallback = async (text) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      }
+      setContactsGranted(true);
+      setShareToast('Invite link copied! Send it on WhatsApp 💬');
+    } catch {
+      setContactsGranted(true);
+      setShareToast('Invite code: ' + (handle || name || 'campus'));
+    }
+    setTimeout(() => setShareToast(''), 4500);
+  };
+
+  const handleAllowContacts = async () => {
+    const userHandle = (handle || name || 'campus').replace(/^@/, '').trim();
+    const shareText = `Someone from St. Kabir voted for you on CampusFeed. Join to see who it is! Use my invite code: ${userHandle}. https://campusfeed.com`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'CampusFeed - St. Kabir',
+          text: shareText,
+          url: 'https://campusfeed.com'
+        });
+        setContactsGranted(true);
+        setShareToast('Classmates invite sent! 👥');
+        setTimeout(() => setShareToast(''), 4000);
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          copyFallback(shareText);
+        }
+      }
+    } else {
+      copyFallback(shareText);
+    }
+  };
+
+  const handleAllowLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          setLocationGranted(true);
+          setCity('Bathinda');
+        },
+        () => {
+          setLocationGranted(true);
+        }
+      );
+    } else {
+      setLocationGranted(true);
+    }
+  };
 
   const nextStep = () => {
     setErrorMsg('');
@@ -459,7 +514,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                 <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                   <button
                     type="button"
-                    onClick={() => setLocationGranted(!locationGranted)}
+                    onClick={handleAllowLocation}
                     style={{
                       flex: 1,
                       padding: '10px 8px',
@@ -477,22 +532,43 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
 
                   <button
                     type="button"
-                    onClick={() => setContactsGranted(!contactsGranted)}
+                    onClick={handleAllowContacts}
                     style={{
                       flex: 1,
                       padding: '10px 8px',
                       borderRadius: '12px',
-                      border: contactsGranted ? '1px solid #00f0ff' : '1px solid rgba(255,255,255,0.1)',
-                      background: contactsGranted ? 'rgba(0, 240, 255, 0.15)' : 'rgba(255,255,255,0.05)',
+                      border: contactsGranted ? '1.5px solid #00f0ff' : '1px solid rgba(255,255,255,0.1)',
+                      background: contactsGranted ? 'rgba(0, 240, 255, 0.18)' : 'rgba(255,255,255,0.05)',
                       color: contactsGranted ? '#00f0ff' : '#94a3b8',
                       fontSize: '11px',
                       fontWeight: '800',
                       cursor: 'pointer',
+                      boxShadow: contactsGranted ? '0 0 15px rgba(0, 240, 255, 0.3)' : 'none',
                     }}
                   >
-                    {contactsGranted ? '👥 Classmates Synced' : '👥 Allow Contacts'}
+                    {contactsGranted ? '👥 Classmates Synced ✓' : '👥 Allow Contacts'}
                   </button>
                 </div>
+
+                {shareToast && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{
+                      background: 'rgba(0, 240, 255, 0.15)',
+                      border: '1px solid #00f0ff',
+                      borderRadius: '10px',
+                      padding: '8px 12px',
+                      marginTop: '8px',
+                      textAlign: 'center',
+                      color: '#00f0ff',
+                      fontSize: '12px',
+                      fontWeight: '800',
+                    }}
+                  >
+                    {shareToast}
+                  </motion.div>
+                )}
               </div>
 
               <motion.button

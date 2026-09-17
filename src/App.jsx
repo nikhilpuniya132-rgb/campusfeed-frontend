@@ -11,6 +11,7 @@ import TiltCard from './components/TiltCard';
 import HolographicCard from './components/HolographicCard';
 import InteractivePollDemo from './components/InteractivePollDemo';
 import OnboardingWizard from './components/OnboardingWizard';
+import FriendSearch from './components/FriendSearch';
 
 // --- INITIALIZE SUPABASE ---
 const supabaseUrl = 'https://aezhlsfbewfqmzfshuzs.supabase.co';
@@ -51,6 +52,10 @@ export default function App() {
 
   // UI States
   const [activeRevealPopup, setActiveRevealPopup] = useState(null);
+  const [revealLoading, setRevealLoading] = useState(false);
+  const [revealData, setRevealData] = useState(null);
+  const [showFriendSearch, setShowFriendSearch] = useState(false);
+  const [shareToast, setShareToast] = useState('');
   const [legalView, setLegalView] = useState(null);
   const [activePlan, setActivePlan] = useState('weekly'); // 'basic', 'weekly', or 'monthly'
   const [showManualLogin, setShowManualLogin] = useState(false);
@@ -338,9 +343,92 @@ export default function App() {
   };
 
   const handleWhatsAppInvite = () => {
-    const inviteText = "Someone in St. Kabir Class 11 thinks you're the best! 👀 See who voted for you on CampusFeed: https://campusfeed-frontend-3ok7rlgyt-campusfeed.vercel.app";
+    const userHandle = (user?.handle || 'campus').replace(/^@/, '').trim();
+    const inviteText = `Someone from St. Kabir voted for you on CampusFeed. Join to see who it is! Use my invite code: ${userHandle}. https://campusfeed.com`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(inviteText)}`;
     window.open(whatsappUrl, '_blank');
+  };
+
+  const handleShareInvite = async () => {
+    const userHandle = (user?.handle || 'campus').replace(/^@/, '').trim();
+    const shareText = `Someone from St. Kabir voted for you on CampusFeed. Join to see who it is! Use my invite code: ${userHandle}. https://campusfeed.com`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'CampusFeed - St. Kabir',
+          text: shareText,
+          url: 'https://campusfeed.com'
+        });
+        setShareToast('Invite sent! 📲');
+        setTimeout(() => setShareToast(''), 4000);
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          handleWhatsAppInvite();
+        }
+      }
+    } else {
+      handleWhatsAppInvite();
+    }
+  };
+
+  const handleOpenReveal = async (vote) => {
+    setActiveRevealPopup({ id: vote.voteId, text: vote.question, vote });
+    setRevealLoading(true);
+    setRevealData(null);
+
+    try {
+      const res = await fetch(`${API}/inbox/reveal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voteId: vote.voteId, userId: user.id })
+      });
+
+      const data = await res.json();
+      if (res.status === 403) {
+        setRevealData({
+          locked: true,
+          remaining: data.remaining !== undefined ? data.remaining : 3,
+          count: data.count || 0
+        });
+      } else if (res.ok && data.success) {
+        setRevealData({
+          locked: false,
+          voterName: data.voterName,
+          voterHandle: data.voterHandle,
+          voterAvatar: data.voterAvatar,
+          voterPic: data.voterPic,
+          isPro: data.isPro,
+          ring: data.ring
+        });
+
+        // Permanently reveal in local inbox list
+        setInbox(prev => prev.map(item => item.voteId === vote.voteId ? {
+          ...item,
+          voterHandle: data.voterHandle,
+          voterName: data.voterName,
+          voterAvatar: data.voterAvatar,
+          voterPic: data.voterPic,
+          isPro: data.isPro,
+          ring: data.ring
+        } : item));
+
+        confetti({
+          particleCount: 130,
+          spread: 80,
+          origin: { y: 0.5 },
+          colors: ['#ff5500', '#fbbf24', '#00f0ff', '#10b981']
+        });
+      } else {
+        throw new Error(data.error || 'Failed to reveal');
+      }
+    } catch (err) {
+      console.error('Reveal error:', err);
+      const remaining = Math.max(1, 3 - (user?.invites || 0));
+      setRevealData({ locked: true, remaining });
+    } finally {
+      setRevealLoading(false);
+    }
   };
 
   // Avatar + 3D Aura Renderer
@@ -937,7 +1025,52 @@ export default function App() {
             {/* --- TAB 2: FLAME INBOX --- */}
             {view === 'inbox' && (
               <motion.div key="inbox" {...pageVariants} className="gas-inbox-wrapper">
-                <div style={{ textAlign: 'center', padding: '10px 0 6px 0' }}>
+                {/* Find Classmates Section */}
+                <div style={{ marginBottom: '14px', width: '100%' }}>
+                  <motion.button
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setShowFriendSearch(!showFriendSearch)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      borderRadius: '16px',
+                      border: '1px solid rgba(255, 255, 255, 0.14)',
+                      background: showFriendSearch ? 'rgba(255, 85, 0, 0.18)' : 'rgba(255, 255, 255, 0.06)',
+                      color: '#fff',
+                      fontSize: '13.5px',
+                      fontWeight: '800',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      boxShadow: showFriendSearch ? '0 0 15px rgba(255, 85, 0, 0.25)' : 'none',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>👥</span>
+                      <span>Find & Add Classmates</span>
+                    </div>
+                    <span style={{ fontSize: '12px', color: '#ff8800' }}>
+                      {showFriendSearch ? '▲ Close' : '▼ Search'}
+                    </span>
+                  </motion.button>
+
+                  <AnimatePresence>
+                    {showFriendSearch && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        style={{ marginTop: '10px', overflow: 'hidden' }}
+                      >
+                        <FriendSearch currentUser={user} API={API} supabase={supabase} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                <div style={{ textAlign: 'center', padding: '6px 0 12px 0' }}>
                   <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '900', color: user.is_pro ? '#fbbf24' : '#fff' }}>
                     {user.is_pro ? '👑 Names Revealed Inbox' : '📬 Secret Votes Inbox'}
                   </h3>
@@ -953,39 +1086,39 @@ export default function App() {
                     <p style={{ fontSize: '13px' }}>Answer polls to get classmates to vote for you!</p>
                   </div>
                 ) : (
-                  inbox.map((vote, index) => (
-                    <motion.div
-                      key={vote.voteId || index}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="gas-inbox-card"
-                      onClick={() => {
-                        if (!user.is_pro) {
-                          setActiveRevealPopup({ id: vote.voteId, text: vote.question });
-                        }
-                      }}
-                    >
-                      <div>
-                        <p className="gas-inbox-q">"{vote.question}"</p>
-                        <p className="gas-inbox-voter">
-                          Voted by:{' '}
-                          {user.is_pro && vote.voterHandle ? (
-                            <strong style={{ color: '#fbbf24' }}>
-                              {vote.voterAvatar} @{vote.voterHandle}
-                            </strong>
-                          ) : (
-                            <span style={{ color: '#ff5500', fontWeight: '800' }}>🔒 Hidden (Tap to see)</span>
-                          )}
-                        </p>
-                      </div>
+                  inbox.map((vote, index) => {
+                    const isRevealed = Boolean(vote.voterHandle);
 
-                      {!user.is_pro && (
-                        <div className="gas-reveal-pill">
-                          REVEAL ➔
+                    return (
+                      <motion.div
+                        key={vote.voteId || index}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="gas-inbox-card"
+                        onClick={() => handleOpenReveal(vote)}
+                      >
+                        <div>
+                          <p className="gas-inbox-q">"{vote.question}"</p>
+                          <p className="gas-inbox-voter">
+                            Voted by:{' '}
+                            {isRevealed ? (
+                              <strong style={{ color: vote.isPro ? '#fbbf24' : '#ff8800' }}>
+                                {vote.voterAvatar} {vote.voterName ? `${vote.voterName} (@${vote.voterHandle})` : `@${vote.voterHandle}`}
+                              </strong>
+                            ) : (
+                              <span style={{ color: '#ff5500', fontWeight: '800' }}>🔒 Hidden (Tap to reveal)</span>
+                            )}
+                          </p>
                         </div>
-                      )}
-                    </motion.div>
-                  ))
+
+                        {!isRevealed && (
+                          <div className="gas-reveal-pill">
+                            REVEAL ➔
+                          </div>
+                        )}
+                      </motion.div>
+                    );
+                  })
                 )}
               </motion.div>
             )}
@@ -1176,9 +1309,14 @@ export default function App() {
                   </div>
                 ) : (
                   <div>
-                    <p style={{ color: '#cbd5e1', fontSize: '14px', margin: '0 0 24px 0' }}>
+                    <p style={{ color: '#cbd5e1', fontSize: '14px', margin: '0 0 20px 0' }}>
                       {user.bio || `Class ${user.grade} - St. Kabir`}
                     </p>
+
+                    {/* Classmate Friend Search in Profile */}
+                    <div style={{ marginBottom: '24px', textAlign: 'left' }}>
+                      <FriendSearch currentUser={user} API={API} supabase={supabase} />
+                    </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '320px', margin: '0 auto' }}>
                       <button
@@ -1271,7 +1409,10 @@ export default function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="gas-modal-overlay"
-              onClick={() => setActiveRevealPopup(null)}
+              onClick={() => {
+                setActiveRevealPopup(null);
+                setRevealData(null);
+              }}
             >
               <motion.div
                 initial={{ y: '100%' }}
@@ -1283,54 +1424,228 @@ export default function App() {
               >
                 <div className="gas-sheet-handle"></div>
 
-                <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                  <span style={{ fontSize: '36px' }}>👀</span>
-                  <h3 style={{ fontSize: '22px', color: '#fff', margin: '8px 0' }}>Who voted for you?</h3>
-                  <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0, padding: '0 10px' }}>
-                    "{activeRevealPopup.text}"
+                {/* Close Button Top Right */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-8px' }}>
+                  <button
+                    onClick={() => {
+                      setActiveRevealPopup(null);
+                      setRevealData(null);
+                    }}
+                    style={{
+                      background: 'rgba(255,255,255,0.08)',
+                      border: 'none',
+                      color: '#94a3b8',
+                      borderRadius: '50%',
+                      width: '30px',
+                      height: '30px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Question Text */}
+                <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+                  <p style={{ color: '#ff8800', fontSize: '12px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 6px 0' }}>
+                    🔥 Secret Flame
                   </p>
+                  <h3 style={{ fontSize: '18px', color: '#fff', margin: 0, padding: '0 8px', fontStyle: 'italic' }}>
+                    "{activeRevealPopup.text}"
+                  </h3>
                 </div>
 
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  style={{
-                    width: '100%',
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                    color: '#fff',
-                    border: 'none',
-                    padding: '16px',
-                    borderRadius: '16px',
-                    fontSize: '15px',
-                    fontWeight: '900',
-                    marginBottom: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    cursor: 'pointer',
-                    boxShadow: '0 6px 20px rgba(16, 185, 129, 0.4)'
-                  }}
-                  onClick={handleWhatsAppInvite}
-                >
-                  <span>📲</span> Invite 3 Friends on WhatsApp (Free)
-                </motion.button>
+                {/* 3D Envelope Stage */}
+                {revealLoading ? (
+                  <div style={{ textAlign: 'center', padding: '30px 10px' }}>
+                    <motion.div
+                      animate={{ y: [0, -10, 0], rotateZ: [0, 5, -5, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                      style={{ fontSize: '54px', marginBottom: '12px' }}
+                    >
+                      ✉️
+                    </motion.div>
+                    <p style={{ color: '#94a3b8', fontSize: '14px', fontWeight: '700' }}>
+                      Checking invite rewards...
+                    </p>
+                  </div>
+                ) : revealData?.locked ? (
+                  /* --- LOCKED STATE --- */
+                  <div style={{ textAlign: 'center' }}>
+                    {/* 3D Wax-sealed Locked Envelope Card */}
+                    <motion.div
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      style={{
+                        position: 'relative',
+                        width: '130px',
+                        height: '90px',
+                        margin: '0 auto 18px auto',
+                        background: 'linear-gradient(145deg, #1f202e, #13141f)',
+                        border: '2px solid rgba(255, 85, 0, 0.4)',
+                        borderRadius: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 16px 36px rgba(0,0,0,0.6), 0 0 30px rgba(255, 85, 0, 0.2)',
+                      }}
+                    >
+                      <span style={{ fontSize: '46px' }}>✉️</span>
+                      <motion.div
+                        animate={{ scale: [1, 1.15, 1] }}
+                        transition={{ duration: 1.8, repeat: Infinity }}
+                        style={{
+                          position: 'absolute',
+                          bottom: '-10px',
+                          right: '-10px',
+                          background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '18px',
+                          boxShadow: '0 0 16px rgba(239, 68, 68, 0.8)',
+                          border: '2px solid #fff',
+                        }}
+                      >
+                        🔒
+                      </motion.div>
+                    </motion.div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '14px 0', color: '#64748b', fontSize: '12px', fontWeight: 'bold' }}>
-                  <hr style={{ flex: 1, borderColor: 'rgba(255,255,255,0.1)' }} /> OR <hr style={{ flex: 1, borderColor: 'rgba(255,255,255,0.1)' }} />
-                </div>
+                    <h4 style={{ fontSize: '20px', fontWeight: '950', color: '#fff', margin: '0 0 8px 0' }}>
+                      Secret Voter Locked
+                    </h4>
 
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="magic-btn"
-                  style={{ width: '100%', background: 'linear-gradient(135deg, #fbbf24, #f59e0b)', color: '#000', margin: 0 }}
-                  onClick={() => handleUpgrade(99)}
-                >
-                  <span>⚡</span> Instant God Mode Reveal (₹99 / Week)
-                  <svg viewBox="0 0 24 24" className="star star-1"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z" /></svg>
-                  <svg viewBox="0 0 24 24" className="star star-2"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z" /></svg>
-                </motion.button>
+                    {/* Exact User Prompt Requirement */}
+                    <p style={{ color: '#cbd5e1', fontSize: '14.5px', lineHeight: '1.5', margin: '0 0 20px 0', padding: '0 12px' }}>
+                      Invite <strong style={{ color: '#00f0ff', fontSize: '16px' }}>{revealData.remaining}</strong> more {revealData.remaining === 1 ? 'friend' : 'friends'} this week on WhatsApp to unlock this name!
+                    </p>
+
+                    {/* Glowing 3D Share Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleShareInvite}
+                      style={{
+                        width: '100%',
+                        background: 'linear-gradient(135deg, #00f0ff, #0099ff)',
+                        color: '#050c1e',
+                        border: 'none',
+                        padding: '16px',
+                        borderRadius: '18px',
+                        fontSize: '15px',
+                        fontWeight: '950',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        cursor: 'pointer',
+                        boxShadow: '0 0 25px rgba(0, 240, 255, 0.6), 0 8px 24px rgba(0,0,0,0.5)',
+                        marginBottom: '12px',
+                        letterSpacing: '0.3px',
+                      }}
+                    >
+                      <span style={{ fontSize: '18px' }}>📲</span> Share & Invite on WhatsApp
+                    </motion.button>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '14px 0', color: '#64748b', fontSize: '12px', fontWeight: 'bold' }}>
+                      <hr style={{ flex: 1, borderColor: 'rgba(255,255,255,0.1)' }} /> OR SKIP THE WAIT <hr style={{ flex: 1, borderColor: 'rgba(255,255,255,0.1)' }} />
+                    </div>
+
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="magic-btn"
+                      style={{ width: '100%', background: 'linear-gradient(135deg, #fbbf24, #f59e0b)', color: '#000', margin: 0 }}
+                      onClick={() => handleUpgrade(99)}
+                    >
+                      <span>⚡</span> Instant God Mode Reveal (₹99 / Week)
+                      <svg viewBox="0 0 24 24" className="star star-1"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z" /></svg>
+                      <svg viewBox="0 0 24 24" className="star star-2"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z" /></svg>
+                    </motion.button>
+                  </div>
+                ) : (
+                  /* --- UNLOCKED / REVEALED STATE --- */
+                  <div style={{ textAlign: 'center' }}>
+                    {/* 3D Open Golden Envelope Card */}
+                    <motion.div
+                      initial={{ scale: 0.7, rotateX: 60 }}
+                      animate={{ scale: 1, rotateX: 0 }}
+                      transition={{ type: 'spring', damping: 20, stiffness: 260 }}
+                      style={{
+                        position: 'relative',
+                        width: '130px',
+                        height: '90px',
+                        margin: '0 auto 16px auto',
+                        background: 'linear-gradient(145deg, #fbbf24, #d97706)',
+                        border: '2px solid #fef08a',
+                        borderRadius: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 16px 36px rgba(0,0,0,0.6), 0 0 35px rgba(251, 191, 36, 0.5)',
+                      }}
+                    >
+                      <span style={{ fontSize: '48px' }}>💌</span>
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.2 }}
+                        style={{
+                          position: 'absolute',
+                          bottom: '-8px',
+                          right: '-8px',
+                          background: '#10b981',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '16px',
+                          border: '2px solid #fff',
+                          boxShadow: '0 0 12px #10b981',
+                        }}
+                      >
+                        ✓
+                      </motion.div>
+                    </motion.div>
+
+                    <span style={{ fontSize: '11px', fontWeight: '900', color: '#10b981', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                      Secret Identity Unveiled
+                    </span>
+
+                    <div style={{ margin: '14px 0' }}>
+                      {renderProfilePic(revealData?.voterPic, revealData?.voterAvatar, revealData?.isPro, revealData?.ring || 'gold', 72)}
+                    </div>
+
+                    <h3 style={{ fontSize: '24px', fontWeight: '950', color: '#fff', margin: '0 0 4px 0' }}>
+                      {revealData?.voterName || revealData?.voterHandle}
+                    </h3>
+                    <p style={{ color: '#ff8800', fontWeight: '800', fontSize: '15px', margin: '0 0 20px 0' }}>
+                      @{revealData?.voterHandle}
+                    </p>
+
+                    <button
+                      className="magic-btn"
+                      style={{ width: '100%' }}
+                      onClick={() => {
+                        setActiveRevealPopup(null);
+                        setRevealData(null);
+                        setView('poll');
+                      }}
+                    >
+                      Answer Polls to Send Flame Back ➔
+                    </button>
+                  </div>
+                )}
               </motion.div>
             </motion.div>
           )}
