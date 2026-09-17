@@ -189,7 +189,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
           ) : <div style={{ width: '60px' }} />}
 
           <span style={{ fontSize: '12px', fontWeight: '900', letterSpacing: '1px', color: '#ff8800', textTransform: 'uppercase' }}>
-            Step {step} of 5
+            Step {step} of 6
           </span>
 
           <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 'bold' }}>
@@ -197,10 +197,10 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
           </span>
         </div>
 
-        {/* 5-Step Progress Bar Indicator */}
+        {/* 6-Step Progress Bar Indicator */}
         <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
           <motion.div
-            animate={{ width: `${(step / 5) * 100}%` }}
+            animate={{ width: `${(step / 6) * 100}%` }}
             transition={{ duration: 0.35, ease: 'easeInOut' }}
             style={{ height: '100%', background: 'linear-gradient(90deg, #ff5500, #ff2e93)', boxShadow: '0 0 10px #ff5500' }}
           />
@@ -576,7 +576,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             </motion.div>
           )}
 
-          {/* STEP 5: GRADE SELECTION & COMPLETE */}
+          {/* STEP 5: GRADE SELECTION */}
           {step === 5 && (
             <motion.div
               key="step5"
@@ -631,13 +631,121 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                disabled={isSubmitting}
-                onClick={handleFinish}
+                onClick={nextStep}
                 className="magic-btn"
                 style={{ width: '100%', marginTop: '24px' }}
               >
-                {isSubmitting ? 'Creating Your Profile... ⚡' : 'Join CampusFeed ➔'}
+                Next: Invite Friends ➔
               </motion.button>
+            </motion.div>
+          )}
+
+          {/* STEP 6: DEDICATED HIGH-VISIBILITY "INVITE YOUR FRIENDS" SCREEN */}
+          {step === 6 && (
+            <motion.div
+              key="step6"
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+            >
+              <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                <span style={{ fontSize: '44px', display: 'inline-block', marginBottom: '6px' }}>🚀</span>
+                <h2 style={{ fontSize: '26px', fontWeight: '950', color: '#fff', margin: '0 0 6px 0' }}>Invite Your Friends</h2>
+                <p style={{ fontSize: '13.5px', color: '#94a3b8', margin: 0, lineHeight: '1.4' }}>
+                  Someone from <strong style={{ color: '#ff8800' }}>St. Kabir</strong> is already voting on you! Invite 3 friends to see who voted.
+                </p>
+              </div>
+
+              {/* Unique Invite Pass Box */}
+              <div
+                style={{
+                  margin: 'auto 0',
+                  padding: '16px',
+                  borderRadius: '20px',
+                  background: 'linear-gradient(145deg, rgba(255, 85, 0, 0.12), rgba(0, 240, 255, 0.08))',
+                  border: '1.5px solid rgba(255, 85, 0, 0.35)',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
+                  textAlign: 'center',
+                }}
+              >
+                <div style={{ fontSize: '11px', fontWeight: '900', color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
+                  🎟️ YOUR UNIQUE INVITE CODE
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: '950', color: '#fff', letterSpacing: '0.5px', marginBottom: '10px' }}>
+                  @{handle || 'campus'}
+                </div>
+
+                <div
+                  onClick={() => fallbackCopy(`Someone from St. Kabir voted for you on CampusFeed! Join to see who: https://campusfeed-frontend.vercel.app (Code: ${handle})`)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    borderRadius: '12px',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    color: '#00f0ff',
+                    fontSize: '12px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    border: '1px solid rgba(0, 240, 255, 0.3)',
+                  }}
+                >
+                  <span>📋</span> Copy Invite Link & Code
+                </div>
+              </div>
+
+              {/* Glowing 3D Share Button */}
+              <div style={{ marginTop: '18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => handleInviteShare(handle)}
+                  style={{
+                    width: '100%',
+                    padding: '16px',
+                    borderRadius: '18px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #00f0ff, #0088ff)',
+                    color: '#050c1e',
+                    fontSize: '15px',
+                    fontWeight: '950',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 0 30px rgba(0, 240, 255, 0.7), 0 8px 24px rgba(0,0,0,0.5)',
+                    letterSpacing: '0.3px',
+                  }}
+                >
+                  <span style={{ fontSize: '20px' }}>📲</span> Share & Invite on WhatsApp
+                </motion.button>
+
+                {contactsGranted && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{ textAlign: 'center', color: '#10b981', fontSize: '12px', fontWeight: '800' }}
+                  >
+                    ✓ Invite link shared / copied! Classmates synced.
+                  </motion.div>
+                )}
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  disabled={isSubmitting}
+                  onClick={handleFinish}
+                  className="magic-btn"
+                  style={{ width: '100%', margin: '4px 0 0 0' }}
+                >
+                  {isSubmitting ? 'Entering St. Kabir Loop... ⚡' : 'Enter CampusFeed ➔'}
+                </motion.button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
