@@ -10,6 +10,7 @@ import ThreeDBackground from './components/ThreeDBackground';
 import TiltCard from './components/TiltCard';
 import HolographicCard from './components/HolographicCard';
 import InteractivePollDemo from './components/InteractivePollDemo';
+import OnboardingWizard from './components/OnboardingWizard';
 
 // --- INITIALIZE SUPABASE ---
 const supabaseUrl = 'https://aezhlsfbewfqmzfshuzs.supabase.co';
@@ -45,6 +46,8 @@ export default function App() {
   const [grade, setGrade] = useState('11');
   const [avatar, setAvatar] = useState('😎');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isOnboarding, setIsOnboarding] = useState(false);
+  const [onboardingGoogleUser, setOnboardingGoogleUser] = useState(null);
 
   // UI States
   const [activeRevealPopup, setActiveRevealPopup] = useState(null);
@@ -92,8 +95,13 @@ export default function App() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Authentication sync failed');
-      if (data.user) {
+      if (data.isNewUser) {
+        setOnboardingGoogleUser(data.googleUser);
+        setIsOnboarding(true);
+      } else if (data.user) {
         setUser(data.user);
+        setIsOnboarding(false);
+        setOnboardingGoogleUser(null);
         setView('poll');
         setGradeFilter(data.user.grade ? data.user.grade.toString() : '11');
         loadNextPoll(data.user.grade ? data.user.grade.toString() : '11', data.user.id);
@@ -128,6 +136,8 @@ export default function App() {
         syncWithBackend(session.user);
       } else {
         setUser(null);
+        setIsOnboarding(false);
+        setOnboardingGoogleUser(null);
       }
     });
 
@@ -170,7 +180,18 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setIsOnboarding(false);
+    setOnboardingGoogleUser(null);
     setView('poll');
+  };
+
+  const handleOnboardingComplete = (newUser) => {
+    setUser(newUser);
+    setIsOnboarding(false);
+    setOnboardingGoogleUser(null);
+    setView('poll');
+    setGradeFilter(newUser.grade ? newUser.grade.toString() : '11');
+    loadNextPoll(newUser.grade ? newUser.grade.toString() : '11', newUser.id);
   };
 
   // ==============================================
@@ -365,6 +386,22 @@ export default function App() {
       </div>
     );
   };
+
+  // ==============================================
+  // VIEW 0: 3D ONBOARDING WIZARD (FOR NEW GOOGLE USERS)
+  // ==============================================
+  if (isOnboarding && onboardingGoogleUser) {
+    return (
+      <div className="gas-landing-wrapper">
+        <ThreeDBackground />
+        <OnboardingWizard
+          googleUser={onboardingGoogleUser}
+          API={API}
+          onComplete={handleOnboardingComplete}
+        />
+      </div>
+    );
+  }
 
   // ==============================================
   // VIEW 1: UNAUTHENTICATED 3D LANDING PAGE
