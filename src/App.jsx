@@ -248,26 +248,91 @@ export default function App() {
     return () => window.removeEventListener('campus-navigate', handleNavEvent);
   }, []);
 
-  // ==============================================
-  // GHOST-LOGOUT IMMUNITY AUTH LISTENER
-  // ==============================================
+  // =========================================================
+  // BULLETPROOF PKCE AUTH LISTENER & GHOST-LOGOUT IMMUNITY
+  // =========================================================
   useEffect(() => {
     let isMounted = true;
+    const searchParams = new URLSearchParams(window.location.search);
+    const code = searchParams.get('code');
+    let isProcessingCode = Boolean(code);
 
-    // 1. Initial Session Check (Fast Load from Storage)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isMounted) return;
-      if (session?.user) {
-        setUser(session.user);
-        syncWithBackend(session.user).catch(console.warn);
+    const initAuth = async () => {
+      // 1. Manual Interception & Explicit Exchange
+      if (code) {
+        setIsCheckingSession(true);
+        setIsAuthLoading(true);
+        setIsAuthenticating(true);
+
+        try {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          let activeSession = data?.session;
+
+          // If exchange failed (e.g. already consumed by detectSessionInUrl or React StrictMode), check existing session
+          if (error) {
+            console.warn('PKCE exchange error, checking existing session:', error.message);
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (sessionData?.session) {
+              activeSession = sessionData.session;
+            }
+          }
+
+          if (activeSession?.user) {
+            // 3. Clean Up: Wipe ?code= from the URL so it doesn't trigger twice
+            window.history.replaceState(null, '', '/feed');
+
+            if (isMounted) {
+              setUser(activeSession.user);
+              setView('poll');
+              await syncWithBackend(activeSession.user);
+            }
+          } else {
+            console.error('Failed to establish session after PKCE exchange');
+            window.history.replaceState(null, '', '/feed');
+          }
+        } catch (err) {
+          console.error('PKCE exchange exception:', err);
+          window.history.replaceState(null, '', '/feed');
+        } finally {
+          isProcessingCode = false;
+          if (isMounted) {
+            setIsCheckingSession(false);
+            setIsAuthLoading(false);
+            setIsAuthenticating(false);
+          }
+        }
+      } else {
+        // 4. Standard Fallback: No code in URL, gracefully fall back to getSession()
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!isMounted) return;
+          if (session?.user) {
+            setUser(session.user);
+            syncWithBackend(session.user).catch(console.warn);
+          }
+        } catch (err) {
+          console.error('Session retrieval error:', err);
+        } finally {
+          if (isMounted) {
+            setIsCheckingSession(false);
+            setIsAuthLoading(false);
+          }
+        }
       }
-      setIsCheckingSession(false);
-      setIsAuthLoading(false);
-    });
+    };
 
-    // 2. Auth Listener (We deleted the code that lets Supabase kick you out)
+    // 5. Setup onAuthStateChange with Ghost-Logout Immunity
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
+
+      // Ghost-Logout Immunity: Strictly ignore SIGNED_OUT while PKCE code is processing
+      // Also ignore SIGNED_OUT generally because logout is explicitly handled by handleLogout
+      if (event === 'SIGNED_OUT') {
+        if (isProcessingCode) {
+          console.warn('Ghost-logout suppressed during PKCE code exchange');
+        }
+        return;
+      }
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (session?.user) {
@@ -276,16 +341,18 @@ export default function App() {
           setIsAuthLoading(false);
           setIsAuthenticating(false);
           
-          if (window.location.hash.includes('access_token')) {
+          if (window.location.search.includes('code=')) {
+            window.history.replaceState(null, '', '/feed');
+          } else if (window.location.hash.includes('access_token')) {
             window.history.replaceState(null, '', '/feed');
           } else if (window.location.pathname === '/' || window.location.pathname === '/login') {
             navigate('/feed');
           }
         }
       }
-      // 🚫 NO 'SIGNED_OUT' EVENT HANDLER HERE. 
-      // Supabase physically cannot kick you to the login screen anymore.
     });
+
+    initAuth();
 
     return () => {
       isMounted = false;
