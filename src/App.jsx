@@ -1,6 +1,6 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense, lazy, useRef } from 'react';
 import confetti from 'canvas-confetti';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'framer-motion';
 import { createClient } from '@supabase/supabase-js';
 import bgVideo from './assets/campus_promo.mp4';
 import './App.css';
@@ -41,6 +41,463 @@ const pageVariants = {
   exit: { opacity: 0, scale: 0.98, y: -10 },
   transition: { type: 'spring', damping: 25, stiffness: 260 }
 };
+
+function UnauthenticatedLanding({
+  grade,
+  setGrade,
+  loginWithGoogle,
+  isAuthenticating,
+  showManualLogin,
+  setShowManualLogin,
+  handle,
+  setHandle,
+  password,
+  setPassword,
+  login,
+  legalView,
+  setLegalView,
+  activePlan,
+  setActivePlan,
+  handleUpgrade
+}) {
+  const heroRef = useRef(null);
+  const pricingRef = useRef(null);
+  const loginRef = useRef(null);
+
+  // --- 3D SCROLL-DRIVEN MOTION (APPLE / LINEAR TIER) ---
+  // Hero Scroll Progress: As hero scrolls out of view
+  const { scrollYProgress: heroScrollProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"]
+  });
+
+  const smoothHero = useSpring(heroScrollProgress, {
+    stiffness: 100,
+    damping: 24,
+    mass: 0.2
+  });
+
+  // Hero Text: Fades out and translates slightly upward on scroll
+  const heroTextOpacity = useTransform(smoothHero, [0, 0.45], [1, 0]);
+  const heroTextY = useTransform(smoothHero, [0, 0.45], [0, -45]);
+
+  // 3D Stage (<InteractivePollDemo/>): Starts scaled down (0.85) and tilted back on X-axis (rotateX: 20deg).
+  // As user scrolls, smoothly scales to 1 and rotates to 0deg, coming fully into focus.
+  const stageScale = useTransform(smoothHero, [0, 0.45], [0.85, 1]);
+  const stageRotateX = useTransform(smoothHero, [0, 0.45], [20, 0]);
+  const stageOpacity = useTransform(smoothHero, [0, 0.2], [0.9, 1]);
+
+  // Pricing Section: Gracefully fade and slide up into view from bottom
+  const { scrollYProgress: pricingScrollProgress } = useScroll({
+    target: pricingRef,
+    offset: ["start end", "center center"]
+  });
+
+  const smoothPricing = useSpring(pricingScrollProgress, {
+    stiffness: 90,
+    damping: 22,
+    mass: 0.2
+  });
+
+  const pricingOpacity = useTransform(smoothPricing, [0, 0.75], [0, 1]);
+  const pricingY = useTransform(smoothPricing, [0, 0.75], [60, 0]);
+
+  // Login Section: Gracefully fade and slide up into view from bottom
+  const { scrollYProgress: loginScrollProgress } = useScroll({
+    target: loginRef,
+    offset: ["start end", "center center"]
+  });
+
+  const smoothLogin = useSpring(loginScrollProgress, {
+    stiffness: 90,
+    damping: 22,
+    mass: 0.2
+  });
+
+  const loginOpacity = useTransform(smoothLogin, [0, 0.75], [0, 1]);
+  const loginY = useTransform(smoothLogin, [0, 0.75], [60, 0]);
+
+  return (
+    <div className="gas-landing-wrapper">
+      <header className="gas-landing-nav">
+        <div className="gas-logo">
+          <span className="flame-icon">🔥</span>
+          <span>CAMPUSFEED</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span className="gas-school-badge">St. Kabir • Classes 9 to 12</span>
+
+          <div className="tooltip-wrapper">
+            <li className="nav-link">
+              <div className="tooltip-tab">
+                <span>Support</span>
+                <svg viewBox="0 0 24 24"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-11v6h2v-6h-2zm0-4v2h2V7h-2z" /></svg>
+              </div>
+              <div className="tooltip">
+                <ul className="tooltip-menu-with-icon">
+                  <div style={{ padding: '8px 12px', fontSize: '11px', color: '#71717a', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
+                    Available 3 PM - 6 PM
+                  </div>
+                  <li className="tooltip-link">
+                    <a href="https://instagram.com/_nikhilpuniyaai" target="_blank" rel="noreferrer">
+                      @_nikhilpuniyaai
+                    </a>
+                  </li>
+                  <li className="tooltip-link">
+                    <a href="mailto:nikhilpuniya132@gmail.com">
+                      nikhilpuniya132@gmail.com
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </li>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <section ref={heroRef} className="gas-hero-section">
+        <motion.div
+          className="gas-hero-text"
+          style={{
+            opacity: heroTextOpacity,
+            y: heroTextY
+          }}
+        >
+          <div className="gas-pill-badge">
+            <span>🔥</span> The Gas App for St. Kabir
+          </div>
+
+          <h1 className="gas-hero-title">
+            STOP GUESSING.<br />
+            <span className="glow-orange">START KNOWING.</span>
+          </h1>
+
+          <p className="gas-hero-subtitle">
+            The 100% anonymous school voting network. Answer viral polls about your classmates, see who voted for you, and discover your secret admirers.
+          </p>
+
+          <div className="gas-desktop-only">
+            <div className="gas-hero-stats">
+              <div className="gas-stat-card">
+                <span className="gas-stat-number">12,480+</span>
+                <span className="gas-stat-label">Votes Cast</span>
+              </div>
+              <div className="gas-stat-card">
+                <span className="gas-stat-number">100%</span>
+                <span className="gas-stat-label">Anonymous</span>
+              </div>
+              <div className="gas-stat-card">
+                <span className="gas-stat-number">Class 11 & 12</span>
+                <span className="gas-stat-label">St. Kabir Only</span>
+              </div>
+            </div>
+
+            <div className="gas-hero-cta-group">
+              <button
+                className="magic-btn"
+                onClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })}
+              >
+                ENTER NETWORK ➔
+                <svg viewBox="0 0 24 24" className="star star-1"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z" /></svg>
+                <svg viewBox="0 0 24 24" className="star star-2"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z" /></svg>
+                <svg viewBox="0 0 24 24" className="star star-3"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z" /></svg>
+              </button>
+
+              <button
+                className="metallic-btn"
+                onClick={() => document.getElementById('pricing-portal').scrollIntoView({ behavior: 'smooth' })}
+              >
+                👑 VIP God Mode
+              </button>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* 3D Stage */}
+        <motion.div
+          className="gas-hero-3d-stage"
+          style={{
+            scale: stageScale,
+            rotateX: stageRotateX,
+            opacity: stageOpacity,
+            transformPerspective: 1200,
+            transformStyle: 'preserve-3d'
+          }}
+        >
+          <motion.div
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            className="gas-float-chip gas-float-chip-1"
+          >
+            <span>🔥</span> Someone voted you "Best Smile"
+          </motion.div>
+
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+            className="gas-float-chip gas-float-chip-2"
+          >
+            <span>👑</span> Altaf unlocked God Mode
+          </motion.div>
+
+          <Suspense fallback={<div style={{ minHeight: '320px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><HamsterLoader message="Loading Preview..." /></div>}>
+            <InteractivePollDemo onCtaClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })} />
+          </Suspense>
+        </motion.div>
+
+        {/* Mobile View Hero CTA & Stats */}
+        <div className="gas-mobile-only" style={{ width: '100%', maxWidth: '360px', margin: '0 auto' }}>
+          <div className="gas-hero-cta-group" style={{ marginBottom: '16px' }}>
+            <button
+              className="magic-btn"
+              style={{ width: '100%' }}
+              onClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })}
+            >
+              ENTER NETWORK ➔
+            </button>
+          </div>
+
+          <div className="gas-hero-stats">
+            <div className="gas-stat-card">
+              <span className="gas-stat-number">12,480+</span>
+              <span className="gas-stat-label">Votes</span>
+            </div>
+            <div className="gas-stat-card">
+              <span className="gas-stat-number">100%</span>
+              <span className="gas-stat-label">Anonymous</span>
+            </div>
+            <div className="gas-stat-card">
+              <span className="gas-stat-number">Class 11 & 12</span>
+              <span className="gas-stat-label">St. Kabir</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Portal Section */}
+      <section id="pricing-portal" ref={pricingRef} className="pricing-section">
+        <motion.div
+          style={{
+            opacity: pricingOpacity,
+            y: pricingY,
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center'
+          }}
+        >
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <span className="gas-pill-badge" style={{ borderColor: 'rgba(255, 255, 255, 0.15)', color: '#ffffff' }}>
+              👑 VIP Access
+            </span>
+            <h2 style={{ fontSize: 'clamp(28px, 6vw, 42px)', fontWeight: 900, margin: '12px 0', color: '#ffffff', letterSpacing: '-1px' }}>
+              Unlock God Mode.
+            </h2>
+            <p style={{ color: '#71717a', maxWidth: '440px', margin: '0 auto', fontSize: '14px', lineHeight: 1.5 }}>
+              Stop wondering who voted for you. Reveal real names, equip exclusive aura rings, and dominate the school leaderboard.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: '900px' }}>
+            <div className="gas-pricing-desktop-only">
+              <Suspense fallback={<div style={{ minHeight: '380px' }} />}>
+                <HolographicCard
+                  title="GOD MODE"
+                  subtitle="See Who Voted For You"
+                  price={activePlan === 'weekly' ? '₹99' : activePlan === 'monthly' ? '₹149' : '₹0'}
+                  period={activePlan === 'weekly' ? '/week' : activePlan === 'monthly' ? '/month' : '/forever'}
+                  onAction={() => {
+                    if (activePlan === 'basic') {
+                      document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                      handleUpgrade(activePlan === 'weekly' ? 99 : 149);
+                    }
+                  }}
+                  actionText={activePlan === 'basic' ? 'Get Started Free ➔' : `Pay ₹${activePlan === 'weekly' ? '99' : '149'} Instantly ⚡`}
+                />
+              </Suspense>
+            </div>
+
+            <div className="pricing-modal">
+              <h3 className="pricing-title">Choose Your Access</h3>
+              <p className="pricing-description">Instantly activates across all St. Kabir Class 11 & 12 polls.</p>
+
+              <div className="tab-container">
+                <div className="indicator" data-active={activePlan}></div>
+                <button className="tab" data-active={activePlan === 'basic'} onClick={() => setActivePlan('basic')}>Basic</button>
+                <button className="tab" data-active={activePlan === 'weekly'} onClick={() => setActivePlan('weekly')}>Weekly</button>
+                <button className="tab" data-active={activePlan === 'monthly'} onClick={() => setActivePlan('monthly')}>Monthly</button>
+              </div>
+
+              <div className="benefits">
+                <span>What's included</span>
+                <ul>
+                  <li>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span>Receive unlimited anonymous compliment polls</span>
+                  </li>
+                  <li>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span>{activePlan === 'basic' ? 'Invite 3 friends to reveal 1 name' : 'Unlimited Instant Name Reveals'}</span>
+                  </li>
+                  {activePlan !== 'basic' && (
+                    <li>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      <span>Equip 3D Animated God Mode Aura Rings</span>
+                    </li>
+                  )}
+                  {activePlan === 'monthly' && (
+                    <li>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      <span style={{ color: '#ffffff', fontWeight: '700' }}>Save 62% vs Weekly Pass</span>
+                    </li>
+                  )}
+                </ul>
+              </div>
+
+              <div className="modal--footer">
+                <div className="price">
+                  <sup>₹</sup>{activePlan === 'basic' ? '0' : activePlan === 'weekly' ? '99' : '149'}
+                  <sub>/{activePlan === 'basic' ? 'mo' : activePlan === 'weekly' ? 'week' : 'mo'}</sub>
+                </div>
+
+                {activePlan === 'basic' ? (
+                  <button className="upgrade-btn" style={{ background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.12)' }} onClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })}>
+                    Start Free
+                  </button>
+                ) : (
+                  <button className="upgrade-btn" onClick={() => handleUpgrade(activePlan === 'weekly' ? 99 : 149)}>
+                    Pay ₹{activePlan === 'weekly' ? '99' : '149'} ⚡
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Login Portal Section */}
+      <section id="login-portal" ref={loginRef} style={{ minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', position: 'relative' }}>
+        <motion.div
+          style={{
+            opacity: loginOpacity,
+            y: loginY,
+            width: '100%',
+            maxWidth: '380px',
+            position: 'relative',
+            zIndex: 10
+          }}
+        >
+          <div className="form">
+            <p>
+              Join the Loop.
+              <span>Select your class at St. Kabir to continue</span>
+            </p>
+
+            <select value={grade} onChange={(e) => setGrade(e.target.value)}>
+              <option value="9">Class 9 (Freshmen)</option>
+              <option value="10">Class 10 (Sophomores)</option>
+              <option value="11">Class 11 (St. Kabir)</option>
+              <option value="12">Class 12 (Seniors)</option>
+            </select>
+
+            <button className="oauthButton" onClick={loginWithGoogle} disabled={isAuthenticating}>
+              <svg className="icon" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+              </svg>
+              {isAuthenticating ? 'Syncing...' : 'Continue with Google'}
+            </button>
+
+            <div style={{ width: '100%', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', textAlign: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setShowManualLogin(!showManualLogin)}
+                style={{ background: 'transparent', border: 'none', color: '#71717a', fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'color 0.2s' }}
+              >
+                {showManualLogin ? '▲ Hide Test Accounts' : '▼ Or Sign in with Username / Seed Account'}
+              </button>
+
+              {showManualLogin && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
+                  <input
+                    type="text"
+                    placeholder="Handle (e.g., Gursharan Singh)"
+                    value={handle}
+                    onChange={e => setHandle(e.target.value)}
+                    style={{ padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: '#fff', fontSize: '14px' }}
+                  />
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    style={{ padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: '#fff', fontSize: '14px' }}
+                  />
+                  <button
+                    onClick={login}
+                    style={{ padding: '12px', borderRadius: '10px', border: 'none', background: '#ffffff', color: '#000000', fontWeight: '800', cursor: 'pointer', transition: 'background 0.2s' }}
+                  >
+                    Login with Password
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '13px', color: '#71717a' }}>
+            <p>
+              By entering, you agree to our <br />
+              <span onClick={() => setLegalView('terms')} style={{ color: '#ffffff', textDecoration: 'underline', cursor: 'pointer' }}>
+                Terms & Conditions
+              </span>{' '}
+              and{' '}
+              <span onClick={() => setLegalView('privacy')} style={{ color: '#ffffff', textDecoration: 'underline', cursor: 'pointer' }}>
+                Privacy Policy
+              </span>
+            </p>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Legal Modal Overlay */}
+      <AnimatePresence>
+        {legalView && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="gas-modal-overlay"
+            onClick={() => setLegalView(null)}
+          >
+            <motion.div
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              style={{ background: '#0c0c0e', color: '#fff', padding: '32px', borderRadius: '24px', maxWidth: '420px', width: '90%', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 60px rgba(0,0,0,0.8)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <h2 style={{ color: '#ffffff', marginTop: 0, fontSize: '22px', fontWeight: 800 }}>{legalView === 'terms' ? 'Terms & Conditions' : 'Privacy Policy'}</h2>
+              <p style={{ color: '#a1a1aa', fontSize: '14px', lineHeight: '1.6' }}>
+                CampusFeed is an anonymous positive voting platform built for school communities. Compliments are moderated to promote positivity. Razorpay handles secure transactions.
+              </p>
+              <button
+                style={{ padding: '10px 20px', background: '#ffffff', color: '#000000', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', marginTop: '16px' }}
+                onClick={() => setLegalView(null)}
+              >
+                Close
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -783,385 +1240,24 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="gas-landing-wrapper">
-        <header className="gas-landing-nav">
-          <div className="gas-logo">
-            <span className="flame-icon">🔥</span>
-            <span>CAMPUSFEED</span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span className="gas-school-badge">St. Kabir • Classes 9 to 12</span>
-
-            <div className="tooltip-wrapper">
-              <li className="nav-link">
-                <div className="tooltip-tab">
-                  <span>Support</span>
-                  <svg viewBox="0 0 24 24"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-11v6h2v-6h-2zm0-4v2h2V7h-2z" /></svg>
-                </div>
-                <div className="tooltip">
-                  <ul className="tooltip-menu-with-icon">
-                    <div style={{ padding: '8px 12px', fontSize: '11px', color: '#94a3b8', borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
-                      Available 3 PM - 6 PM
-                    </div>
-                    <li className="tooltip-link">
-                      <a href="https://instagram.com/_nikhilpuniyaai" target="_blank" rel="noreferrer">
-                        @_nikhilpuniyaai
-                      </a>
-                    </li>
-                    <li className="tooltip-link">
-                      <a href="mailto:nikhilpuniya132@gmail.com">
-                        nikhilpuniya132@gmail.com
-                      </a>
-                    </li>
-                  </ul>
-                </div>
-              </li>
-            </div>
-          </div>
-        </header>
-
-        <section className="gas-hero-section">
-          <div className="gas-hero-text">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="gas-pill-badge"
-            >
-              <span>🔥</span> The Gas App for St. Kabir
-            </motion.div>
-
-            <motion.h1
-              initial={{ opacity: 0, y: 25 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
-              className="gas-hero-title"
-            >
-              STOP GUESSING.<br />
-              <span className="glow-orange">START KNOWING.</span>
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="gas-hero-subtitle"
-            >
-              The 100% anonymous school voting network. Answer viral polls about your classmates, see who voted for you, and discover your secret admirers.
-            </motion.p>
-
-            <div className="gas-desktop-only">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.3 }}
-                className="gas-hero-stats"
-              >
-                <div className="gas-stat-card">
-                  <span className="gas-stat-number">12,480+</span>
-                  <span className="gas-stat-label">Votes Cast</span>
-                </div>
-                <div className="gas-stat-card">
-                  <span className="gas-stat-number">100%</span>
-                  <span className="gas-stat-label">Anonymous</span>
-                </div>
-                <div className="gas-stat-card">
-                  <span className="gas-stat-number">Class 11 & 12</span>
-                  <span className="gas-stat-label">St. Kabir Only</span>
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
-                className="gas-hero-cta-group"
-              >
-                <button
-                  className="magic-btn"
-                  onClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })}
-                >
-                  ENTER NETWORK ➔
-                  <svg viewBox="0 0 24 24" className="star star-1"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z" /></svg>
-                  <svg viewBox="0 0 24 24" className="star star-2"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z" /></svg>
-                  <svg viewBox="0 0 24 24" className="star star-3"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z" /></svg>
-                </button>
-
-                <button
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: '#fff',
-                    padding: '16px 28px',
-                    borderRadius: '30px',
-                    fontSize: '15px',
-                    fontWeight: '800',
-                    cursor: 'pointer',
-                    backdropFilter: 'blur(10px)'
-                  }}
-                  onClick={() => document.getElementById('pricing-portal').scrollIntoView({ behavior: 'smooth' })}
-                >
-                  👑 God Mode VIP
-                </button>
-              </motion.div>
-            </div>
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1, delay: 0.3 }}
-            className="gas-hero-3d-stage"
-          >
-            <motion.div
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-              className="gas-float-chip gas-float-chip-1"
-            >
-              <span>🔥</span> Someone voted you "Best Smile"
-            </motion.div>
-
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-              className="gas-float-chip gas-float-chip-2"
-            >
-              <span>👑</span> Altaf unlocked God Mode
-            </motion.div>
-
-            <Suspense fallback={<div style={{ minHeight: '320px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><HamsterLoader message="Loading Preview..." /></div>}>
-              <InteractivePollDemo onCtaClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })} />
-            </Suspense>
-          </motion.div>
-
-          <div className="gas-mobile-only" style={{ width: '100%', maxWidth: '360px', margin: '0 auto' }}>
-            <div className="gas-hero-cta-group" style={{ marginBottom: '16px' }}>
-              <button
-                className="magic-btn"
-                style={{ width: '100%' }}
-                onClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })}
-              >
-                ENTER NETWORK ➔
-                <svg viewBox="0 0 24 24" className="star star-1"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z" /></svg>
-                <svg viewBox="0 0 24 24" className="star star-2"><path d="M12 0l2.8 9.2L24 12l-9.2 2.8L12 24l-2.8-9.2L0 12l9.2-2.8z" /></svg>
-              </button>
-            </div>
-
-            <div className="gas-hero-stats">
-              <div className="gas-stat-card">
-                <span className="gas-stat-number">12,480+</span>
-                <span className="gas-stat-label">Votes</span>
-              </div>
-              <div className="gas-stat-card">
-                <span className="gas-stat-number">100%</span>
-                <span className="gas-stat-label">Anonymous</span>
-              </div>
-              <div className="gas-stat-card">
-                <span className="gas-stat-number">Class 11 & 12</span>
-                <span className="gas-stat-label">St. Kabir</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="pricing-portal" className="pricing-section">
-          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <span className="gas-pill-badge" style={{ borderColor: '#fbbf24', color: '#fbbf24' }}>
-              👑 Gas VIP Feature
-            </span>
-            <h2 style={{ fontSize: 'clamp(26px, 6vw, 38px)', fontWeight: 950, margin: '10px 0', color: '#fff' }}>
-              Unlock God Mode.
-            </h2>
-            <p style={{ color: '#94a3b8', maxWidth: '440px', margin: '0 auto', fontSize: '14px' }}>
-              Stop wondering who voted for you. Reveal real names, equip glowing aura rings, and dominate the leaderboard.
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: '900px' }}>
-            <div className="gas-pricing-desktop-only">
-              <Suspense fallback={<div style={{ minHeight: '380px' }} />}>
-                <HolographicCard
-                  title="GOD MODE"
-                  subtitle="See Who Voted For You"
-                  price={activePlan === 'weekly' ? '₹99' : activePlan === 'monthly' ? '₹149' : '₹0'}
-                  period={activePlan === 'weekly' ? '/week' : activePlan === 'monthly' ? '/month' : '/forever'}
-                  onAction={() => {
-                    if (activePlan === 'basic') {
-                      document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' });
-                    } else {
-                      handleUpgrade(activePlan === 'weekly' ? 99 : 149);
-                    }
-                  }}
-                  actionText={activePlan === 'basic' ? 'Get Started Free ➔' : `Pay ₹${activePlan === 'weekly' ? '99' : '149'} Instantly ⚡`}
-                />
-              </Suspense>
-            </div>
-
-            <div className="pricing-modal">
-              <h3 className="pricing-title">Choose Your Access</h3>
-              <p className="pricing-description">Instantly activates across all St. Kabir Class 11 & 12 polls.</p>
-
-              <div className="tab-container">
-                <div className="indicator" data-active={activePlan}></div>
-                <button className="tab" data-active={activePlan === 'basic'} onClick={() => setActivePlan('basic')}>Basic</button>
-                <button className="tab" data-active={activePlan === 'weekly'} onClick={() => setActivePlan('weekly')}>Weekly</button>
-                <button className="tab" data-active={activePlan === 'monthly'} onClick={() => setActivePlan('monthly')}>Monthly</button>
-              </div>
-
-              <div className="benefits">
-                <span>What's included</span>
-                <ul>
-                  <li>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    <span>Receive unlimited anonymous compliment polls</span>
-                  </li>
-                  <li>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    <span>{activePlan === 'basic' ? 'Invite 3 friends to reveal 1 name' : 'Unlimited Instant Name Reveals'}</span>
-                  </li>
-                  {activePlan !== 'basic' && (
-                    <li>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                      <span>Equip 3D Animated God Mode Aura Rings</span>
-                    </li>
-                  )}
-                  {activePlan === 'monthly' && (
-                    <li>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                      <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>Save 62% vs Weekly Pass</span>
-                    </li>
-                  )}
-                </ul>
-              </div>
-
-              <div className="modal--footer">
-                <div className="price">
-                  <sup>₹</sup>{activePlan === 'basic' ? '0' : activePlan === 'weekly' ? '99' : '149'}
-                  <sub>/{activePlan === 'basic' ? 'mo' : activePlan === 'weekly' ? 'week' : 'mo'}</sub>
-                </div>
-
-                {activePlan === 'basic' ? (
-                  <button className="upgrade-btn" style={{ background: '#27272a' }} onClick={() => document.getElementById('login-portal').scrollIntoView({ behavior: 'smooth' })}>
-                    Start Free
-                  </button>
-                ) : (
-                  <button className="upgrade-btn" onClick={() => handleUpgrade(activePlan === 'weekly' ? 99 : 149)}>
-                    Pay ₹{activePlan === 'weekly' ? '99' : '149'} ⚡
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="login-portal" style={{ minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', position: 'relative' }}>
-          <div style={{ width: '100%', maxWidth: '380px', position: 'relative', zIndex: 10 }}>
-            <div className="form">
-              <p>
-                Join the Loop.
-                <span>Select your class at St. Kabir to continue</span>
-              </p>
-
-              <select value={grade} onChange={(e) => setGrade(e.target.value)}>
-                <option value="9">Class 9 (Freshmen)</option>
-                <option value="10">Class 10 (Sophomores)</option>
-                <option value="11">Class 11 (St. Kabir)</option>
-                <option value="12">Class 12 (Seniors)</option>
-              </select>
-
-              <button className="oauthButton" onClick={loginWithGoogle} disabled={isAuthenticating}>
-                <svg className="icon" viewBox="0 0 24 24">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                </svg>
-                {isAuthenticating ? 'Syncing...' : 'Continue with Google'}
-              </button>
-
-              <div style={{ width: '100%', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px', textAlign: 'center' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowManualLogin(!showManualLogin)}
-                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}
-                >
-                  {showManualLogin ? '▲ Hide Test Accounts' : '▼ Or Sign in with Username / Seed Account'}
-                </button>
-
-                {showManualLogin && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
-                    <input
-                      type="text"
-                      placeholder="Handle (e.g., Gursharan Singh)"
-                      value={handle}
-                      onChange={e => setHandle(e.target.value)}
-                      style={{ padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: '14px' }}
-                    />
-                    <input
-                      type="password"
-                      placeholder="Password"
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      style={{ padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: '14px' }}
-                    />
-                    <button
-                      onClick={login}
-                      style={{ padding: '12px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #ff5500, #ff8800)', color: '#fff', fontWeight: '800', cursor: 'pointer' }}
-                    >
-                      Login with Password
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '13px', color: '#94a3b8' }}>
-              <p>
-                By entering, you agree to our <br />
-                <span onClick={() => setLegalView('terms')} style={{ color: '#fff', textDecoration: 'underline', cursor: 'pointer' }}>
-                  Terms & Conditions
-                </span>{' '}
-                and{' '}
-                <span onClick={() => setLegalView('privacy')} style={{ color: '#fff', textDecoration: 'underline', cursor: 'pointer' }}>
-                  Privacy Policy
-                </span>
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <AnimatePresence>
-          {legalView && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="gas-modal-overlay"
-              onClick={() => setLegalView(null)}
-            >
-              <motion.div
-                initial={{ y: 50, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: 20, opacity: 0 }}
-                style={{ background: '#141522', color: '#fff', padding: '30px', borderRadius: '24px', maxWidth: '420px', width: '90%', border: '1px solid rgba(255,255,255,0.15)' }}
-                onClick={e => e.stopPropagation()}
-              >
-                <h2 style={{ color: '#ff5500', marginTop: 0 }}>{legalView === 'terms' ? 'Terms & Conditions' : 'Privacy Policy'}</h2>
-                <p style={{ color: '#94a3b8', fontSize: '14px', lineHeight: '1.6' }}>
-                  CampusFeed is an anonymous positive voting platform built for school communities. Compliments are moderated to promote positivity. Razorpay handles secure transactions.
-                </p>
-                <button
-                  style={{ padding: '10px 20px', background: '#ff5500', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', marginTop: '16px' }}
-                  onClick={() => setLegalView(null)}
-                >
-                  Close
-                </button>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      <UnauthenticatedLanding
+        grade={grade}
+        setGrade={setGrade}
+        loginWithGoogle={loginWithGoogle}
+        isAuthenticating={isAuthenticating}
+        showManualLogin={showManualLogin}
+        setShowManualLogin={setShowManualLogin}
+        handle={handle}
+        setHandle={setHandle}
+        password={password}
+        setPassword={setPassword}
+        login={login}
+        legalView={legalView}
+        setLegalView={setLegalView}
+        activePlan={activePlan}
+        setActivePlan={setActivePlan}
+        handleUpgrade={handleUpgrade}
+      />
     );
   }
 
