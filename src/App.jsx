@@ -166,7 +166,7 @@ function UnauthenticatedLanding({
           }}
         >
           <div className="gas-pill-badge">
-            <span>🔥</span> The Gas App for St. Kabir
+            <span>✦</span> The Anonymous Loop for St. Kabir
           </div>
 
           <h1 className="gas-hero-title">
