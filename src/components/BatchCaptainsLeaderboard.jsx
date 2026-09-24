@@ -168,21 +168,21 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
         {/* Grand Status Progress Bar: Elite Status: 0 / 25 Active Recruits to unlock Batch Captain. */}
         <div
           style={{
-            background: 'rgba(15, 15, 18, 0.85)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: '#1A1A1A',
+            border: '1px solid #262626',
             borderRadius: '16px',
             padding: '12px 14px',
             marginBottom: '12px',
-            boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.5)'
+            boxShadow: 'none'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '12px', fontWeight: '900', color: isEliteCaptain ? '#fbbf24' : '#ffffff', letterSpacing: '-0.01em' }}>
+            <span style={{ fontSize: '12px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.01em' }}>
               {isEliteCaptain
                 ? '👑 Elite Status: UNLOCKED (Batch Captain / Moderator)'
                 : `Elite Status: ${userInvites} / 25 Active Recruits to unlock Batch Captain.`}
             </span>
-            <span style={{ fontSize: '11px', fontWeight: '800', color: isEliteCaptain ? '#4ade80' : '#ff7700' }}>
+            <span style={{ fontSize: '11px', fontWeight: '700', color: '#a1a1aa' }}>
               {progressPercent}%
             </span>
           </div>
@@ -191,11 +191,11 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
           <div
             style={{
               width: '100%',
-              height: '10px',
-              background: '#18181b',
+              height: '8px',
+              background: '#262626',
               borderRadius: '999px',
               overflow: 'hidden',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              border: '1px solid #3f3f46',
               position: 'relative'
             }}
           >
@@ -205,12 +205,8 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
               transition={{ duration: 0.6, ease: 'easeOut' }}
               style={{
                 height: '100%',
-                background: isEliteCaptain
-                  ? 'linear-gradient(90deg, #10b981 0%, #06b6d4 50%, #fbbf24 100%)'
-                  : 'linear-gradient(90deg, #ff5500 0%, #fbbf24 100%)',
-                boxShadow: isEliteCaptain
-                  ? '0 0 14px rgba(251, 191, 36, 0.6)'
-                  : '0 0 10px rgba(255, 85, 0, 0.5)',
+                background: '#ffffff',
+                boxShadow: 'none',
                 borderRadius: '999px'
               }}
             />
@@ -235,30 +231,32 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={handleWhatsAppShare}
             type="button"
+            aria-label="Share Link"
+            title="Share Invite Link"
             style={{
-              flex: 1.5,
-              padding: '11px 14px',
-              borderRadius: '14px',
-              border: 'none',
-              background: 'linear-gradient(135deg, #25D366, #128C7E)',
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              border: '1px solid #262626',
+              background: '#262626',
               color: '#ffffff',
-              fontSize: '12.5px',
-              fontWeight: '900',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
-              boxShadow: '0 4px 16px rgba(37, 211, 102, 0.3)'
+              boxShadow: 'none',
+              flexShrink: 0
             }}
           >
-            <span style={{ fontSize: '14px' }}>💬</span>
-            <span>Invite on WhatsApp</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
           </motion.button>
 
           <motion.button
@@ -268,22 +266,22 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
             style={{
               flex: 1,
               padding: '11px 14px',
-              borderRadius: '14px',
-              border: '1px solid #27272a',
-              background: copyToast ? '#10b981' : '#18181b',
+              borderRadius: '12px',
+              border: '1px solid #262626',
+              background: copyToast ? '#262626' : '#141416',
               color: '#ffffff',
               fontSize: '12.5px',
-              fontWeight: '800',
+              fontWeight: '700',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              transition: 'background 0.2s'
+              transition: 'background 0.2s',
+              boxShadow: 'none'
             }}
           >
-            <span>{copyToast ? '✓' : '🔗'}</span>
-            <span>{copyToast ? 'Copied!' : 'Copy Link'}</span>
+            <span>{copyToast ? '✓ Copied' : '🔗 Copy Link'}</span>
           </motion.button>
         </div>
       </div>
@@ -331,18 +329,26 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
           <p style={{ margin: '6px 0 16px 0', fontSize: '12px' }}>Be the first captain by sharing your WhatsApp link!</p>
           <button
             onClick={handleWhatsAppShare}
+            aria-label="Share Link"
+            title="Share Invite Link"
             style={{
-              padding: '10px 18px',
+              width: '42px',
+              height: '42px',
               borderRadius: '12px',
-              border: 'none',
-              background: '#25D366',
+              border: '1px solid #262626',
+              background: '#262626',
               color: '#ffffff',
-              fontWeight: '800',
-              fontSize: '12.5px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 'none'
             }}
           >
-            Become Batch Captain
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
           </button>
         </div>
       ) : (

@@ -88,63 +88,71 @@ export default function Inbox({
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           style={{
-            background: 'linear-gradient(135deg, rgba(255, 85, 0, 0.15), rgba(0, 240, 255, 0.1))',
+            background: '#1A1A1A',
             borderRadius: '20px',
             padding: '16px',
-            border: '1.5px solid rgba(255, 85, 0, 0.35)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+            border: '1px solid #262626',
+            boxShadow: 'none',
             marginBottom: '16px',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '12px', fontWeight: '900', color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <span style={{ fontSize: '12px', fontWeight: '800', color: '#ffffff', letterSpacing: '0.5px' }}>
               🎁 Unlock Voter Names
             </span>
-            <span style={{ fontSize: '12px', fontWeight: '900', color: '#00f0ff' }}>
+            <span style={{ fontSize: '12px', fontWeight: '700', color: '#a1a1aa' }}>
               {effectiveInvites}/3 invites completed
             </span>
           </div>
 
           {/* Progress Bar Container */}
-          <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden', marginBottom: '12px' }}>
+          <div style={{ width: '100%', height: '6px', background: '#262626', borderRadius: '4px', overflow: 'hidden', marginBottom: '12px' }}>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
               style={{
                 height: '100%',
-                background: 'linear-gradient(90deg, #ff5500, #00f0ff)',
-                boxShadow: '0 0 10px rgba(0, 240, 255, 0.8)',
+                background: '#ffffff',
+                boxShadow: 'none',
                 borderRadius: '4px',
               }}
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-            <p style={{ margin: 0, fontSize: '12px', color: '#cbd5e1', lineHeight: '1.3' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <p style={{ margin: 0, fontSize: '12px', color: '#a1a1aa', lineHeight: '1.3' }}>
               {effectiveInvites >= 3
-                ? '🎉 Reward unlocked! Tap any flame to unveil the secret voter.'
-                : `Invite ${remaining} more ${remaining === 1 ? 'friend' : 'friends'} on WhatsApp to unlock voter identities.`}
+                ? 'Reward unlocked! Tap any flame to unveil the secret voter.'
+                : `Invite ${remaining} more ${remaining === 1 ? 'friend' : 'friends'} to unlock voter identities.`}
             </p>
 
+            {/* Minimalist Share Icon Button */}
             <motion.button
-              whileHover={{ scale: 1.04 }}
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onInviteShare}
+              aria-label="Share Link"
+              title="Share Invite Link"
               style={{
-                padding: '8px 14px',
-                borderRadius: '12px',
-                border: 'none',
-                background: 'linear-gradient(135deg, #00f0ff, #0088ff)',
-                color: '#050c1e',
-                fontSize: '12px',
-                fontWeight: '950',
+                width: '38px',
+                height: '38px',
+                borderRadius: '50%',
+                border: '1px solid #262626',
+                background: '#262626',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                boxShadow: '0 0 12px rgba(0, 240, 255, 0.5)',
+                flexShrink: 0,
+                boxShadow: 'none'
               }}
             >
-              📲 Invite
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
             </motion.button>
           </div>
         </motion.div>
@@ -164,41 +172,41 @@ export default function Inbox({
             const isGirl = vote.voterGender === 'girl';
             const isBoy = vote.voterGender === 'boy';
 
-            // Gender styling: Blue flame for Boy, Pink flame for Girl, Purple for Other
+            // Gender styling: Muted dark mode palette without bright neons
             const flameTheme = isGirl
               ? {
-                  color: '#ff2e93',
-                  accentGradient: 'linear-gradient(135deg, #ff2e93, #f43f5e)',
-                  bgGradient: 'linear-gradient(145deg, rgba(255, 46, 147, 0.12), rgba(20, 20, 32, 0.9))',
-                  border: '1.5px solid rgba(255, 46, 147, 0.35)',
-                  badgeBg: 'rgba(255, 46, 147, 0.18)',
-                  badgeBorder: '1px solid rgba(255, 46, 147, 0.4)',
-                  icon: '🌸🔥',
+                  color: '#e4e4e7',
+                  accentGradient: '#262626',
+                  bgGradient: '#1A1A1A',
+                  border: '1px solid #262626',
+                  badgeBg: 'rgba(255, 255, 255, 0.05)',
+                  badgeBorder: '1px solid #262626',
+                  icon: '🌸',
                   label: 'From a Girl in your Coaching Hub',
-                  glow: '0 8px 24px rgba(0,0,0,0.5), 0 0 20px rgba(255, 46, 147, 0.15)',
+                  glow: 'none',
                 }
               : isBoy
               ? {
-                  color: '#00f0ff',
-                  accentGradient: 'linear-gradient(135deg, #00f0ff, #3b82f6)',
-                  bgGradient: 'linear-gradient(145deg, rgba(0, 240, 255, 0.12), rgba(20, 20, 32, 0.9))',
-                  border: '1.5px solid rgba(0, 240, 255, 0.35)',
-                  badgeBg: 'rgba(0, 240, 255, 0.18)',
-                  badgeBorder: '1px solid rgba(0, 240, 255, 0.4)',
-                  icon: '💙🔥',
+                  color: '#e4e4e7',
+                  accentGradient: '#262626',
+                  bgGradient: '#1A1A1A',
+                  border: '1px solid #262626',
+                  badgeBg: 'rgba(255, 255, 255, 0.05)',
+                  badgeBorder: '1px solid #262626',
+                  icon: '💙',
                   label: 'From a Boy in your Coaching Hub',
-                  glow: '0 8px 24px rgba(0,0,0,0.5), 0 0 20px rgba(0, 240, 255, 0.15)',
+                  glow: 'none',
                 }
               : {
-                  color: '#a855f7',
-                  accentGradient: 'linear-gradient(135deg, #a855f7, #ec4899)',
-                  bgGradient: 'linear-gradient(145deg, rgba(168, 85, 247, 0.12), rgba(20, 20, 32, 0.9))',
-                  border: '1.5px solid rgba(168, 85, 247, 0.35)',
-                  badgeBg: 'rgba(168, 85, 247, 0.18)',
-                  badgeBorder: '1px solid rgba(168, 85, 247, 0.4)',
-                  icon: '✨🔥',
+                  color: '#e4e4e7',
+                  accentGradient: '#262626',
+                  bgGradient: '#1A1A1A',
+                  border: '1px solid #262626',
+                  badgeBg: 'rgba(255, 255, 255, 0.05)',
+                  badgeBorder: '1px solid #262626',
+                  icon: '✨',
                   label: 'From a Batchmate in your Coaching Hub',
-                  glow: '0 8px 24px rgba(0,0,0,0.5), 0 0 20px rgba(168, 85, 247, 0.15)',
+                  glow: 'none',
                 };
 
             return (
@@ -335,32 +343,37 @@ export default function Inbox({
                       />
                     </div>
 
-                    {/* Direct WhatsApp Share Button on Card */}
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.96 }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onInviteShare();
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        borderRadius: '10px',
-                        border: `1px solid ${flameTheme.color}55`,
-                        background: 'rgba(0, 0, 0, 0.3)',
-                        color: flameTheme.color,
-                        fontSize: '12px',
-                        fontWeight: '900',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                      }}
-                    >
-                      <span>📲</span> Share Invite Link on WhatsApp
-                    </motion.button>
+                    {/* Minimalist Share Icon Button */}
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onInviteShare();
+                        }}
+                        aria-label="Share Link"
+                        title="Share Invite Link"
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          border: '1px solid #262626',
+                          background: '#262626',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: 'none'
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="22" y1="2" x2="11" y2="13"></line>
+                          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                      </motion.button>
+                    </div>
                   </div>
                 )}
               </motion.div>

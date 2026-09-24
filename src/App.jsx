@@ -825,13 +825,28 @@ export default function App() {
   if (!user) {
     return (
       <Landing
-        isAuthenticating={isAuthenticating}
+        grade={grade}
+        setGrade={setGrade}
+        stream={stream}
+        setStream={setStream}
+        institute={institute}
+        setInstitute={setInstitute}
+        coachingHub={coachingHub}
+        setCoachingHub={setCoachingHub}
         loginWithGoogle={loginWithGoogle}
-        loginWithPassword={login}
+        isAuthenticating={isAuthenticating}
+        showManualLogin={showManualLogin}
+        setShowManualLogin={setShowManualLogin}
         handle={handle}
         setHandle={setHandle}
         password={password}
         setPassword={setPassword}
+        login={login}
+        legalView={legalView}
+        setLegalView={setLegalView}
+        activePlan={activePlan}
+        setActivePlan={setActivePlan}
+        handleUpgrade={handleUpgrade}
         installPrompt={installPrompt}
       />
     );
@@ -1265,38 +1280,42 @@ export default function App() {
                       Secret Voter Locked
                     </h4>
 
-                    <p style={{ color: '#cbd5e1', fontSize: '13.5px', lineHeight: '1.4', margin: '0 0 16px 0', padding: '0 8px' }}>
-                      Invite <strong style={{ color: '#00f0ff', fontSize: '15px' }}>{revealData.remaining}</strong> more {revealData.remaining === 1 ? 'friend' : 'friends'} on WhatsApp or upgrade to God Mode to reveal instantly!
+                    <p style={{ color: '#a1a1aa', fontSize: '13.5px', lineHeight: '1.4', margin: '0 0 16px 0', padding: '0 8px' }}>
+                      Invite <strong style={{ color: '#ffffff', fontSize: '15px' }}>{revealData.remaining}</strong> more {revealData.remaining === 1 ? 'friend' : 'friends'} to unlock voter identities, or upgrade to God Mode.
                     </p>
 
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleInviteShare}
-                      style={{
-                        width: '100%',
-                        background: 'linear-gradient(135deg, #25D366, #128C7E)',
-                        color: '#fff',
-                        border: 'none',
-                        padding: '15px',
-                        borderRadius: '16px',
-                        fontSize: '14.5px',
-                        fontWeight: '950',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        cursor: 'pointer',
-                        boxShadow: '0 0 25px rgba(37, 211, 102, 0.35), 0 8px 20px rgba(0,0,0,0.4)',
-                        marginBottom: '10px',
-                        letterSpacing: '0.3px',
-                      }}
-                    >
-                      <span style={{ fontSize: '18px' }}>📲</span> Invite 3 Friends on WhatsApp
-                    </motion.button>
+                    {/* Minimalist Share Icon Button */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleInviteShare}
+                        aria-label="Share Link"
+                        title="Share Invite Link"
+                        style={{
+                          width: '46px',
+                          height: '46px',
+                          borderRadius: '50%',
+                          border: '1px solid #262626',
+                          background: '#1A1A1A',
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          boxShadow: 'none'
+                        }}
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="22" y1="2" x2="11" y2="13"></line>
+                          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                      </motion.button>
+                      <span style={{ fontSize: '11px', color: '#71717a' }}>Tap icon to share invite link</span>
+                    </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0', color: '#64748b', fontSize: '11px', fontWeight: 'bold' }}>
-                      <hr style={{ flex: 1, borderColor: 'rgba(255,255,255,0.1)' }} /> OR UNLOCK WITH GOD MODE <hr style={{ flex: 1, borderColor: 'rgba(255,255,255,0.1)' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0', color: '#71717a', fontSize: '11px', fontWeight: 'bold' }}>
+                      <hr style={{ flex: 1, borderColor: '#262626' }} /> OR UNLOCK WITH GOD MODE <hr style={{ flex: 1, borderColor: '#262626' }} />
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1306,42 +1325,23 @@ export default function App() {
                         className="magic-btn"
                         style={{
                           width: '100%',
-                          background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-                          color: '#000',
+                          background: '#ffffff',
+                          color: '#000000',
+                          border: 'none',
+                          borderRadius: '14px',
                           margin: 0,
                           padding: '13px',
                           fontSize: '14px',
-                          fontWeight: '950',
+                          fontWeight: '800',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '6px'
+                          gap: '6px',
+                          boxShadow: 'none'
                         }}
                         onClick={() => handleUpgrade(99)}
                       >
-                        <span>⚡</span> ₹99 Weekly God Mode
-                      </motion.button>
-
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="magic-btn"
-                        style={{
-                          width: '100%',
-                          background: 'linear-gradient(135deg, #00f0ff, #0088ff)',
-                          color: '#050c1e',
-                          margin: 0,
-                          padding: '13px',
-                          fontSize: '14px',
-                          fontWeight: '950',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px'
-                        }}
-                        onClick={() => handleUpgrade(149)}
-                      >
-                        <span>👑</span> ₹149 Monthly God Mode (Best Value)
+                        <span>⚡</span> Pay ₹99 / Week for God Mode
                       </motion.button>
                     </div>
                   </div>

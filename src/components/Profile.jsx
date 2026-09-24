@@ -382,9 +382,9 @@ export default function Profile({
         <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#888888', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
           <span>{user.institute || user.school || 'Kapil Institute'}</span>
           <span>•</span>
-          <span style={{ color: '#ff7700', fontWeight: '800' }}>{user.stream || '11th Medical'}</span>
+          <span style={{ color: '#d4d4d8', fontWeight: '700' }}>{user.stream || '11th Medical'}</span>
           <span>•</span>
-          <span style={{ color: '#38bdf8', fontWeight: '700' }}>📍 {user.coaching_hub || user.hub || 'Ajit Road Hub'}</span>
+          <span style={{ color: '#a1a1aa', fontWeight: '600' }}>📍 {user.coaching_hub || user.hub || 'Ajit Road Hub'}</span>
         </p>
 
         {/* Bio */}
@@ -409,7 +409,7 @@ export default function Profile({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#38bdf8',
+              color: '#a1a1aa',
               fontSize: '12.5px',
               fontWeight: '700',
               cursor: 'pointer',
@@ -825,15 +825,15 @@ export default function Profile({
             <div
               style={{
                 display: 'flex',
+                flexWrap: 'nowrap',
                 overflowX: 'auto',
-                whiteSpace: 'nowrap',
                 gap: '8px',
                 paddingBottom: '4px',
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
                 WebkitOverflowScrolling: 'touch'
               }}
-              className="overflow-x-auto whitespace-nowrap no-scrollbar"
+              className="flex flex-nowrap overflow-x-auto hide-scrollbar"
             >
               {['11th Medical', '11th Non-Med', '12th Commerce', 'Dropper'].map((s) => {
                 const isSelected = editStream === s;
@@ -850,9 +850,9 @@ export default function Profile({
                       flexShrink: 0,
                       padding: '8px 14px',
                       borderRadius: '10px',
-                      border: isSelected ? '1px solid #ff5500' : '1px solid #333',
-                      background: isSelected ? 'rgba(255, 85, 0, 0.2)' : '#181818',
-                      color: isSelected ? '#ffffff' : '#888888',
+                      border: isSelected ? '1px solid #ffffff' : '1px solid #262626',
+                      background: isSelected ? '#262626' : '#141416',
+                      color: isSelected ? '#ffffff' : '#a1a1aa',
                       fontWeight: '800',
                       fontSize: '12px',
                       cursor: 'pointer',

@@ -274,7 +274,7 @@ export default function Feed({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+              boxShadow: 'none',
               position: 'relative'
             }}
           >
@@ -288,7 +288,7 @@ export default function Feed({
                 top: '12px',
                 right: '12px',
                 background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                border: '1px solid #262626',
                 borderRadius: '10px',
                 width: '30px',
                 height: '30px',
@@ -301,7 +301,7 @@ export default function Feed({
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = '#ffffff';
-                e.currentTarget.style.background = 'rgba(255, 85, 0, 0.2)';
+                e.currentTarget.style.background = '#262626';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.color = '#a1a1aa';
@@ -373,15 +373,15 @@ export default function Feed({
                     boxSizing: 'border-box',
                     userSelect: 'none',
                     transition: 'border-color 0.15s ease, background 0.15s ease',
-                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)'
+                    boxShadow: 'none'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255, 85, 0, 0.4)';
-                    e.currentTarget.style.background = '#1e1e24';
+                    e.currentTarget.style.borderColor = '#3f3f46';
+                    e.currentTarget.style.background = '#222226';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-                    e.currentTarget.style.background = '#161616';
+                    e.currentTarget.style.borderColor = '#262626';
+                    e.currentTarget.style.background = '#1A1A1A';
                   }}
                 >
                   {renderProfilePic
@@ -409,7 +409,7 @@ export default function Feed({
                     @{opt.handle}
                   </span>
                   {opt.stream && (
-                    <span style={{ fontSize: '9.5px', color: '#ff7700', fontWeight: '700', marginTop: '2px' }}>
+                    <span style={{ fontSize: '9.5px', color: '#a1a1aa', fontWeight: '700', marginTop: '2px' }}>
                       {opt.stream}
                     </span>
                   )}

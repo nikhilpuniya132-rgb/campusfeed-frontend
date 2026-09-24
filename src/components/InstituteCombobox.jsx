@@ -105,14 +105,14 @@ export default function InstituteCombobox({
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
-          background: '#161616',
-          border: isOpen ? '1px solid #ff5500' : '1px solid #262626',
+          background: '#141416',
+          border: isOpen ? '1px solid #3f3f46' : '1px solid #262626',
           borderRadius: '14px',
           transition: 'all 0.15s ease',
-          boxShadow: isOpen ? '0 0 15px rgba(255, 85, 0, 0.15)' : 'none'
+          boxShadow: 'none'
         }}
       >
-        <span style={{ position: 'absolute', left: '14px', fontSize: '15px', color: '#ff7700', pointerEvents: 'none' }}>
+        <span style={{ position: 'absolute', left: '14px', fontSize: '15px', color: '#a1a1aa', pointerEvents: 'none' }}>
           🏫
         </span>
 
@@ -213,11 +213,11 @@ export default function InstituteCombobox({
                   type="button"
                   onClick={() => handleSelect(searchQuery, "Other Bathinda Locations")}
                   style={{
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    background: '#ff5500',
-                    color: '#fff',
-                    border: 'none',
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    background: '#262626',
+                    color: '#ffffff',
+                    border: '1px solid #3f3f46',
                     fontWeight: '800',
                     fontSize: '12px',
                     cursor: 'pointer'
@@ -235,7 +235,7 @@ export default function InstituteCombobox({
                       padding: '6px 10px',
                       fontSize: '10.5px',
                       fontWeight: '800',
-                      color: group.category.includes('Ajit Road') ? '#ff7700' : group.category.includes('100 Feet') ? '#38bdf8' : '#a855f7',
+                      color: '#a1a1aa',
                       textTransform: 'uppercase',
                       letterSpacing: '0.06em',
                       display: 'flex',
@@ -263,8 +263,8 @@ export default function InstituteCombobox({
                           fontSize: '13.5px',
                           fontWeight: isSelected ? '800' : '600',
                           color: isSelected ? '#ffffff' : '#e4e4e7',
-                          background: isSelected ? 'rgba(255, 85, 0, 0.2)' : 'transparent',
-                          border: isSelected ? '1px solid rgba(255, 85, 0, 0.4)' : '1px solid transparent',
+                          background: isSelected ? '#262626' : 'transparent',
+                          border: isSelected ? '1px solid #3f3f46' : '1px solid transparent',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
@@ -272,14 +272,14 @@ export default function InstituteCombobox({
                           transition: 'background 0.12s ease'
                         }}
                         onMouseEnter={(e) => {
-                          if (!isSelected) e.currentTarget.style.background = '#1e1e24';
+                          if (!isSelected) e.currentTarget.style.background = '#222226';
                         }}
                         onMouseLeave={(e) => {
                           if (!isSelected) e.currentTarget.style.background = 'transparent';
                         }}
                       >
                         <span>{name}</span>
-                        {isSelected && <span style={{ color: '#ff5500', fontSize: '12px' }}>✓</span>}
+                        {isSelected && <span style={{ color: '#ffffff', fontSize: '12px' }}>✓</span>}
                       </div>
                     );
                   })}

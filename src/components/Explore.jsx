@@ -477,10 +477,10 @@ export default function Explore({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {trendingPolls.slice(0, 3).map((poll, idx) => {
                 const badgeTheme = idx === 0 
-                  ? { border: 'rgba(255, 85, 0, 0.35)', bg: 'linear-gradient(135deg, rgba(255, 85, 0, 0.08), #141416)', badgeBg: 'rgba(255, 85, 0, 0.16)', badgeColor: '#ff7700', label: '🔥 #1 MOST ACTIVE IN BATHINDA', shadow: '0 8px 32px rgba(255, 85, 0, 0.12)' }
+                  ? { border: '#262626', bg: '#1A1A1A', badgeBg: '#262626', badgeColor: '#e4e4e7', label: '🔥 #1 MOST ACTIVE IN BATHINDA', shadow: 'none' }
                   : idx === 1
-                  ? { border: 'rgba(56, 189, 248, 0.3)', bg: 'linear-gradient(135deg, rgba(56, 189, 248, 0.06), #141416)', badgeBg: 'rgba(56, 189, 248, 0.14)', badgeColor: '#38bdf8', label: '⚡ #2 BUZZING THIS WEEK', shadow: '0 6px 24px rgba(56, 189, 248, 0.08)' }
-                  : { border: 'rgba(168, 85, 247, 0.3)', bg: 'linear-gradient(135deg, rgba(168, 85, 247, 0.06), #141416)', badgeBg: 'rgba(168, 85, 247, 0.14)', badgeColor: '#c084fc', label: '✨ #3 VIRAL QUESTION', shadow: '0 6px 24px rgba(168, 85, 247, 0.08)' };
+                  ? { border: '#262626', bg: '#1A1A1A', badgeBg: '#262626', badgeColor: '#a1a1aa', label: '⚡ #2 BUZZING THIS WEEK', shadow: 'none' }
+                  : { border: '#262626', bg: '#1A1A1A', badgeBg: '#262626', badgeColor: '#a1a1aa', label: '✨ #3 VIRAL QUESTION', shadow: 'none' };
 
                 return (
                   <motion.div
@@ -493,7 +493,7 @@ export default function Explore({
                       border: `1px solid ${badgeTheme.border}`,
                       borderRadius: '22px',
                       padding: '18px 16px',
-                      boxShadow: badgeTheme.shadow,
+                      boxShadow: 'none',
                       position: 'relative'
                     }}
                   >
@@ -517,8 +517,8 @@ export default function Explore({
                             whileTap={{ scale: 0.94 }}
                             onClick={() => onViewPublicProfile && onViewPublicProfile(student.id)}
                             style={{
-                              background: '#18181b',
-                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              background: '#141416',
+                              border: '1px solid #262626',
                               borderRadius: '16px',
                               padding: '12px 6px',
                               display: 'flex',
@@ -550,8 +550,8 @@ export default function Explore({
                             }}>
                               @{student.handle}
                             </span>
-                            <span style={{ fontSize: '10px', color: '#ff7700', fontWeight: '800', marginTop: '2px' }}>
-                              {student.votes || 0} 🔥
+                            <span style={{ fontSize: '10px', color: '#a1a1aa', fontWeight: '700', marginTop: '2px' }}>
+                              {student.votes || 0} votes
                             </span>
                           </motion.div>
                         );

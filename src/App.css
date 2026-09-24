@@ -3,20 +3,20 @@
    Ultra-vibrant, 3D interactive, glassmorphic, 100% Mobile & PC perfected
    ========================================================================== */
 
-/* --- ROOT VARIABLES (PREMIUM HIGH-CONTRAST DARK THEME #0F0F0F / #1A1A1A) --- */
+/* --- ROOT VARIABLES (STRICT DEEP DARK THEME #0F0F0F / #1A1A1A) --- */
 :root {
   --gas-dark-bg: #0F0F0F;
-  --gas-surface: #141416;
+  --gas-surface: #1A1A1A;
   --gas-card-bg: #1A1A1A;
-  --gas-card-border: rgba(255, 255, 255, 0.08);
-  --gas-card-border-hover: rgba(255, 85, 0, 0.35);
-  --gas-accent-gradient: linear-gradient(135deg, #ff5500 0%, #ff2e93 50%, #833ab4 100%);
-  --gas-accent-fire: #ff5500;
+  --gas-card-border: #262626;
+  --gas-card-border-hover: #3f3f46;
+  --gas-accent-gradient: #262626;
+  --gas-accent-fire: #d4d4d8;
   --gas-text: #ffffff;
   --gas-muted: #a1a1aa;
   --gas-muted-dark: #71717a;
-  --gas-border-glass: rgba(255, 255, 255, 0.08);
-  --gas-glass-bg: rgba(26, 26, 26, 0.75);
+  --gas-border-glass: #262626;
+  --gas-glass-bg: #1A1A1A;
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -195,7 +195,7 @@ html, body {
   margin-bottom: 20px;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  box-shadow: none;
 }
 
 .gas-hero-title {
@@ -643,12 +643,12 @@ html, body {
   background: rgba(15, 15, 15, 0.85);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid #262626;
   display: flex;
   align-items: center;
   justify-content: space-around;
   padding: 0 6px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
+  box-shadow: none;
   z-index: 50;
   box-sizing: border-box;
 }
@@ -700,7 +700,7 @@ html, body {
   height: 3px;
   border-radius: 2px;
   background: #ffffff;
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+  box-shadow: none;
 }
 
 /* ==========================================================================
@@ -840,7 +840,7 @@ html, body {
   color: #000000;
   border: 1px solid #ffffff;
   border-radius: 9999px;
-  box-shadow: 0 2px 20px rgba(255, 255, 255, 0.15);
+  box-shadow: none;
   cursor: pointer;
   letter-spacing: 0.4px;
   display: inline-flex;
@@ -854,7 +854,7 @@ html, body {
 .magic-btn:hover {
   transform: translateY(-2px) scale(1.02);
   background: #f4f4f5;
-  box-shadow: 0 0 30px rgba(255, 255, 255, 0.35);
+  box-shadow: none;
 }
 
 .magic-btn:active {
@@ -1073,12 +1073,12 @@ html, body {
 .pricing-modal {
   width: 100%;
   max-width: min(420px, 100%);
-  background: #09090b;
+  background: #1A1A1A;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
+  box-shadow: none;
   border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #262626;
   overflow: hidden;
   color: #fff;
   box-sizing: border-box;
@@ -1107,29 +1107,28 @@ html, body {
   flex-direction: row;
   position: relative;
   padding: 3px;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: #0F0F0F;
   border-radius: 12px;
   margin: 20px 20px 0 20px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid #262626;
 }
 
 .indicator {
-  width: 33.33%;
+  width: 50%;
   height: 32px;
   background: #ffffff;
   position: absolute;
   top: 3px;
   z-index: 9;
   border-radius: 9px;
-  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.15);
+  box-shadow: none;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .indicator[data-active="basic"] { left: 3px; }
-.indicator[data-active="weekly"] { left: calc(33.33% + 2px); }
-.indicator[data-active="monthly"] { left: calc(66.66% - 4px); }
+.indicator[data-active="weekly"] { left: calc(50% - 3px); }
 
 .tab {
-  width: 33.33%;
+  width: 50%;
   height: 32px;
   position: relative;
   z-index: 10;
@@ -1155,8 +1154,8 @@ html, body {
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.4);
+  border-top: 1px solid #262626;
+  background: #141416;
 }
 .price { position: relative; font-size: 28px; color: #fff; font-weight: 900; letter-spacing: -0.5px; }
 .price sup { font-size: 16px; top: -0.4em; color: #a1a1aa; }
@@ -1175,10 +1174,10 @@ html, body {
   font-weight: 800;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 10px rgba(255, 255, 255, 0.15);
+  box-shadow: none;
 }
 .upgrade-btn:hover {
   transform: translateY(-2px);
   background: #f4f4f5;
-  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.25);
+  box-shadow: none;
 }

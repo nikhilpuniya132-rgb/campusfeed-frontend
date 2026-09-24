@@ -8,9 +8,9 @@ export default function HolographicCard({
   period = '/week',
   perks = [
     'Unlimited Instant Name Reveals',
-    'Exclusive Animated 3D Aura Rings',
-    'Real-time Crush & Vote Alerts',
-    'Class 11 & 12 VIP Crown Badge',
+    'Exclusive 3D Aura Rings',
+    'Real-time Batch Alerts',
+    'Class 11 & 12 VIP Badge',
   ],
   onAction,
   actionText = 'Unlock God Mode ➔',
@@ -21,17 +21,12 @@ export default function HolographicCard({
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
-  const spring = { damping: 18, stiffness: 220 };
+  const spring = { damping: 20, stiffness: 200 };
   const smoothX = useSpring(x, spring);
   const smoothY = useSpring(y, spring);
 
-  const rotateX = useTransform(smoothY, [-0.5, 0.5], [16, -16]);
-  const rotateY = useTransform(smoothX, [-0.5, 0.5], [-16, 16]);
-
-  const holoBgPos = useTransform(
-    [smoothX, smoothY],
-    ([sx, sy]) => `${(sx + 0.5) * 100}% ${(sy + 0.5) * 100}%`
-  );
+  const rotateX = useTransform(smoothY, [-0.5, 0.5], [10, -10]);
+  const rotateY = useTransform(smoothX, [-0.5, 0.5], [-10, 10]);
 
   const handlePointerMove = (e) => {
     if (!cardRef.current) return;
@@ -68,49 +63,25 @@ export default function HolographicCard({
           transformStyle: 'preserve-3d',
           borderRadius: '24px',
           padding: '28px 24px',
-          background: 'linear-gradient(135deg, #181926 0%, #0d0e15 100%)',
-          border: '2px solid rgba(251, 191, 36, 0.4)',
-          boxShadow: isHovered
-            ? '0 25px 50px -12px rgba(251, 191, 36, 0.35), 0 0 30px rgba(251, 191, 36, 0.2)'
-            : '0 15px 35px -10px rgba(0, 0, 0, 0.6)',
+          background: '#1A1A1A',
+          border: '1px solid #262626',
+          boxShadow: 'none',
           position: 'relative',
           overflow: 'hidden',
-          color: '#fff',
-          transition: 'box-shadow 0.3s ease',
+          color: '#ffffff',
         }}
       >
-        {/* Holographic Rainbow Iridescence Foil */}
-        <motion.div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            borderRadius: '24px',
-            pointerEvents: 'none',
-            opacity: isHovered ? 0.35 : 0.15,
-            transition: 'opacity 0.3s ease',
-            background:
-              'linear-gradient(115deg, transparent 20%, rgba(255,0,128,0.4) 36%, rgba(0,255,255,0.4) 48%, rgba(255,230,0,0.5) 60%, transparent 80%)',
-            backgroundSize: '200% 200%',
-            backgroundPosition: holoBgPos,
-            mixBlendMode: 'color-dodge',
-            zIndex: 1,
-          }}
-        />
-
-        {/* 3D Depth Content Layer */}
-        <div style={{ position: 'relative', zIndex: 2, transform: 'translateZ(30px)' }}>
+        <div style={{ position: 'relative', zIndex: 2, transform: 'translateZ(20px)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
             <span
               style={{
-                background: 'linear-gradient(90deg, #fbbf24, #f59e0b)',
-                color: '#000',
+                background: '#262626',
+                border: '1px solid #3f3f46',
+                color: '#ffffff',
                 padding: '4px 12px',
                 borderRadius: '20px',
                 fontSize: '11px',
-                fontWeight: '900',
+                fontWeight: '800',
                 letterSpacing: '1px',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -119,37 +90,35 @@ export default function HolographicCard({
             >
               👑 {title}
             </span>
-            <span style={{ fontSize: '12px', color: '#a1a1aa', fontWeight: 'bold' }}>BATHINDA EXCLUSIVE</span>
+            <span style={{ fontSize: '11px', color: '#71717a', fontWeight: 'bold' }}>BATHINDA EXCLUSIVE</span>
           </div>
 
           <h3
             style={{
-              fontSize: '26px',
+              fontSize: '24px',
               fontWeight: '900',
               margin: '0 0 6px 0',
-              background: 'linear-gradient(135deg, #fff 0%, #fbbf24 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              color: '#ffffff',
             }}
           >
             {subtitle}
           </h3>
 
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', margin: '14px 0 20px 0' }}>
-            <span style={{ fontSize: '38px', fontWeight: '900', color: '#fbbf24' }}>{price}</span>
-            <span style={{ fontSize: '14px', color: '#a1a1aa', fontWeight: 'bold' }}>{period}</span>
+            <span style={{ fontSize: '36px', fontWeight: '900', color: '#ffffff' }}>{price}</span>
+            <span style={{ fontSize: '13px', color: '#71717a', fontWeight: 'bold' }}>{period}</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
             {perks.map((perk, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#e4e4e7', fontWeight: '600' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#d4d4d8', fontWeight: '500' }}>
                 <span
                   style={{
                     width: '18px',
                     height: '18px',
                     borderRadius: '50%',
-                    background: 'rgba(251, 191, 36, 0.2)',
-                    color: '#fbbf24',
+                    background: '#262626',
+                    color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -166,25 +135,24 @@ export default function HolographicCard({
           </div>
 
           <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={onAction}
             style={{
               width: '100%',
-              padding: '16px',
-              borderRadius: '16px',
+              padding: '14px',
+              borderRadius: '14px',
               border: 'none',
-              background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-              color: '#000',
-              fontSize: '15px',
-              fontWeight: '900',
+              background: '#ffffff',
+              color: '#000000',
+              fontSize: '14px',
+              fontWeight: '800',
               cursor: 'pointer',
-              boxShadow: '0 8px 20px rgba(245, 158, 11, 0.4)',
+              boxShadow: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
-              letterSpacing: '0.5px',
             }}
           >
             {actionText}

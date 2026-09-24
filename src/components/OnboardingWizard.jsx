@@ -393,29 +393,29 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                     }}
                     onSelectHub={(hub) => setCoachingHub(hub)}
                   />
-                  <div style={{ marginTop: '5px', fontSize: '11.5px', color: '#ff7700', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div style={{ marginTop: '5px', fontSize: '11.5px', color: '#a1a1aa', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <span>📍 Hub:</span>
-                    <span>{coachingHub || findHubForInstitute(institute)}</span>
+                    <span style={{ color: '#ffffff' }}>{coachingHub || findHubForInstitute(institute)}</span>
                   </div>
                 </div>
 
-                {/* Stream Selection Pills (11th Medical, 11th Non-Med, 12th Commerce, Dropper) */}
+                {/* Stream Selection Pills (Single Horizontal Scrolling Row per Task 2) */}
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: '700', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
                     Batch / Stream
                   </label>
                   <div
+                    className="flex flex-nowrap overflow-x-auto hide-scrollbar"
                     style={{
                       display: 'flex',
+                      flexWrap: 'nowrap',
                       overflowX: 'auto',
-                      whiteSpace: 'nowrap',
                       gap: '8px',
                       padding: '2px 2px 8px 2px',
                       scrollbarWidth: 'none',
                       msOverflowStyle: 'none',
                       WebkitOverflowScrolling: 'touch'
                     }}
-                    className="overflow-x-auto whitespace-nowrap no-scrollbar"
                   >
                     {['11th Medical', '11th Non-Med', '12th Commerce', 'Dropper'].map(s => {
                       const isSelected = stream === s;
@@ -432,14 +432,14 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                             flexShrink: 0,
                             padding: '10px 16px',
                             borderRadius: '12px',
-                            border: isSelected ? '1px solid #ff5500' : '1px solid #222222',
-                            background: isSelected ? 'rgba(255, 85, 0, 0.15)' : '#141416',
-                            color: isSelected ? '#ffffff' : '#888888',
+                            border: isSelected ? '1px solid #ffffff' : '1px solid #262626',
+                            background: isSelected ? '#262626' : '#141416',
+                            color: isSelected ? '#ffffff' : '#71717a',
                             fontWeight: '800',
                             fontSize: '12.5px',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
-                            boxShadow: isSelected ? '0 0 12px rgba(255, 85, 0, 0.25)' : 'none'
+                            boxShadow: 'none'
                           }}
                         >
                           {s}
@@ -941,55 +941,35 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                 </button>
               </div>
 
-              {/* Direct Social Share Buttons */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+              {/* Minimalist Share Icon Button */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
                 <motion.button
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={handleWhatsAppShare}
+                  aria-label="Share Link"
+                  title="Share Invite Link"
                   style={{
-                    width: '100%',
-                    padding: '13px',
-                    borderRadius: '14px',
-                    border: 'none',
-                    background: '#25D366',
-                    color: '#000000',
-                    fontSize: '13.5px',
-                    fontWeight: '800',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  <span>📲</span>
-                  <span>Share on WhatsApp</span>
-                </motion.button>
-
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  type="button"
-                  onClick={handleInstagramShare}
-                  style={{
-                    width: '100%',
-                    padding: '13px',
-                    borderRadius: '14px',
-                    border: '1px solid #2a2a2e',
-                    background: '#18181b',
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '50%',
+                    border: '1px solid #262626',
+                    background: '#1A1A1A',
                     color: '#ffffff',
-                    fontSize: '13.5px',
-                    fontWeight: '800',
-                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '8px'
+                    cursor: 'pointer',
+                    boxShadow: 'none'
                   }}
                 >
-                  <span>📸</span>
-                  <span>Share on Instagram</span>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
                 </motion.button>
+                <span style={{ fontSize: '11px', color: '#71717a' }}>Tap icon to share invite link</span>
               </div>
 
               {shareToast && (

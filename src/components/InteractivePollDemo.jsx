@@ -79,10 +79,10 @@ export default function InteractivePollDemo({ onCtaClick }) {
         width: '100%',
         maxWidth: 'min(380px, 100%)',
         borderRadius: '24px',
-        background: 'linear-gradient(165deg, rgba(30, 32, 48, 0.85) 0%, rgba(15, 16, 24, 0.95) 100%)',
+        background: '#1A1A1A',
         backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 98, 0, 0.3)',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.5), 0 0 40px rgba(255, 98, 0, 0.15)',
+        border: '1px solid #262626',
+        boxShadow: 'none',
         padding: 'clamp(16px, 4vw, 22px) clamp(14px, 3.5vw, 18px)',
         position: 'relative',
         userSelect: 'none',
@@ -92,12 +92,12 @@ export default function InteractivePollDemo({ onCtaClick }) {
       {/* 3D Floating Tag */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', transform: 'translateZ(30px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
-          <span style={{ fontSize: '11px', fontWeight: '800', color: '#ff6200', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#ffffff', boxShadow: 'none' }} />
+          <span style={{ fontSize: '11px', fontWeight: '800', color: '#a1a1aa', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
             Interactive Demo
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 98, 0, 0.15)', border: '1px solid rgba(255, 98, 0, 0.3)', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '800', color: '#ff8800' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid #262626', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '800', color: '#ffffff' }}>
           <span>🔥</span> {flameCount.toLocaleString()} votes
         </div>
       </div>
@@ -119,7 +119,6 @@ export default function InteractivePollDemo({ onCtaClick }) {
               lineHeight: '1.35',
               color: '#ffffff',
               margin: 0,
-              textShadow: '0 2px 10px rgba(0,0,0,0.5)',
             }}
           >
             "{currentQ.question}"
@@ -139,20 +138,21 @@ export default function InteractivePollDemo({ onCtaClick }) {
               top: '55%',
               left: '50%',
               transform: 'translate(-50%, -50%) translateZ(60px)',
-              background: 'linear-gradient(135deg, #ff6200, #ff2e93)',
+              background: '#262626',
+              border: '1px solid #3f3f46',
               padding: '16px 24px',
               borderRadius: '20px',
               color: '#fff',
               fontWeight: '900',
               fontSize: '16px',
-              boxShadow: '0 10px 30px rgba(255, 98, 0, 0.6)',
+              boxShadow: 'none',
               zIndex: 50,
               textAlign: 'center',
               whiteSpace: 'nowrap',
             }}
           >
             <div>🔥 +1 Flame Sent!</div>
-            <div style={{ fontSize: '13px', opacity: 0.9, marginTop: '4px' }}>to {votedName}</div>
+            <div style={{ fontSize: '13px', opacity: 0.8, marginTop: '4px' }}>to {votedName}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -176,8 +176,8 @@ export default function InteractivePollDemo({ onCtaClick }) {
             whileTap={{ scale: 0.94, y: 1 }}
             onClick={() => handleVote(opt)}
             style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
+              background: '#141416',
+              border: '1px solid #262626',
               borderRadius: '16px',
               padding: 'clamp(12px, 3vw, 16px) 6px',
               display: 'flex',
@@ -188,8 +188,8 @@ export default function InteractivePollDemo({ onCtaClick }) {
               cursor: 'pointer',
               outline: 'none',
               backdropFilter: 'blur(10px)',
-              transition: 'background 0.2s, border-color 0.2s, box-shadow 0.2s',
-              boxShadow: '0 6px 16px rgba(0,0,0,0.3)',
+              transition: 'background 0.2s, border-color 0.2s',
+              boxShadow: 'none',
               minHeight: '88px',
               boxSizing: 'border-box',
             }}
@@ -200,14 +200,14 @@ export default function InteractivePollDemo({ onCtaClick }) {
                 width: 'clamp(40px, 9vw, 46px)',
                 height: 'clamp(40px, 9vw, 46px)',
                 borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.12)',
+                background: '#222226',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 'clamp(20px, 5vw, 24px)',
                 marginBottom: '6px',
-                border: opt.ring === 'gold' ? '2.5px solid #fbbf24' : '2px solid rgba(255,255,255,0.2)',
-                boxShadow: opt.ring === 'gold' ? '0 0 12px rgba(251, 191, 36, 0.6)' : 'none',
+                border: '1px solid #3f3f46',
+                boxShadow: 'none',
               }}
             >
               {opt.avatar}
@@ -247,15 +247,15 @@ export default function InteractivePollDemo({ onCtaClick }) {
           whileTap={{ scale: 0.95 }}
           onClick={onCtaClick}
           style={{
-            background: 'linear-gradient(135deg, #ff6200, #ff8800)',
+            background: '#ffffff',
             border: 'none',
-            color: '#fff',
+            color: '#000000',
             fontSize: '12px',
             fontWeight: '800',
             cursor: 'pointer',
             padding: '8px 16px',
             borderRadius: '20px',
-            boxShadow: '0 4px 12px rgba(255, 98, 0, 0.4)',
+            boxShadow: 'none',
           }}
         >
           Play For Real ➔
