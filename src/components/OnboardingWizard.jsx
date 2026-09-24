@@ -404,7 +404,19 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                   <label style={{ fontSize: '11px', fontWeight: '700', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
                     Batch / Stream
                   </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      overflowX: 'auto',
+                      whiteSpace: 'nowrap',
+                      gap: '8px',
+                      padding: '2px 2px 8px 2px',
+                      scrollbarWidth: 'none',
+                      msOverflowStyle: 'none',
+                      WebkitOverflowScrolling: 'touch'
+                    }}
+                    className="overflow-x-auto whitespace-nowrap no-scrollbar"
+                  >
                     {['11th Medical', '11th Non-Med', '12th Commerce', 'Dropper'].map(s => {
                       const isSelected = stream === s;
                       return (
@@ -417,7 +429,8 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                             setGrade(s.includes('12') ? '12' : s.includes('drop') ? 'dropper' : '11');
                           }}
                           style={{
-                            padding: '11px 8px',
+                            flexShrink: 0,
+                            padding: '10px 16px',
                             borderRadius: '12px',
                             border: isSelected ? '1px solid #ff5500' : '1px solid #222222',
                             background: isSelected ? 'rgba(255, 85, 0, 0.15)' : '#141416',
@@ -425,7 +438,8 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                             fontWeight: '800',
                             fontSize: '12.5px',
                             cursor: 'pointer',
-                            transition: 'all 0.15s ease'
+                            transition: 'all 0.15s ease',
+                            boxShadow: isSelected ? '0 0 12px rgba(255, 85, 0, 0.25)' : 'none'
                           }}
                         >
                           {s}

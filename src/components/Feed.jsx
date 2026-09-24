@@ -106,6 +106,27 @@ export default function Feed({
     }
   };
 
+  const handleSharePoll = async () => {
+    if (window.navigator?.vibrate) window.navigator.vibrate(8);
+    const questionText = currentPoll?.question || 'Who is most likely to crack NEET on the first attempt?';
+    const shareData = {
+      title: 'CenterInsider',
+      text: `🔥 "${questionText}"\nVote anonymously on CenterInsider!`,
+      url: window.location.origin
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          navigator.clipboard?.writeText(`${shareData.text} ${shareData.url}`);
+        }
+      }
+    } else {
+      navigator.clipboard?.writeText(`${shareData.text} ${shareData.url}`);
+    }
+  };
+
   // 1. If in cooldown, show CooldownScreen
   if (isCooldownActive) {
     return (
@@ -132,7 +153,7 @@ export default function Feed({
         width: '100%',
         maxWidth: '440px',
         margin: '0 auto',
-        padding: '8px 16px 85px 16px',
+        padding: '6px 14px 75px 14px',
         boxSizing: 'border-box'
       }}
     >
@@ -237,7 +258,7 @@ export default function Feed({
         </motion.div>
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {/* Question Card (Premium Solid Surface with subtle gradient border) */}
+          {/* Question Card (Premium Solid Surface with subtle gradient border & unified share icon) */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -246,23 +267,61 @@ export default function Feed({
               background: '#161616',
               border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: '24px',
-              padding: '24px 18px',
+              padding: '22px 18px',
               textAlign: 'center',
-              marginBottom: '16px',
-              minHeight: '110px',
+              marginBottom: '14px',
+              minHeight: '105px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)'
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+              position: 'relative'
             }}
           >
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={handleSharePoll}
+              title="Share Question"
+              aria-label="Share Question"
+              style={{
+                position: 'absolute',
+                top: '12px',
+                right: '12px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '10px',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#a1a1aa',
+                transition: 'color 0.15s ease, background 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#ffffff';
+                e.currentTarget.style.background = 'rgba(255, 85, 0, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#a1a1aa';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </motion.button>
+
             <h3
               style={{
-                fontSize: 'clamp(17px, 4.5vw, 21px)',
+                fontSize: 'clamp(16px, 4.2vw, 20px)',
                 fontWeight: '900',
                 color: '#ffffff',
                 lineHeight: '1.35',
                 margin: 0,
+                padding: '0 24px',
                 letterSpacing: '-0.01em'
               }}
             >

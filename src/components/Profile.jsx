@@ -230,10 +230,35 @@ export default function Profile({
   };
 
   return (
-    <div style={{ padding: '16px 16px 80px 16px', maxWidth: '440px', margin: '0 auto', boxSizing: 'border-box', position: 'relative' }}>
+    <div style={{ padding: '12px 14px 75px 14px', maxWidth: '440px', margin: '0 auto', boxSizing: 'border-box', position: 'relative' }}>
       
-      {/* Top Bar: Settings 3-Dots Menu */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', position: 'relative', marginBottom: '8px' }} ref={settingsMenuRef}>
+      {/* Top Bar: Unified Share Button & Settings 3-Dots Menu */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', position: 'relative', marginBottom: '8px' }} ref={settingsMenuRef}>
+        <motion.button
+          whileTap={{ scale: 0.92 }}
+          onClick={handleWhatsAppInvite}
+          aria-label="Share Profile"
+          title="Share Profile / Invite"
+          style={{
+            background: '#18181b',
+            border: '1px solid #27272a',
+            borderRadius: '12px',
+            width: '36px',
+            height: '36px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: '#e4e4e7',
+            transition: 'border-color 0.15s ease'
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </motion.button>
+
         <motion.button
           whileTap={{ scale: 0.92 }}
           onClick={() => setShowSettingsMenu(!showSettingsMenu)}
@@ -656,31 +681,31 @@ export default function Profile({
         </div>
       )}
 
-      {/* 5. VIRAL INVITE PASS */}
+      {/* 5. MINIMALIST INVITE PASS */}
       <div
         style={{
-          background: '#111111',
-          borderRadius: '20px',
-          padding: '18px',
-          border: '1px solid #222222',
-          marginBottom: '20px',
+          background: '#121214',
+          borderRadius: '18px',
+          padding: '14px 16px',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          marginBottom: '16px',
           textAlign: 'left'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '18px' }}>🎟️</span>
-            <span style={{ fontSize: '13px', fontWeight: '900', color: '#fff', letterSpacing: '0.4px' }}>
-              Your Invite Pass
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '15px' }}>🎟️</span>
+            <span style={{ fontSize: '13px', fontWeight: '800', color: '#ffffff' }}>
+              Invite Pass
             </span>
           </div>
-          <span style={{ fontSize: '11px', background: '#1c1c1c', color: '#888', padding: '3px 8px', borderRadius: '8px', fontWeight: '700' }}>
+          <span style={{ fontSize: '10.5px', background: 'rgba(255, 255, 255, 0.06)', color: '#a1a1aa', padding: '2px 8px', borderRadius: '6px', fontWeight: '600' }}>
             3 Invites = 1 Reveal
           </span>
         </div>
 
-        <p style={{ fontSize: '13px', color: '#888888', margin: '0 0 14px 0', lineHeight: '1.4' }}>
-          Share your invite code with friends. When they join, you unlock who secretly voted for you.
+        <p style={{ fontSize: '12px', color: '#71717a', margin: '0 0 10px 0', lineHeight: '1.4', fontWeight: '500' }}>
+          Your code unlocks secret voter identities when friends join.
         </p>
 
         {/* Unique Code Box */}
@@ -688,61 +713,39 @@ export default function Profile({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: '#161616',
-          padding: '12px 14px',
-          borderRadius: '14px',
-          border: '1px solid #222222',
-          marginBottom: '12px'
+          background: '#161618',
+          padding: '8px 12px',
+          borderRadius: '12px',
+          border: '1px solid rgba(255, 255, 255, 0.06)'
         }}>
           <div>
-            <span style={{ fontSize: '10px', color: '#777777', fontWeight: '700', textTransform: 'uppercase', display: 'block' }}>
-              Invite Code
+            <span style={{ fontSize: '9px', color: '#71717a', fontWeight: '600', textTransform: 'uppercase', display: 'block', letterSpacing: '0.04em' }}>
+              Your Code
             </span>
-            <span style={{ fontSize: '17px', fontWeight: '900', color: '#ffffff', letterSpacing: '0.5px' }}>
+            <span style={{ fontSize: '15px', fontWeight: '800', color: '#ffffff', letterSpacing: '0.02em' }}>
               @{my_invite_code}
             </span>
           </div>
 
-          <motion.button
-            whileTap={{ scale: 0.94 }}
-            onClick={copyInviteToClipboard}
-            style={{
-              padding: '7px 12px',
-              borderRadius: '10px',
-              border: '1px solid #333',
-              background: copySuccess ? '#10b98122' : '#222222',
-              color: copySuccess ? '#10b981' : '#ffffff',
-              fontSize: '12px',
-              fontWeight: '800',
-              cursor: 'pointer'
-            }}
-          >
-            {copySuccess ? '✓ Copied' : '📋 Copy'}
-          </motion.button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <motion.button
+              whileTap={{ scale: 0.94 }}
+              onClick={copyInviteToClipboard}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: copySuccess ? 'rgba(16, 185, 129, 0.15)' : '#202024',
+                color: copySuccess ? '#34d399' : '#ffffff',
+                fontSize: '11.5px',
+                fontWeight: '700',
+                cursor: 'pointer'
+              }}
+            >
+              {copySuccess ? '✓ Copied' : 'Copy'}
+            </motion.button>
+          </div>
         </div>
-
-        {/* WhatsApp Share Button */}
-        <motion.button
-          whileTap={{ scale: 0.96 }}
-          onClick={handleWhatsAppInvite}
-          style={{
-            width: '100%',
-            padding: '14px',
-            borderRadius: '14px',
-            border: 'none',
-            background: '#25D366',
-            color: '#000',
-            fontSize: '14px',
-            fontWeight: '900',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-          }}
-        >
-          <span>📲</span> Invite Friends on WhatsApp
-        </motion.button>
       </div>
 
       {/* 6. EDIT PROFILE MODAL / DRAWER */}
@@ -815,11 +818,23 @@ export default function Profile({
           </div>
 
           {/* Stream Selection Pills (11th Medical, 11th Non-Med, 12th Commerce, Dropper) */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ fontSize: '11px', color: '#888', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '11px', color: '#888', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
               Batch / Stream
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+            <div
+              style={{
+                display: 'flex',
+                overflowX: 'auto',
+                whiteSpace: 'nowrap',
+                gap: '8px',
+                paddingBottom: '4px',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                WebkitOverflowScrolling: 'touch'
+              }}
+              className="overflow-x-auto whitespace-nowrap no-scrollbar"
+            >
               {['11th Medical', '11th Non-Med', '12th Commerce', 'Dropper'].map((s) => {
                 const isSelected = editStream === s;
                 return (
@@ -832,14 +847,16 @@ export default function Profile({
                       setEditGrade(s.includes('12') ? '12' : s.includes('drop') ? 'dropper' : '11');
                     }}
                     style={{
-                      padding: '9px 6px',
+                      flexShrink: 0,
+                      padding: '8px 14px',
                       borderRadius: '10px',
-                      border: isSelected ? '2px solid #ff5500' : '1px solid #333',
+                      border: isSelected ? '1px solid #ff5500' : '1px solid #333',
                       background: isSelected ? 'rgba(255, 85, 0, 0.2)' : '#181818',
                       color: isSelected ? '#ffffff' : '#888888',
                       fontWeight: '800',
-                      fontSize: '11.5px',
-                      cursor: 'pointer'
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     {s}

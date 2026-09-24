@@ -86,6 +86,9 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
   const userRankIndex = captains.findIndex(c => c.id === user?.id || c.handle === user?.handle);
   const userRank = userRankIndex >= 0 ? userRankIndex + 1 : '—';
   const userInvites = user?.invites || 0;
+  const isAdminOverride = Boolean(user?.batch_captain_admin_override);
+  const isEliteCaptain = Boolean(user?.is_batch_captain || isAdminOverride || userInvites >= 25);
+  const progressPercent = Math.min(100, Math.round((userInvites / 25) * 100));
   const userDrops = user?.feed_drops !== undefined && user?.feed_drops !== null ? user.feed_drops : (userInvites * 50);
 
   return (
@@ -138,7 +141,7 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
           boxShadow: '0 8px 30px rgba(0,0,0,0.5)'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
           <div>
             <div style={{ fontSize: '11px', fontWeight: '800', color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Your Captain Status
@@ -162,20 +165,73 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
           </div>
         </div>
 
-        {/* Milestone Indicator */}
-        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '8px 10px', marginBottom: '12px', fontSize: '11.5px', color: '#d4d4d8', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>👑 God Mode Milestone:</span>
-          <span style={{ fontWeight: '800', color: userInvites >= 3 ? '#4ade80' : '#fbbf24' }}>
-            {userInvites >= 3 ? '✓ Unlocked' : `${Math.max(0, 3 - userInvites)} verified recruits left`}
-          </span>
-        </div>
+        {/* Grand Status Progress Bar: Elite Status: 0 / 25 Active Recruits to unlock Batch Captain. */}
+        <div
+          style={{
+            background: 'rgba(15, 15, 18, 0.85)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '16px',
+            padding: '12px 14px',
+            marginBottom: '12px',
+            boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.5)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ fontSize: '12px', fontWeight: '900', color: isEliteCaptain ? '#fbbf24' : '#ffffff', letterSpacing: '-0.01em' }}>
+              {isEliteCaptain
+                ? '👑 Elite Status: UNLOCKED (Batch Captain / Moderator)'
+                : `Elite Status: ${userInvites} / 25 Active Recruits to unlock Batch Captain.`}
+            </span>
+            <span style={{ fontSize: '11px', fontWeight: '800', color: isEliteCaptain ? '#4ade80' : '#ff7700' }}>
+              {progressPercent}%
+            </span>
+          </div>
 
-        {/* Anti-Cheat Qualification Notice */}
-        <div style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: '12px', padding: '8px 10px', marginBottom: '14px', fontSize: '11px', color: '#f59e0b', lineHeight: '1.35', display: 'flex', gap: '6px' }}>
-          <span>🛡️</span>
-          <span>
-            <strong>Anti-Cheat Active:</strong> Recruits must sign in with Google & cast votes in at least <strong>3 polls</strong> before counting towards your rank and Feed Drops.
-          </span>
+          {/* Grand Progress Bar Track */}
+          <div
+            style={{
+              width: '100%',
+              height: '10px',
+              background: '#18181b',
+              borderRadius: '999px',
+              overflow: 'hidden',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              position: 'relative'
+            }}
+          >
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
+              style={{
+                height: '100%',
+                background: isEliteCaptain
+                  ? 'linear-gradient(90deg, #10b981 0%, #06b6d4 50%, #fbbf24 100%)'
+                  : 'linear-gradient(90deg, #ff5500 0%, #fbbf24 100%)',
+                boxShadow: isEliteCaptain
+                  ? '0 0 14px rgba(251, 191, 36, 0.6)'
+                  : '0 0 10px rgba(255, 85, 0, 0.5)',
+                borderRadius: '999px'
+              }}
+            />
+          </div>
+
+          {/* Explanatory Anti-Cheat & Admin Override Subtext */}
+          <div style={{ marginTop: '8px', fontSize: '10.5px', color: '#71717a', lineHeight: '1.4' }}>
+            {isAdminOverride ? (
+              <span style={{ color: '#fbbf24', fontWeight: '800' }}>
+                ⚡ Admin Override Granted: Full Moderator privileges enabled.
+              </span>
+            ) : isEliteCaptain ? (
+              <span style={{ color: '#4ade80', fontWeight: '700' }}>
+                ✓ Official Batch Captain & Moderator unlocked with 25 verified active recruits!
+              </span>
+            ) : (
+              <span>
+                🛡️ Active recruits must complete Google Auth and vote in 3+ polls to qualify.
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Action Buttons */}

@@ -6,10 +6,7 @@ import SkeletonExplore from './SkeletonExplore';
 const DEFAULT_TUITION_POLLS = [
   { id: 't1', question: "Always sleeps through 5 PM Physics?" },
   { id: 't2', question: "Most likely to crack NEET on the first attempt?" },
-  { id: 't3', question: "Spends more time at the Maggi point than in class?" },
-  { id: 't4', question: "Secretly solving HC Verma modules during school hours?" },
-  { id: 't5', question: "Has pristine handwritten formula notes everyone begs for?" },
-  { id: 't6', question: "Buys samosas & patties for the whole batch after minor tests?" }
+  { id: 't3', question: "Spends more time at the Maggi point than in class?" }
 ];
 
 export default function Explore({
@@ -64,7 +61,7 @@ export default function Explore({
     fetchLegends();
   }, [API, supabase]);
 
-  // 2. Fetch Trending Questions
+  // 2. Fetch Trending Questions (Strictly 3 Items Maximum)
   useEffect(() => {
     const fetchTrending = async () => {
       setIsLoadingTrending(true);
@@ -72,7 +69,7 @@ export default function Explore({
         const res = await fetch(`${API}/explore/trending`);
         const data = await res.json();
         if (data.trending && data.trending.length > 0) {
-          setTrendingPolls(data.trending);
+          setTrendingPolls(data.trending.slice(0, 3));
         } else {
           setTrendingPolls(DEFAULT_TUITION_POLLS);
         }
@@ -478,75 +475,91 @@ export default function Explore({
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {trendingPolls.map((poll, idx) => (
-                <div
-                  key={poll.id || idx}
-                  style={{
-                    background: '#121214',
-                    border: '1px solid #27272a',
-                    borderRadius: '20px',
-                    padding: '16px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#ff8800', background: 'rgba(255, 136, 0, 0.12)', padding: '3px 8px', borderRadius: '8px' }}>
-                      #{idx + 1} Trending
-                    </span>
-                  </div>
+              {trendingPolls.slice(0, 3).map((poll, idx) => {
+                const badgeTheme = idx === 0 
+                  ? { border: 'rgba(255, 85, 0, 0.35)', bg: 'linear-gradient(135deg, rgba(255, 85, 0, 0.08), #141416)', badgeBg: 'rgba(255, 85, 0, 0.16)', badgeColor: '#ff7700', label: '🔥 #1 MOST ACTIVE IN BATHINDA', shadow: '0 8px 32px rgba(255, 85, 0, 0.12)' }
+                  : idx === 1
+                  ? { border: 'rgba(56, 189, 248, 0.3)', bg: 'linear-gradient(135deg, rgba(56, 189, 248, 0.06), #141416)', badgeBg: 'rgba(56, 189, 248, 0.14)', badgeColor: '#38bdf8', label: '⚡ #2 BUZZING THIS WEEK', shadow: '0 6px 24px rgba(56, 189, 248, 0.08)' }
+                  : { border: 'rgba(168, 85, 247, 0.3)', bg: 'linear-gradient(135deg, rgba(168, 85, 247, 0.06), #141416)', badgeBg: 'rgba(168, 85, 247, 0.14)', badgeColor: '#c084fc', label: '✨ #3 VIRAL QUESTION', shadow: '0 6px 24px rgba(168, 85, 247, 0.08)' };
 
-                  <h3 style={{ fontSize: '15px', fontWeight: '900', color: '#ffffff', margin: '0 0 14px 0', lineHeight: '1.35' }}>
-                    "{poll.question}"
-                  </h3>
+                return (
+                  <motion.div
+                    key={poll.id || idx}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: idx * 0.06 }}
+                    style={{
+                      background: badgeTheme.bg,
+                      border: `1px solid ${badgeTheme.border}`,
+                      borderRadius: '22px',
+                      padding: '18px 16px',
+                      boxShadow: badgeTheme.shadow,
+                      position: 'relative'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <span style={{ fontSize: '10.5px', fontWeight: '900', color: badgeTheme.badgeColor, background: badgeTheme.badgeBg, padding: '3px 10px', borderRadius: '12px', letterSpacing: '0.04em' }}>
+                        {badgeTheme.label}
+                      </span>
+                    </div>
 
-                  {/* Top 3 Students Showcase */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                    {poll.topStudents && poll.topStudents.slice(0, 3).map((student, rankIdx) => {
-                      const medal = rankIdx === 0 ? '🥇' : rankIdx === 1 ? '🥈' : '🥉';
-                      return (
-                        <div
-                          key={student.id || rankIdx}
-                          onClick={() => onViewPublicProfile && onViewPublicProfile(student.id)}
-                          style={{
-                            background: '#18181b',
-                            border: '1px solid #27272a',
-                            borderRadius: '14px',
-                            padding: '10px 6px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            textAlign: 'center',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <span style={{ fontSize: '13px', marginBottom: '4px' }}>{medal}</span>
-                          {renderProfilePic
-                            ? renderProfilePic(student.profile_pic, student.avatar, student.is_pro, student.selected_ring || student.ring, 38)
-                            : (
-                              <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                {student.avatar || '😎'}
-                              </div>
-                            )}
-                          <span style={{
-                            fontSize: '11px',
-                            fontWeight: '800',
-                            color: student.is_pro ? '#fbbf24' : '#ffffff',
-                            marginTop: '6px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            maxWidth: '100%'
-                          }}>
-                            @{student.handle}
-                          </span>
-                          <span style={{ fontSize: '10px', color: '#ff8800', fontWeight: '700', marginTop: '2px' }}>
-                            {student.votes || 0} votes
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+                    <h3 style={{ fontSize: '16.5px', fontWeight: '900', color: '#ffffff', margin: '0 0 16px 0', lineHeight: '1.35', letterSpacing: '-0.01em' }}>
+                      "{poll.question}"
+                    </h3>
+
+                    {/* Top 3 Students Showcase */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                      {poll.topStudents && poll.topStudents.slice(0, 3).map((student, rankIdx) => {
+                        const medal = rankIdx === 0 ? '🥇' : rankIdx === 1 ? '🥈' : '🥉';
+                        return (
+                          <motion.div
+                            key={student.id || rankIdx}
+                            whileTap={{ scale: 0.94 }}
+                            onClick={() => onViewPublicProfile && onViewPublicProfile(student.id)}
+                            style={{
+                              background: '#18181b',
+                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              borderRadius: '16px',
+                              padding: '12px 6px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              textAlign: 'center',
+                              cursor: 'pointer',
+                              transition: 'transform 0.15s ease, border-color 0.15s ease'
+                            }}
+                          >
+                            <span style={{ fontSize: '14px', marginBottom: '4px' }}>{medal}</span>
+                            {renderProfilePic
+                              ? renderProfilePic(student.profile_pic, student.avatar, student.is_pro, student.selected_ring || student.ring, 42)
+                              : (
+                                <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  {student.avatar || '😎'}
+                                </div>
+                              )}
+                            <span style={{
+                              fontSize: '11.5px',
+                              fontWeight: '800',
+                              color: student.is_pro ? '#fbbf24' : '#ffffff',
+                              marginTop: '6px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: '100%',
+                              padding: '0 2px'
+                            }}>
+                              @{student.handle}
+                            </span>
+                            <span style={{ fontSize: '10px', color: '#ff7700', fontWeight: '800', marginTop: '2px' }}>
+                              {student.votes || 0} 🔥
+                            </span>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </div>
