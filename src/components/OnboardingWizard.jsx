@@ -46,6 +46,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
   const [profilePic, setProfilePic] = useState(googleUser?.avatar || '');
   const [avatarEmoji, setAvatarEmoji] = useState('😎');
   const [grade, setGrade] = useState('11');
+  const [city, setCity] = useState('Bathinda');
   const [refCode] = useState(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -175,7 +176,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
           password: password.trim(),
           gender,
           school: 'St. Kabir Convent Senior Secondary School',
-          city: 'Bathinda',
+          city: city || 'Bathinda',
           grade: parseInt(grade) || 11,
           avatar: finalAvatar,
           profilePic: profilePic || '',
@@ -417,6 +418,38 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                         }}
                       >
                         Class {g}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* City Selection */}
+                <div style={{ marginTop: '14px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
+                    Campus City
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    {[
+                      { id: 'Bathinda', label: '📍 Bathinda' },
+                      { id: 'Ludhiana', label: '📍 Ludhiana' }
+                    ].map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setCity(c.id)}
+                        style={{
+                          padding: '11px',
+                          borderRadius: '12px',
+                          border: city.toLowerCase() === c.id.toLowerCase() ? '1px solid #ff7700' : '1px solid #222222',
+                          background: city.toLowerCase() === c.id.toLowerCase() ? 'rgba(255, 85, 0, 0.15)' : '#141416',
+                          color: city.toLowerCase() === c.id.toLowerCase() ? '#ffffff' : '#888888',
+                          fontWeight: '800',
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {c.label}
                       </button>
                     ))}
                   </div>

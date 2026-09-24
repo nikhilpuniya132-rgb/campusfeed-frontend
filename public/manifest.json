@@ -1,18 +1,27 @@
 {
-  "name": "CampusFeed",
+  "name": "CampusFeed | Student Loop",
   "short_name": "CampusFeed",
+  "description": "The anonymous compliments and voting network for campus classmates.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#09090b",
+  "theme_color": "#ff5500",
   "orientation": "portrait",
-  "description": "The anonymous compliments and voting app for St. Kabir.",
+  "categories": ["social", "education", "lifestyle"],
   "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "48x48 72x72 96x96 128x128 192x192 256x256 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/favicon.svg",
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
   ]
 }

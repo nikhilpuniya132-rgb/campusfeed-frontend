@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import HamsterLoader from './HamsterLoader';
 import CooldownScreen from './CooldownScreen';
+import SponsorBanner from './SponsorBanner';
 
 export default function Feed({
   user,
@@ -373,6 +374,9 @@ export default function Feed({
           </div>
         </div>
       )}
+
+      {/* Dynamic City-Based Sponsorship Banner (Directly Beneath Core Poll) */}
+      <SponsorBanner city={user?.city || user?.district || 'Bathinda'} />
     </div>
   );
 }

@@ -18,6 +18,8 @@ const Profile = lazy(() => import('./components/Profile'));
 const Inbox = lazy(() => import('./components/Inbox'));
 const Feed = lazy(() => import('./components/Feed'));
 const Explore = lazy(() => import('./components/Explore'));
+const BatchCaptainsLeaderboard = lazy(() => import('./components/BatchCaptainsLeaderboard'));
+import AddToHomeScreenGuide from './components/AddToHomeScreenGuide';
 
 // --- INITIALIZE CONFIGURED SUPABASE CLIENT & NAVIGATION ---
 import { supabase } from './supabase';
@@ -58,7 +60,8 @@ function UnauthenticatedLanding({
   setLegalView,
   activePlan,
   setActivePlan,
-  handleUpgrade
+  handleUpgrade,
+  installPrompt
 }) {
   const heroRef = useRef(null);
   const pricingRef = useRef(null);
@@ -390,36 +393,65 @@ function UnauthenticatedLanding({
             zIndex: 10
           }}
         >
-          <div className="form">
-            <p>
+          <div className="form" style={{ border: '1px solid rgba(66, 133, 244, 0.3)', boxShadow: '0 0 30px rgba(66, 133, 244, 0.15)' }}>
+            <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+              <span style={{ background: 'rgba(66, 133, 244, 0.15)', border: '1px solid rgba(66, 133, 244, 0.4)', color: '#60a5fa', fontSize: '10.5px', fontWeight: '900', padding: '3px 10px', borderRadius: '20px', letterSpacing: '0.04em' }}>
+                ⚡ 1-TAP ONE-TOUCH ACCESS
+              </span>
+            </div>
+
+            <p style={{ marginTop: '8px' }}>
               Join the Loop.
               <span>Select your class at St. Kabir to continue</span>
             </p>
 
-            <select value={grade} onChange={(e) => setGrade(e.target.value)}>
+            <select value={grade} onChange={(e) => setGrade(e.target.value)} style={{ marginBottom: '14px' }}>
               <option value="9">Class 9 (Freshmen)</option>
               <option value="10">Class 10 (Sophomores)</option>
               <option value="11">Class 11 (St. Kabir)</option>
               <option value="12">Class 12 (Seniors)</option>
             </select>
 
-            <button className="oauthButton" onClick={loginWithGoogle} disabled={isAuthenticating}>
-              <svg className="icon" viewBox="0 0 24 24">
+            {/* Prioritized One-Tap Google Button with Glowing Aura */}
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              className="oauthButton"
+              onClick={loginWithGoogle}
+              disabled={isAuthenticating}
+              style={{
+                background: '#ffffff',
+                color: '#000000',
+                border: 'none',
+                boxShadow: '0 0 20px rgba(255, 255, 255, 0.25)',
+                fontWeight: '900',
+                fontSize: '14px',
+                padding: '13px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px'
+              }}
+            >
+              <svg className="icon" viewBox="0 0 24 24" style={{ width: '20px', height: '20px' }}>
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
               </svg>
-              {isAuthenticating ? 'Syncing...' : 'Continue with Google'}
-            </button>
+              <span>{isAuthenticating ? 'Connecting...' : 'One-Tap with Google'}</span>
+            </motion.button>
+            <div style={{ textAlign: 'center', fontSize: '11px', color: '#71717a', marginTop: '6px' }}>
+              Zero passwords • Instant student verification
+            </div>
 
-            <div style={{ width: '100%', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', textAlign: 'center' }}>
+            {/* De-emphasized Manual / Test Accounts Accordion */}
+            <div style={{ width: '100%', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', marginTop: '16px', textAlign: 'center' }}>
               <button
                 type="button"
                 onClick={() => setShowManualLogin(!showManualLogin)}
-                style={{ background: 'transparent', border: 'none', color: '#71717a', fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'color 0.2s' }}
+                style={{ background: 'transparent', border: 'none', color: '#52525b', fontSize: '11.5px', fontWeight: '700', cursor: 'pointer', transition: 'color 0.2s' }}
               >
-                {showManualLogin ? '▲ Hide Test Accounts' : '▼ Or Sign in with Username / Seed Account'}
+                {showManualLogin ? '▲ Hide Test Accounts' : '▼ Or use username & password (Seed Accounts)'}
               </button>
 
               {showManualLogin && (
@@ -440,7 +472,7 @@ function UnauthenticatedLanding({
                   />
                   <button
                     onClick={login}
-                    style={{ padding: '12px', borderRadius: '10px', border: 'none', background: '#ffffff', color: '#000000', fontWeight: '800', cursor: 'pointer', transition: 'background 0.2s' }}
+                    style={{ padding: '12px', borderRadius: '10px', border: 'none', background: '#27272a', color: '#ffffff', fontWeight: '800', cursor: 'pointer', transition: 'background 0.2s' }}
                   >
                     Login with Password
                   </button>
@@ -448,6 +480,9 @@ function UnauthenticatedLanding({
               )}
             </div>
           </div>
+
+          {/* Visual Add to Home Screen Onboarding Component (PWA) */}
+          <AddToHomeScreenGuide installPrompt={installPrompt} />
 
           <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '13px', color: '#71717a' }}>
             <p>
@@ -530,6 +565,7 @@ export default function App() {
     if (path === 'pro' || path === 'vip') return 'pro';
     if (path === 'explore') return 'explore';
     if (path === 'profile') return 'profile';
+    if (path === 'captains' || path === 'referrals' || path === 'leaderboard') return 'captains';
     return 'poll';
   });
   
@@ -697,6 +733,8 @@ export default function App() {
       const targetView = e.detail?.view;
       if (targetView === 'feed' || targetView === 'poll' || !targetView) {
         setView('poll');
+      } else if (targetView === 'captains' || targetView === 'referrals' || targetView === 'leaderboard') {
+        setView('captains');
       } else {
         setView(targetView);
       }
@@ -821,11 +859,14 @@ export default function App() {
     setIsAuthenticating(true);
     localStorage.setItem('campus_grade', grade);
     
-    // ✅ CRITICAL FIX: Explicitly lock the redirect to your exact Vercel /feed URL
+    const redirectUrl = (typeof window !== 'undefined' && window.location.origin)
+      ? `${window.location.origin}/feed`
+      : 'https://campusfeed-frontend.vercel.app/feed';
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://campusfeed-frontend.vercel.app/feed'
+        redirectTo: redirectUrl
       }
     });
     
@@ -1257,6 +1298,7 @@ export default function App() {
         activePlan={activePlan}
         setActivePlan={setActivePlan}
         handleUpgrade={handleUpgrade}
+        installPrompt={installPrompt}
       />
     );
   }
@@ -1333,6 +1375,31 @@ export default function App() {
             {user.is_pro && (
               <span style={{ fontSize: '16px', filter: 'drop-shadow(0 0 6px #fbbf24)' }}>👑</span>
             )}
+
+            <button
+              onClick={() => {
+                setView('captains');
+                navigate('/captains');
+              }}
+              style={{
+                background: view === 'captains' ? 'rgba(251, 191, 36, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                border: view === 'captains' ? '1px solid #fbbf24' : '1px solid rgba(255, 255, 255, 0.15)',
+                color: view === 'captains' ? '#fbbf24' : '#fff',
+                borderRadius: '12px',
+                padding: '0 8px',
+                height: '36px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                cursor: 'pointer',
+                fontSize: '11.5px',
+                fontWeight: '800'
+              }}
+              title="Batch Captains Leaderboard"
+            >
+              <span>👑</span>
+              <span>Captains</span>
+            </button>
 
             <button
               onClick={() => setShowNotifications(!showNotifications)}
@@ -1496,6 +1563,20 @@ export default function App() {
                   ) : (
                     <p>Loading profile...</p>
                   )}
+                </motion.div>
+              )}
+
+              {view === 'captains' && (
+                <motion.div key="captains" {...pageVariants}>
+                  <BatchCaptainsLeaderboard
+                    user={user}
+                    API={API}
+                    onBack={() => {
+                      setView('poll');
+                      navigate('/feed');
+                    }}
+                    renderProfilePic={renderProfilePic}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>

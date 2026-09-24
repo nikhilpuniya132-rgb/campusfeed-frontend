@@ -29,6 +29,7 @@ export default function Profile({
   const [editBio, setEditBio] = useState(user?.bio || '');
   const [editAvatar, setEditAvatar] = useState(user?.avatar || '😎');
   const [editGrade, setEditGrade] = useState(user?.grade ? user.grade.toString() : '11');
+  const [editCity, setEditCity] = useState(user?.city || user?.district || 'Bathinda');
   const [editProfilePic, setEditProfilePic] = useState(user?.profile_pic || '');
   
   // Settings 3-dots dropdown
@@ -162,6 +163,7 @@ export default function Profile({
         ring: selectedRing,
         selected_ring: selectedRing,
         grade: editGrade,
+        city: editCity,
         profile_pic: editProfilePic
       };
 
@@ -177,6 +179,8 @@ export default function Profile({
             ring: selectedRing,
             selected_ring: selectedRing,
             grade: parseInt(editGrade) || 11,
+            city: editCity,
+            district: editCity,
             profile_pic: editProfilePic
           })
           .eq('id', user.id);
@@ -191,6 +195,7 @@ export default function Profile({
           avatar: editAvatar,
           ring: selectedRing,
           grade: editGrade,
+          city: editCity,
           profile_pic: editProfilePic
         })
       });
@@ -330,8 +335,12 @@ export default function Profile({
           @{user.handle}
         </h2>
 
-        <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#888888', fontWeight: '600' }}>
-          St. Kabir Convent School • Class {user.grade || '11'}
+        <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#888888', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <span>St. Kabir Convent School</span>
+          <span>•</span>
+          <span>Class {user.grade || '11'}</span>
+          <span>•</span>
+          <span style={{ color: '#fbbf24', fontWeight: '700' }}>📍 {user.city || user.district || 'Bathinda'}</span>
         </p>
 
         {/* Bio */}
@@ -346,6 +355,7 @@ export default function Profile({
               setEditBio(user.bio || '');
               setEditAvatar(user.avatar || '');
               setEditGrade(user.grade ? user.grade.toString() : '11');
+              setEditCity(user.city || user.district || 'Bathinda');
               setEditProfilePic(user.profile_pic || '');
               setIsEditing(true);
             }}
@@ -787,6 +797,37 @@ export default function Profile({
                   }}
                 >
                   Class {g}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* City Picker for Local Sponsorships */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ fontSize: '12px', color: '#888', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
+              Your Campus City (for Local Deals)
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              {[
+                { id: 'Bathinda', label: '📍 Bathinda' },
+                { id: 'Ludhiana', label: '📍 Ludhiana' }
+              ].map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setEditCity(c.id)}
+                  style={{
+                    padding: '10px',
+                    borderRadius: '10px',
+                    border: editCity.toLowerCase() === c.id.toLowerCase() ? '2px solid #ff7700' : '1px solid #333',
+                    background: editCity.toLowerCase() === c.id.toLowerCase() ? 'rgba(255, 85, 0, 0.15)' : '#181818',
+                    color: editCity.toLowerCase() === c.id.toLowerCase() ? '#ffffff' : '#888888',
+                    fontWeight: '800',
+                    fontSize: '13px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {c.label}
                 </button>
               ))}
             </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from '../useNavigate';
 
 export default function Explore({
   currentUser,
@@ -9,6 +10,7 @@ export default function Explore({
   onViewPublicProfile,
   onFriendAdded
 }) {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('trending'); // 'trending', 'legends', 'rank'
   
   // Search state
@@ -376,6 +378,40 @@ export default function Explore({
           </div>
         )}
       </div>
+
+      {/* Batch Captains Spotlight Banner */}
+      <motion.div
+        whileTap={{ scale: 0.98 }}
+        onClick={() => navigate('/captains')}
+        style={{
+          background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(255, 85, 0, 0.08))',
+          border: '1px solid rgba(251, 191, 36, 0.35)',
+          borderRadius: '16px',
+          padding: '12px 16px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.3)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '24px' }}>👑</span>
+          <div>
+            <div style={{ color: '#fbbf24', fontSize: '13px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>Batch Captains Leaderboard</span>
+              <span style={{ background: '#fbbf24', color: '#000', fontSize: '9.5px', fontWeight: '900', padding: '1px 6px', borderRadius: '8px' }}>
+                NEW
+              </span>
+            </div>
+            <div style={{ color: '#a1a1aa', fontSize: '11px', marginTop: '1px' }}>
+              Top inviters unlocking God Mode & secret votes
+            </div>
+          </div>
+        </div>
+        <span style={{ color: '#fbbf24', fontSize: '16px', fontWeight: '900' }}>➔</span>
+      </motion.div>
 
       {/* 4. Section Tabs (Trending Questions vs School Leaderboard) */}
       <div style={{ display: 'flex', background: '#121214', padding: '4px', borderRadius: '14px', marginBottom: '18px', border: '1px solid #27272a' }}>
