@@ -19,9 +19,10 @@ export function getReferralLink(user) {
  */
 export function getWhatsAppShareUrl(user, customMessage = '') {
   const link = getReferralLink(user);
-  const gradeText = user?.grade ? `Class ${user.grade}` : 'our class';
+  const streamText = user?.stream || (user?.grade ? `Class ${user.grade}` : 'our coaching batch');
+  const instituteText = user?.institute ? ` at ${user.institute}` : '';
   
-  const defaultText = `🔥 *CampusFeed St. Kabir Update*: Someone in ${gradeText} just secretly voted for you! 🤫\n\nFind out who voted for you and see your compliments here:\n👉 ${link}\n\n(Takes 10 seconds to join • Free)`;
+  const defaultText = `🔥 *CampusFeed Bathinda*: Someone in ${streamText}${instituteText} just secretly voted for you! 🤫\n\nFind out who voted for you and see your compliments here:\n👉 ${link}\n\n(Takes 10 seconds to join • Free)`;
   
   const message = customMessage || defaultText;
   return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
@@ -32,7 +33,8 @@ export function getWhatsAppShareUrl(user, customMessage = '') {
  */
 export async function copyReferralLink(user) {
   const link = getReferralLink(user);
-  const shareText = `Someone from St. Kabir voted for you on CampusFeed! Join to see who: ${link}`;
+  const streamText = user?.stream || 'your batch';
+  const shareText = `Someone from ${streamText} voted for you on CampusFeed! Join to see who: ${link}`;
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
     try {

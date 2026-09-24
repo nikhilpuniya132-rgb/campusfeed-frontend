@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import HamsterLoader from './HamsterLoader';
+import SkeletonPollCard from './SkeletonPollCard';
 import CooldownScreen from './CooldownScreen';
 import SponsorBanner from './SponsorBanner';
+
+const COACHING_FILTER_PILLS = [
+  { id: '11th Medical', label: '11th Medical' },
+  { id: '11th Non-Med', label: '11th Non-Med' },
+  { id: '12th Board', label: '12th Board' },
+  { id: 'NEET Droppers', label: 'NEET Droppers' },
+  { id: 'all', label: 'All Bathinda' }
+];
 
 export default function Feed({
   user,
   currentPoll,
   options = [],
-  gradeFilter,
+  gradeFilter = 'all',
   isLoadingPoll,
   hasVoted,
   cooldownUntil,
@@ -49,6 +57,12 @@ export default function Feed({
   const handleShuffleClick = () => {
     if (shuffleCount >= 3) return;
     setShuffleCount(prev => prev + 1);
+
+    // Haptic tick
+    if (window.navigator?.vibrate) {
+      window.navigator.vibrate(10);
+    }
+
     if (onShuffle) onShuffle();
   };
 
@@ -58,11 +72,16 @@ export default function Feed({
     setSelectedCandidate(candidate);
     setOptimisticVoted(true);
 
+    // Instagram / FB level tactile haptic pulse
+    if (window.navigator?.vibrate) {
+      window.navigator.vibrate([20, 35, 20]);
+    }
+
     // Instant micro-haptic confetti burst
     try {
       confetti({
-        particleCount: 90,
-        spread: 60,
+        particleCount: 85,
+        spread: 65,
         origin: { y: 0.55 },
         colors: ['#ff5500', '#ff2e93', '#fbbf24', '#00f0ff']
       });
@@ -77,6 +96,11 @@ export default function Feed({
   const handleNextClick = () => {
     setOptimisticVoted(false);
     setSelectedCandidate(null);
+
+    if (window.navigator?.vibrate) {
+      window.navigator.vibrate(10);
+    }
+
     if (onLoadNextPoll) {
       onLoadNextPoll(gradeFilter);
     }
@@ -100,69 +124,60 @@ export default function Feed({
   const isVoteFinished = optimisticVoted || hasVoted;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '440px', margin: '0 auto', padding: '8px 16px 80px 16px', boxSizing: 'border-box' }}>
-      
-      {/* Grade Switcher Pills (Flat & Minimalist) */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center', marginBottom: '16px' }}>
-        <button
-          onClick={() => onLoadNextPoll(user.grade?.toString() || '11')}
-          style={{
-            padding: '7px 12px',
-            borderRadius: '12px',
-            border: 'none',
-            fontSize: '12px',
-            fontWeight: '800',
-            cursor: 'pointer',
-            background: gradeFilter === user.grade?.toString() ? '#ffffff' : '#141414',
-            color: gradeFilter === user.grade?.toString() ? '#000000' : '#71717a',
-            transition: 'background 0.15s ease, color 0.15s ease',
-          }}
-        >
-          My Class ({user.grade || '11'})
-        </button>
-
-        {['9', '10', '11', '12'].map((g) => (
-          <button
-            key={g}
-            onClick={() => onLoadNextPoll(g)}
-            style={{
-              padding: '7px 12px',
-              borderRadius: '12px',
-              border: 'none',
-              fontSize: '12px',
-              fontWeight: '800',
-              cursor: 'pointer',
-              background: gradeFilter === g && gradeFilter !== user.grade?.toString() ? '#ffffff' : '#141414',
-              color: gradeFilter === g && gradeFilter !== user.grade?.toString() ? '#000000' : '#71717a',
-              transition: 'background 0.15s ease, color 0.15s ease',
-            }}
-          >
-            Class {g}
-          </button>
-        ))}
-
-        <button
-          onClick={() => onLoadNextPoll('all')}
-          style={{
-            padding: '7px 12px',
-            borderRadius: '12px',
-            border: 'none',
-            fontSize: '12px',
-            fontWeight: '800',
-            cursor: 'pointer',
-            background: gradeFilter === 'all' ? '#ffffff' : '#141414',
-            color: gradeFilter === 'all' ? '#000000' : '#71717a',
-            transition: 'background 0.15s ease, color 0.15s ease',
-          }}
-        >
-          Whole School
-        </button>
+    <div
+      style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        maxWidth: '440px',
+        margin: '0 auto',
+        padding: '8px 16px 85px 16px',
+        boxSizing: 'border-box'
+      }}
+    >
+      {/* Category Pills: 11th Medical, 11th Non-Med, 12th Board, NEET Droppers, All Bathinda */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '6px',
+          justifyContent: 'center',
+          marginBottom: '16px'
+        }}
+      >
+        {COACHING_FILTER_PILLS.map((pill) => {
+          const isActive = gradeFilter?.toLowerCase() === pill.id.toLowerCase() ||
+            (pill.id === 'all' && (!gradeFilter || gradeFilter === 'all'));
+          return (
+            <motion.button
+              key={pill.id}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                if (window.navigator?.vibrate) window.navigator.vibrate(8);
+                onLoadNextPoll(pill.id);
+              }}
+              style={{
+                padding: '7px 12px',
+                borderRadius: '12px',
+                border: isActive ? '1px solid #ff5500' : '1px solid rgba(255, 255, 255, 0.08)',
+                fontSize: '11.5px',
+                fontWeight: '800',
+                cursor: 'pointer',
+                background: isActive ? '#ff5500' : '#161616',
+                color: isActive ? '#ffffff' : '#a1a1aa',
+                boxShadow: isActive ? '0 0 12px rgba(255, 85, 0, 0.25)' : 'none',
+                transition: 'background 0.15s ease, color 0.15s ease'
+              }}
+            >
+              {pill.label}
+            </motion.button>
+          );
+        })}
       </div>
 
       {isLoadingPoll ? (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '260px' }}>
-          <HamsterLoader message="Finding classmates..." />
-        </div>
+        <SkeletonPollCard />
       ) : isVoteFinished ? (
         /* Optimistic Success Screen */
         <motion.div
@@ -177,29 +192,29 @@ export default function Feed({
             justifyContent: 'center',
             textAlign: 'center',
             minHeight: '280px',
-            background: '#121214',
-            border: '1px solid #27272a',
+            background: '#161616',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
             borderRadius: '24px',
             padding: '32px 20px',
-            boxShadow: '0 12px 32px rgba(0, 0, 0, 0.5)'
+            boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6)'
           }}
         >
           <div style={{ fontSize: '46px', marginBottom: '8px' }}>🔥</div>
-          <h2 style={{ color: '#ffffff', fontSize: '22px', fontWeight: '900', margin: '0 0 6px 0' }}>
+          <h2 style={{ color: '#ffffff', fontSize: '22px', fontWeight: '900', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
             Flame Sent!
           </h2>
           
           {selectedCandidate && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#18181b', padding: '6px 14px', borderRadius: '16px', margin: '6px 0 16px 0', border: '1px solid #27272a' }}>
-              <span style={{ fontSize: '14px' }}>To:</span>
-              <span style={{ fontSize: '13px', fontWeight: '900', color: '#fbbf24' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#222222', padding: '6px 14px', borderRadius: '16px', margin: '6px 0 16px 0', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <span style={{ fontSize: '13px', color: '#a1a1aa' }}>To:</span>
+              <span style={{ fontSize: '13.5px', fontWeight: '900', color: '#ff7700' }}>
                 @{selectedCandidate.handle}
               </span>
             </div>
           )}
 
           <p style={{ color: '#71717a', fontSize: '13px', maxWidth: '270px', margin: '0 0 24px 0', lineHeight: '1.4' }}>
-            Delivered anonymously. They won't know it was you unless they unlock via 3 invites or God Mode!
+            Delivered anonymously. They won't know it was you unless they unlock via 3 recruits or God Mode!
           </p>
 
           <motion.button
@@ -209,12 +224,12 @@ export default function Feed({
               padding: '14px 32px',
               borderRadius: '16px',
               border: 'none',
-              background: '#ffffff',
-              color: '#000000',
+              background: 'linear-gradient(135deg, #ff5500 0%, #ff2e93 100%)',
+              color: '#ffffff',
               fontSize: '14.5px',
               fontWeight: '900',
               cursor: 'pointer',
-              boxShadow: '0 4px 16px rgba(255, 255, 255, 0.15)'
+              boxShadow: '0 4px 18px rgba(255, 85, 0, 0.35)'
             }}
           >
             Next Question ➔
@@ -222,11 +237,14 @@ export default function Feed({
         </motion.div>
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {/* Question Card (Flat Solid Surface) */}
-          <div
+          {/* Question Card (Premium Solid Surface with subtle gradient border) */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
             style={{
-              background: '#121214',
-              border: '1px solid #27272a',
+              background: '#161616',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: '24px',
               padding: '24px 18px',
               textAlign: 'center',
@@ -235,6 +253,7 @@ export default function Feed({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)'
             }}
           >
             <h3
@@ -244,16 +263,17 @@ export default function Feed({
                 color: '#ffffff',
                 lineHeight: '1.35',
                 margin: 0,
+                letterSpacing: '-0.01em'
               }}
             >
-              "{currentPoll?.question || 'Who is most likely to light up the room?'}"
+              "{currentPoll?.question || 'Who is most likely to crack NEET on the first attempt?'}"
             </h3>
-          </div>
+          </motion.div>
 
           {/* 4 Classmate Candidate Buttons */}
           {displayOptions.length === 0 ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#71717a', padding: '30px 0' }}>
-              <p style={{ fontSize: '13.5px', margin: '0 0 12px 0' }}>Not enough classmates found in this class.</p>
+              <p style={{ fontSize: '13.5px', margin: '0 0 12px 0' }}>Not enough classmates found in this stream.</p>
               <button
                 onClick={() => onLoadNextPoll('all')}
                 style={{
@@ -267,7 +287,7 @@ export default function Feed({
                   cursor: 'pointer',
                 }}
               >
-                Try Whole School
+                Try All Bathinda
               </button>
             </div>
           ) : (
@@ -275,11 +295,12 @@ export default function Feed({
               {displayOptions.map((opt) => (
                 <motion.button
                   key={opt.id}
-                  whileTap={{ scale: 0.94 }}
+                  whileTap={{ scale: 0.93 }}
+                  transition={{ type: 'spring', stiffness: 450, damping: 20 }}
                   onClick={() => handleVoteClick(opt)}
                   style={{
-                    background: '#141416',
-                    border: '1px solid #27272a',
+                    background: '#161616',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
                     borderRadius: '20px',
                     padding: '14px 8px',
                     display: 'flex',
@@ -289,10 +310,19 @@ export default function Feed({
                     color: '#ffffff',
                     cursor: 'pointer',
                     outline: 'none',
-                    minHeight: '96px',
+                    minHeight: '100px',
                     boxSizing: 'border-box',
                     userSelect: 'none',
-                    transition: 'border-color 0.15s ease'
+                    transition: 'border-color 0.15s ease, background 0.15s ease',
+                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(255, 85, 0, 0.4)';
+                    e.currentTarget.style.background = '#1e1e24';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                    e.currentTarget.style.background = '#161616';
                   }}
                 >
                   {renderProfilePic
@@ -319,6 +349,11 @@ export default function Feed({
                   >
                     @{opt.handle}
                   </span>
+                  {opt.stream && (
+                    <span style={{ fontSize: '9.5px', color: '#ff7700', fontWeight: '700', marginTop: '2px' }}>
+                      {opt.stream}
+                    </span>
+                  )}
                 </motion.button>
               ))}
             </div>
@@ -326,12 +361,13 @@ export default function Feed({
 
           {/* Bottom Controls: Shuffle (with 3-count limit) & Skip */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: '4px' }}>
-            <button
+            <motion.button
+              whileTap={{ scale: 0.94 }}
               disabled={shuffleCount >= 3}
               onClick={handleShuffleClick}
               style={{
                 background: shuffleCount >= 3 ? '#121214' : '#18181b',
-                border: '1px solid #27272a',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
                 color: shuffleCount >= 3 ? '#52525b' : '#a1a1aa',
                 padding: '10px 16px',
                 borderRadius: '16px',
@@ -348,16 +384,18 @@ export default function Feed({
               <span>
                 {shuffleCount >= 3 ? 'No shuffles left' : `Shuffle (${3 - shuffleCount} left)`}
               </span>
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
+              whileTap={{ scale: 0.94 }}
               onClick={() => {
+                if (window.navigator?.vibrate) window.navigator.vibrate(8);
                 setShuffleCount(0);
                 onLoadNextPoll(gradeFilter);
               }}
               style={{
                 background: '#18181b',
-                border: '1px solid #27272a',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
                 color: '#a1a1aa',
                 padding: '10px 16px',
                 borderRadius: '16px',
@@ -370,13 +408,13 @@ export default function Feed({
               }}
             >
               Skip ⏭️
-            </button>
+            </motion.button>
           </div>
         </div>
       )}
 
-      {/* Dynamic City-Based Sponsorship Banner (Directly Beneath Core Poll) */}
-      <SponsorBanner city={user?.city || user?.district || 'Bathinda'} />
+      {/* Dynamic City-Based Academic Sponsorship Banner (Directly Beneath Core Poll) */}
+      <SponsorBanner city="Bathinda" hub={user?.coaching_hub || user?.hub || 'Ajit Road Hub'} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 
 // Hardware-accelerated step transitions (opacity + transform only)
 const stepVariants = {
@@ -45,8 +46,11 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
   const [gender, setGender] = useState('boy');
   const [profilePic, setProfilePic] = useState(googleUser?.avatar || '');
   const [avatarEmoji, setAvatarEmoji] = useState('😎');
+  const [institute, setInstitute] = useState('Kapil Institute');
+  const [coachingHub, setCoachingHub] = useState('Ajit Road Hub');
+  const [stream, setStream] = useState('11th Medical');
   const [grade, setGrade] = useState('11');
-  const [city, setCity] = useState('Bathinda');
+  const [city] = useState('Bathinda'); // Frictionless: Fixed default city
   const [refCode] = useState(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -81,7 +85,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
   // Dynamic invite link
   const safeHandle = (handle || 'campus').replace(/^@/, '').toLowerCase();
   const shareUrl = `${window.location.origin}/?ref=${safeHandle}`;
-  const shareText = `Someone from St. Kabir voted for you on CampusFeed! Join to see who it is. Use my invite link: ${shareUrl}`;
+  const shareText = `Someone from your coaching hub voted for you on CampusFeed! Join to see who it is. Use my invite link: ${shareUrl}`;
 
   const handleCopyLink = () => {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -130,8 +134,13 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
 
   const nextStep = () => {
     setErrorMsg('');
-    if (step === 1 && !name.trim()) {
-      return setErrorMsg('Please enter your full name');
+    if (step === 1) {
+      if (!name.trim()) {
+        return setErrorMsg('Please enter your full name');
+      }
+      if (!institute.trim()) {
+        return setErrorMsg('Please select your coaching institute');
+      }
     }
     if (step === 2) {
       if (!handle.trim()) {
@@ -175,9 +184,12 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
           handle: handle.trim().replace(/^@/, '').toLowerCase(),
           password: password.trim(),
           gender,
-          school: 'St. Kabir Convent Senior Secondary School',
-          city: city || 'Bathinda',
-          grade: parseInt(grade) || 11,
+          school: institute.trim(),
+          institute: institute.trim(),
+          coaching_hub: coachingHub || findHubForInstitute(institute),
+          stream: stream,
+          city: 'Bathinda',
+          grade: stream.includes('12') ? 12 : stream.includes('drop') ? 'dropper' : 11,
           avatar: finalAvatar,
           profilePic: profilePic || '',
           refCode: cleanRef
@@ -277,13 +289,13 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
 
           <span
             style={{
-              fontSize: '11px',
-              color: '#666666',
-              fontWeight: '700',
-              letterSpacing: '0.02em'
+              fontSize: '10.5px',
+              color: '#ff7700',
+              fontWeight: '900',
+              letterSpacing: '0.04em'
             }}
           >
-            St. Kabir
+            🔥 BATHINDA COACHING NETWORK
           </span>
         </div>
 
@@ -333,12 +345,12 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
               exit="exit"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#ffffff', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
-                  What's your name?
+              <div style={{ textAlign: 'center', marginBottom: '22px' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+                  Select your Coaching Hub to enter the loop.
                 </h2>
-                <p style={{ fontSize: '13px', color: '#888888', margin: 0, lineHeight: '1.4' }}>
-                  Classmates at St. Kabir will see this on polls.
+                <p style={{ fontSize: '12.5px', color: '#888888', margin: 0, lineHeight: '1.4' }}>
+                  Connect with peers across Ajit Road, 100 Feet Rd & Bathinda centres.
                 </p>
               </div>
 
@@ -349,18 +361,18 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                   </label>
                   <input
                     type="text"
-                    placeholder="Enter your name"
+                    placeholder="Enter your full name"
                     value={name}
                     onChange={e => setName(e.target.value)}
                     autoFocus
                     style={{
                       width: '100%',
-                      padding: '14px 16px',
+                      padding: '13px 16px',
                       borderRadius: '14px',
                       border: '1px solid #262626',
                       background: '#161616',
                       color: '#ffffff',
-                      fontSize: '15px',
+                      fontSize: '14.5px',
                       fontWeight: '700',
                       outline: 'none',
                       boxSizing: 'border-box'
@@ -368,90 +380,58 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                   />
                 </div>
 
-                {/* Locked School Badge */}
+                {/* Searchable Institute Combobox */}
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: '700', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
-                    School
+                    Coaching Institute
                   </label>
-                  <div
-                    style={{
-                      padding: '12px 14px',
-                      background: '#141416',
-                      border: '1px solid #222222',
-                      borderRadius: '14px',
-                      fontSize: '12.5px',
-                      fontWeight: '600',
-                      color: '#cbd5e1',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
+                  <InstituteCombobox
+                    value={institute}
+                    onChange={(val) => {
+                      setInstitute(val);
+                      setCoachingHub(findHubForInstitute(val));
                     }}
-                  >
-                    <span style={{ fontSize: '14px' }}>🏫</span>
-                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      St. Kabir Convent Senior Secondary School
-                    </span>
+                    onSelectHub={(hub) => setCoachingHub(hub)}
+                  />
+                  <div style={{ marginTop: '5px', fontSize: '11.5px', color: '#ff7700', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span>📍 Hub:</span>
+                    <span>{coachingHub || findHubForInstitute(institute)}</span>
                   </div>
                 </div>
 
-                {/* Grade Selection */}
+                {/* Stream Selection Pills (11th Medical, 11th Non-Med, 12th Commerce, Dropper) */}
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: '700', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
-                    Class / Grade
+                    Batch / Stream
                   </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                    {['9', '10', '11', '12'].map(g => (
-                      <button
-                        key={g}
-                        type="button"
-                        onClick={() => setGrade(g)}
-                        style={{
-                          padding: '11px 4px',
-                          borderRadius: '12px',
-                          border: grade === g ? '1px solid #ffffff' : '1px solid #222222',
-                          background: grade === g ? '#ffffff' : '#141416',
-                          color: grade === g ? '#000000' : '#888888',
-                          fontWeight: '800',
-                          fontSize: '13px',
-                          cursor: 'pointer',
-                          transition: 'background 0.15s ease, color 0.15s ease'
-                        }}
-                      >
-                        Class {g}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* City Selection */}
-                <div style={{ marginTop: '14px' }}>
-                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
-                    Campus City
-                  </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    {[
-                      { id: 'Bathinda', label: '📍 Bathinda' },
-                      { id: 'Ludhiana', label: '📍 Ludhiana' }
-                    ].map(c => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => setCity(c.id)}
-                        style={{
-                          padding: '11px',
-                          borderRadius: '12px',
-                          border: city.toLowerCase() === c.id.toLowerCase() ? '1px solid #ff7700' : '1px solid #222222',
-                          background: city.toLowerCase() === c.id.toLowerCase() ? 'rgba(255, 85, 0, 0.15)' : '#141416',
-                          color: city.toLowerCase() === c.id.toLowerCase() ? '#ffffff' : '#888888',
-                          fontWeight: '800',
-                          fontSize: '13px',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        {c.label}
-                      </button>
-                    ))}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                    {['11th Medical', '11th Non-Med', '12th Commerce', 'Dropper'].map(s => {
+                      const isSelected = stream === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => {
+                            if (window.navigator?.vibrate) window.navigator.vibrate(8);
+                            setStream(s);
+                            setGrade(s.includes('12') ? '12' : s.includes('drop') ? 'dropper' : '11');
+                          }}
+                          style={{
+                            padding: '11px 8px',
+                            borderRadius: '12px',
+                            border: isSelected ? '1px solid #ff5500' : '1px solid #222222',
+                            background: isSelected ? 'rgba(255, 85, 0, 0.15)' : '#141416',
+                            color: isSelected ? '#ffffff' : '#888888',
+                            fontWeight: '800',
+                            fontSize: '12.5px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {s}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -1061,7 +1041,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                   Add classmates
                 </h2>
                 <p style={{ fontSize: '12.5px', color: '#888888', margin: 0, lineHeight: '1.4' }}>
-                  Send quick friend requests to classmates at St. Kabir.
+                  Send quick friend requests to peers in your coaching hub.
                 </p>
               </div>
 
@@ -1177,7 +1157,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                   }}
                 >
                   {isSubmitting
-                    ? 'Entering St. Kabir...'
+                    ? 'Entering Network...'
                     : addedFriends.size > 0
                     ? `Add ${addedFriends.size} Friend${addedFriends.size > 1 ? 's' : ''} & Start ➔`
                     : 'Finish & Start Voting ➔'}

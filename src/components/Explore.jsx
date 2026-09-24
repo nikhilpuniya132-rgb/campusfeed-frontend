@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from '../useNavigate';
+import SkeletonExplore from './SkeletonExplore';
+
+const DEFAULT_TUITION_POLLS = [
+  { id: 't1', question: "Always sleeps through 5 PM Physics?" },
+  { id: 't2', question: "Most likely to crack NEET on the first attempt?" },
+  { id: 't3', question: "Spends more time at the Maggi point than in class?" },
+  { id: 't4', question: "Secretly solving HC Verma modules during school hours?" },
+  { id: 't5', question: "Has pristine handwritten formula notes everyone begs for?" },
+  { id: 't6', question: "Buys samosas & patties for the whole batch after minor tests?" }
+];
 
 export default function Explore({
   currentUser,
@@ -61,9 +71,14 @@ export default function Explore({
       try {
         const res = await fetch(`${API}/explore/trending`);
         const data = await res.json();
-        setTrendingPolls(data.trending || []);
+        if (data.trending && data.trending.length > 0) {
+          setTrendingPolls(data.trending);
+        } else {
+          setTrendingPolls(DEFAULT_TUITION_POLLS);
+        }
       } catch (err) {
         console.error('Failed to load trending polls:', err);
+        setTrendingPolls(DEFAULT_TUITION_POLLS);
       } finally {
         setIsLoadingTrending(false);
       }
@@ -147,10 +162,10 @@ export default function Explore({
       {/* 1. Header & Title */}
       <div style={{ textAlign: 'center', marginBottom: '16px' }}>
         <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#ffffff', margin: '0 0 4px 0' }}>
-          Explore St. Kabir
+          Explore Bathinda Hubs
         </h2>
         <p style={{ fontSize: '12.5px', color: '#71717a', margin: 0 }}>
-          Search classmates, view trending questions, & discover school legends
+          Search students across coaching hubs, view trending polls, & discover batch leaders
         </p>
       </div>
 
@@ -224,7 +239,7 @@ export default function Explore({
             >
               {isSearching ? (
                 <div style={{ padding: '16px', textAlign: 'center', color: '#71717a', fontSize: '13px' }}>
-                  Searching St. Kabir...
+                  Searching Bathinda Hubs...
                 </div>
               ) : searchResults.length === 0 ? (
                 <div style={{ padding: '16px', textAlign: 'center', color: '#71717a', fontSize: '13px' }}>
@@ -328,7 +343,7 @@ export default function Explore({
 
         {isLoadingLegends ? (
           <div style={{ padding: '12px 0', textAlign: 'center', color: '#71717a', fontSize: '12px' }}>
-            Finding St. Kabir Legends...
+            Finding Bathinda Hub Legends...
           </div>
         ) : legends.length === 0 ? (
           <div style={{ padding: '12px 0', textAlign: 'center', color: '#71717a', fontSize: '12.5px' }}>
@@ -448,7 +463,7 @@ export default function Explore({
             transition: 'all 0.15s ease'
           }}
         >
-          🏆 School Ranks
+          🏆 Coaching Ranks
         </button>
       </div>
 
@@ -456,9 +471,7 @@ export default function Explore({
       {activeSection === 'trending' && (
         <div>
           {isLoadingTrending ? (
-            <div style={{ textAlign: 'center', padding: '30px 0', color: '#71717a', fontSize: '13px' }}>
-              Loading trending polls...
-            </div>
+            <SkeletonExplore />
           ) : trendingPolls.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '30px 0', color: '#71717a', fontSize: '13px' }}>
               No polls active yet. Cast votes in the feed to create trends!

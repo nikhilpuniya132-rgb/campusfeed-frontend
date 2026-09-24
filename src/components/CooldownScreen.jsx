@@ -37,7 +37,7 @@ export default function CooldownScreen({
     const handle = (user?.handle || 'campus').replace(/^@/, '');
     const shareData = {
       title: 'CampusFeed',
-      text: `Someone from St. Kabir voted for you on CampusFeed! Join to see who it is! Use my invite link: ${window.location.origin}/?ref=${handle}`
+      text: `Someone from your coaching hub voted for you on CampusFeed! Join to see who it is! Use my invite link: ${window.location.origin}/?ref=${handle}`
     };
 
     if (navigator.share) {

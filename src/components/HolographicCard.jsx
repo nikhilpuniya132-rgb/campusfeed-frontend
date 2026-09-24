@@ -119,7 +119,7 @@ export default function HolographicCard({
             >
               👑 {title}
             </span>
-            <span style={{ fontSize: '12px', color: '#a1a1aa', fontWeight: 'bold' }}>ST. KABIR EXCLUSIVE</span>
+            <span style={{ fontSize: '12px', color: '#a1a1aa', fontWeight: 'bold' }}>BATHINDA EXCLUSIVE</span>
           </div>
 
           <h3

@@ -174,7 +174,7 @@ export default function Inbox({
                   badgeBg: 'rgba(255, 46, 147, 0.18)',
                   badgeBorder: '1px solid rgba(255, 46, 147, 0.4)',
                   icon: '🌸🔥',
-                  label: 'From a Girl in St. Kabir',
+                  label: 'From a Girl in your Coaching Hub',
                   glow: '0 8px 24px rgba(0,0,0,0.5), 0 0 20px rgba(255, 46, 147, 0.15)',
                 }
               : isBoy
@@ -186,7 +186,7 @@ export default function Inbox({
                   badgeBg: 'rgba(0, 240, 255, 0.18)',
                   badgeBorder: '1px solid rgba(0, 240, 255, 0.4)',
                   icon: '💙🔥',
-                  label: 'From a Boy in St. Kabir',
+                  label: 'From a Boy in your Coaching Hub',
                   glow: '0 8px 24px rgba(0,0,0,0.5), 0 0 20px rgba(0, 240, 255, 0.15)',
                 }
               : {
@@ -197,7 +197,7 @@ export default function Inbox({
                   badgeBg: 'rgba(168, 85, 247, 0.18)',
                   badgeBorder: '1px solid rgba(168, 85, 247, 0.4)',
                   icon: '✨🔥',
-                  label: 'From a Classmate in St. Kabir',
+                  label: 'From a Batchmate in your Coaching Hub',
                   glow: '0 8px 24px rgba(0,0,0,0.5), 0 0 20px rgba(168, 85, 247, 0.15)',
                 };
 

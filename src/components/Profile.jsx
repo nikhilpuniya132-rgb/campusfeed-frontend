@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 
 const AURA_OPTIONS = [
   { id: 'none', label: 'None (Default)', color: '#52525b', desc: 'No special aura ring' },
@@ -29,7 +30,10 @@ export default function Profile({
   const [editBio, setEditBio] = useState(user?.bio || '');
   const [editAvatar, setEditAvatar] = useState(user?.avatar || '😎');
   const [editGrade, setEditGrade] = useState(user?.grade ? user.grade.toString() : '11');
-  const [editCity, setEditCity] = useState(user?.city || user?.district || 'Bathinda');
+  const [editStream, setEditStream] = useState(user?.stream || '11th Medical');
+  const [editInstitute, setEditInstitute] = useState(user?.institute || user?.school || 'Kapil Institute');
+  const [editHub, setEditHub] = useState(user?.coaching_hub || user?.hub || 'Ajit Road Hub');
+  const [editCity, setEditCity] = useState('Bathinda');
   const [editProfilePic, setEditProfilePic] = useState(user?.profile_pic || '');
   
   // Settings 3-dots dropdown
@@ -71,7 +75,8 @@ export default function Profile({
   const inviteLink = `${window.location.origin}/?ref=${my_invite_code}`;
 
   const copyInviteToClipboard = () => {
-    const shareText = `Someone from St. Kabir voted for you on CampusFeed! Join to see who: ${inviteLink} (Code: ${my_invite_code})`;
+    const hubText = user?.stream || 'your batch';
+    const shareText = `Someone from ${hubText} voted for you on CampusFeed! Join to see who: ${inviteLink} (Code: ${my_invite_code})`;
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(shareText);
     }
@@ -83,9 +88,10 @@ export default function Profile({
     if (onInviteShare) {
       onInviteShare();
     } else {
+      const hubText = user?.stream || 'your coaching batch';
       const shareData = {
         title: 'CampusFeed',
-        text: `Someone from St. Kabir voted for you! Join to see who. Use code: ${my_invite_code}`,
+        text: `Someone from ${hubText} voted for you! Join to see who. Use code: ${my_invite_code}`,
         url: inviteLink
       };
       if (navigator.share) {
@@ -156,14 +162,20 @@ export default function Profile({
   const saveProfile = async () => {
     setIsSaving(true);
     try {
+      const computedGrade = editStream.includes('12') ? 12 : editStream.includes('drop') ? 'dropper' : 11;
+      const computedHub = editHub || findHubForInstitute(editInstitute);
       const updatedUser = {
         ...user,
         bio: editBio,
         avatar: editAvatar,
         ring: selectedRing,
         selected_ring: selectedRing,
-        grade: editGrade,
-        city: editCity,
+        grade: computedGrade,
+        stream: editStream,
+        institute: editInstitute,
+        school: editInstitute,
+        coaching_hub: computedHub,
+        city: 'Bathinda',
         profile_pic: editProfilePic
       };
 
@@ -178,9 +190,12 @@ export default function Profile({
             avatar: editAvatar,
             ring: selectedRing,
             selected_ring: selectedRing,
-            grade: parseInt(editGrade) || 11,
-            city: editCity,
-            district: editCity,
+            grade: computedGrade,
+            stream: editStream,
+            institute: editInstitute,
+            school: editInstitute,
+            coaching_hub: computedHub,
+            city: 'Bathinda',
             profile_pic: editProfilePic
           })
           .eq('id', user.id);
@@ -194,8 +209,12 @@ export default function Profile({
           bio: editBio,
           avatar: editAvatar,
           ring: selectedRing,
-          grade: editGrade,
-          city: editCity,
+          grade: computedGrade,
+          stream: editStream,
+          institute: editInstitute,
+          school: editInstitute,
+          coaching_hub: computedHub,
+          city: 'Bathinda',
           profile_pic: editProfilePic
         })
       });
@@ -336,16 +355,16 @@ export default function Profile({
         </h2>
 
         <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#888888', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
-          <span>St. Kabir Convent School</span>
+          <span>{user.institute || user.school || 'Kapil Institute'}</span>
           <span>•</span>
-          <span>Class {user.grade || '11'}</span>
+          <span style={{ color: '#ff7700', fontWeight: '800' }}>{user.stream || '11th Medical'}</span>
           <span>•</span>
-          <span style={{ color: '#fbbf24', fontWeight: '700' }}>📍 {user.city || user.district || 'Bathinda'}</span>
+          <span style={{ color: '#38bdf8', fontWeight: '700' }}>📍 {user.coaching_hub || user.hub || 'Ajit Road Hub'}</span>
         </p>
 
         {/* Bio */}
         <p style={{ color: '#a1a1aa', fontSize: '13.5px', margin: '0 0 10px 0', lineHeight: '1.4' }}>
-          {user.bio || `Class ${user.grade || '11'} student at St. Kabir Convent School`}
+          {user.bio || `${user.stream || '11th Medical'} student at ${user.institute || 'Kapil Institute'}`}
         </p>
 
         {/* Small, Elegant "Edit Profile" Text Link Directly Under Bio */}
@@ -355,7 +374,10 @@ export default function Profile({
               setEditBio(user.bio || '');
               setEditAvatar(user.avatar || '');
               setEditGrade(user.grade ? user.grade.toString() : '11');
-              setEditCity(user.city || user.district || 'Bathinda');
+              setEditStream(user.stream || '11th Medical');
+              setEditInstitute(user.institute || user.school || 'Kapil Institute');
+              setEditHub(user.coaching_hub || user.hub || 'Ajit Road Hub');
+              setEditCity('Bathinda');
               setEditProfilePic(user.profile_pic || '');
               setIsEditing(true);
             }}
@@ -759,7 +781,7 @@ export default function Profile({
               type="text"
               value={editBio}
               onChange={(e) => setEditBio(e.target.value)}
-              placeholder="e.g. St. Kabir Convent • Class 11"
+              placeholder="e.g. Kapil Institute • 11th Med"
               style={{
                 width: '100%',
                 padding: '12px 14px',
@@ -774,62 +796,56 @@ export default function Profile({
             />
           </div>
 
-          {/* Grade Picker */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ fontSize: '12px', color: '#888', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
-              Class / Grade
+          {/* Coaching Institute Picker */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '11px', color: '#888', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+              Coaching Institute
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-              {['9', '10', '11', '12'].map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  onClick={() => setEditGrade(g)}
-                  style={{
-                    padding: '8px',
-                    borderRadius: '10px',
-                    border: editGrade === g ? '2px solid #ffffff' : '1px solid #333',
-                    background: editGrade === g ? '#ffffff' : '#181818',
-                    color: editGrade === g ? '#000000' : '#888888',
-                    fontWeight: '800',
-                    fontSize: '12px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Class {g}
-                </button>
-              ))}
+            <InstituteCombobox
+              value={editInstitute}
+              onChange={(val) => {
+                setEditInstitute(val);
+                setEditHub(findHubForInstitute(val));
+              }}
+              onSelectHub={(hub) => setEditHub(hub)}
+            />
+            <div style={{ marginTop: '5px', fontSize: '11px', color: '#ff7700', fontWeight: '700' }}>
+              📍 Hub: {editHub || findHubForInstitute(editInstitute)}
             </div>
           </div>
 
-          {/* City Picker for Local Sponsorships */}
+          {/* Stream Selection Pills (11th Medical, 11th Non-Med, 12th Commerce, Dropper) */}
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ fontSize: '12px', color: '#888', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
-              Your Campus City (for Local Deals)
+            <label style={{ fontSize: '11px', color: '#888', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+              Batch / Stream
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              {[
-                { id: 'Bathinda', label: '📍 Bathinda' },
-                { id: 'Ludhiana', label: '📍 Ludhiana' }
-              ].map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setEditCity(c.id)}
-                  style={{
-                    padding: '10px',
-                    borderRadius: '10px',
-                    border: editCity.toLowerCase() === c.id.toLowerCase() ? '2px solid #ff7700' : '1px solid #333',
-                    background: editCity.toLowerCase() === c.id.toLowerCase() ? 'rgba(255, 85, 0, 0.15)' : '#181818',
-                    color: editCity.toLowerCase() === c.id.toLowerCase() ? '#ffffff' : '#888888',
-                    fontWeight: '800',
-                    fontSize: '13px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {c.label}
-                </button>
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+              {['11th Medical', '11th Non-Med', '12th Commerce', 'Dropper'].map((s) => {
+                const isSelected = editStream === s;
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => {
+                      if (window.navigator?.vibrate) window.navigator.vibrate(8);
+                      setEditStream(s);
+                      setEditGrade(s.includes('12') ? '12' : s.includes('drop') ? 'dropper' : '11');
+                    }}
+                    style={{
+                      padding: '9px 6px',
+                      borderRadius: '10px',
+                      border: isSelected ? '2px solid #ff5500' : '1px solid #333',
+                      background: isSelected ? 'rgba(255, 85, 0, 0.2)' : '#181818',
+                      color: isSelected ? '#ffffff' : '#888888',
+                      fontWeight: '800',
+                      fontSize: '11.5px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {s}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

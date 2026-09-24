@@ -3,18 +3,20 @@
    Ultra-vibrant, 3D interactive, glassmorphic, 100% Mobile & PC perfected
    ========================================================================== */
 
-/* --- ROOT VARIABLES (MINIMALIST MONOCHROME / APPLE TIER) --- */
+/* --- ROOT VARIABLES (PREMIUM HIGH-CONTRAST DARK THEME #0F0F0F / #1A1A1A) --- */
 :root {
-  --gas-dark-bg: #000000;
-  --gas-surface: #0a0a0a;
-  --gas-card-bg: #111111;
+  --gas-dark-bg: #0F0F0F;
+  --gas-surface: #141416;
+  --gas-card-bg: #1A1A1A;
   --gas-card-border: rgba(255, 255, 255, 0.08);
-  --gas-card-border-hover: rgba(255, 255, 255, 0.18);
+  --gas-card-border-hover: rgba(255, 85, 0, 0.35);
+  --gas-accent-gradient: linear-gradient(135deg, #ff5500 0%, #ff2e93 50%, #833ab4 100%);
+  --gas-accent-fire: #ff5500;
   --gas-text: #ffffff;
-  --gas-muted: #888888;
-  --gas-muted-dark: #555555;
-  --gas-border-glass: rgba(255, 255, 255, 0.1);
-  --gas-glass-bg: rgba(255, 255, 255, 0.03);
+  --gas-muted: #a1a1aa;
+  --gas-muted-dark: #71717a;
+  --gas-border-glass: rgba(255, 255, 255, 0.08);
+  --gas-glass-bg: rgba(26, 26, 26, 0.75);
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -631,20 +633,33 @@ html, body {
 
 .gas-bottom-dock {
   position: absolute;
-  bottom: calc(8px + env(safe-area-inset-bottom, 6px));
-  left: 10px;
-  right: 10px;
-  height: 58px;
-  border-radius: 24px;
-  background: #0d0d0d;
-  border: 1px solid #222222;
+  bottom: calc(10px + env(safe-area-inset-bottom, 8px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 20px);
+  max-width: 410px;
+  height: 60px;
+  border-radius: 26px;
+  background: rgba(15, 15, 15, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0 4px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  padding: 0 6px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
   z-index: 50;
   box-sizing: border-box;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.42;
+  }
 }
 
 .gas-dock-item {

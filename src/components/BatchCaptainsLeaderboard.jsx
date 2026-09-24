@@ -58,10 +58,25 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
     }
   };
 
-  // Filter captains by grade if selected
+  // Filter captains by stream/grade
   const filteredCaptains = captains.filter(c => {
     if (gradeFilter === 'all') return true;
-    return c.grade?.toString() === gradeFilter;
+    const stream = (c.stream || '').toLowerCase();
+    const grade = (c.grade || '').toString().toLowerCase();
+    const target = gradeFilter.toLowerCase();
+    if (target.includes('medical') && !target.includes('non')) {
+      return stream.includes('med') && !stream.includes('non');
+    }
+    if (target.includes('non-med') || target.includes('nonmed')) {
+      return stream.includes('non');
+    }
+    if (target.includes('board') || target.includes('12')) {
+      return stream.includes('12') || grade === '12';
+    }
+    if (target.includes('dropper')) {
+      return stream.includes('drop') || grade === 'dropper';
+    }
+    return stream.includes(target) || grade === target;
   });
 
   const top3 = filteredCaptains.slice(0, 3);
@@ -217,27 +232,30 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
         </div>
       </div>
 
-      {/* Grade Switcher Tabs */}
+      {/* Coaching Stream / Category Switcher Tabs */}
       <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginBottom: '18px', flexWrap: 'wrap' }}>
         {[
-          { id: 'all', label: 'Whole School' },
-          { id: '9', label: 'Class 9' },
-          { id: '10', label: 'Class 10' },
-          { id: '11', label: 'Class 11' },
-          { id: '12', label: 'Class 12' }
+          { id: '11th Medical', label: '11th Medical' },
+          { id: '11th Non-Med', label: '11th Non-Med' },
+          { id: '12th Board', label: '12th Board' },
+          { id: 'NEET Droppers', label: 'NEET Droppers' },
+          { id: 'all', label: 'All Bathinda' }
         ].map(tab => (
           <button
             key={tab.id}
-            onClick={() => setGradeFilter(tab.id)}
+            onClick={() => {
+              if (window.navigator?.vibrate) window.navigator.vibrate(8);
+              setGradeFilter(tab.id);
+            }}
             style={{
               padding: '6px 12px',
               borderRadius: '12px',
-              border: 'none',
+              border: gradeFilter === tab.id ? '1px solid #ff5500' : '1px solid rgba(255, 255, 255, 0.08)',
               fontSize: '11.5px',
               fontWeight: '800',
               cursor: 'pointer',
-              background: gradeFilter === tab.id ? '#ffffff' : '#141416',
-              color: gradeFilter === tab.id ? '#000000' : '#71717a',
+              background: gradeFilter === tab.id ? '#ff5500' : '#141416',
+              color: gradeFilter === tab.id ? '#ffffff' : '#71717a',
               transition: 'all 0.15s ease'
             }}
           >

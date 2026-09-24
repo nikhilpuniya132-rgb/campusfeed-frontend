@@ -2,89 +2,62 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
-const CITY_SPONSORS = {
-  bathinda: [
-    {
-      id: 'bti-waffle',
-      name: 'The Belgian Waffle Co.',
-      location: 'Mall Road, Bathinda',
-      category: 'Student Treat',
-      logo: '🧇',
-      deal: 'Buy 1 Waffle, Get 1 FREE',
-      subtext: 'Exclusive perk for verified St. Kabir students with ID.',
-      code: 'BTIWAFFLE',
-      gradient: 'linear-gradient(135deg, #f59e0b, #ef4444)'
-    },
-    {
-      id: 'bti-browntown',
-      name: 'Brown Town Cafe',
-      location: '100 Ft. Road, Bathinda',
-      category: 'Youth Hangout',
-      logo: '☕',
-      deal: 'Flat 20% Off Burgers & Cold Coffee',
-      subtext: 'Valid during after-school study hours (2 PM – 6 PM).',
-      code: 'BROWNTOWN',
-      gradient: 'linear-gradient(135deg, #8b5cf6, #ec4899)'
-    },
-    {
-      id: 'bti-mindstone',
-      name: 'Mindstone Learning Hub',
-      location: 'Civil Lines, Bathinda',
-      category: 'Academic Partner',
-      logo: '📚',
-      deal: 'Free JEE/NEET Diagnostic Test',
-      subtext: 'Complimentary mentorship session for Class 9-12.',
-      code: 'MINDSTONE',
-      gradient: 'linear-gradient(135deg, #06b6d4, #3b82f6)'
-    }
-  ],
-  ludhiana: [
-    {
-      id: 'ldh-niks',
-      name: "Nik Baker's",
-      location: 'Kipps Market, Sarabha Nagar',
-      category: 'Gourmet Bakery',
-      logo: '🥐',
-      deal: 'Free Hot Chocolate on ₹299+',
-      subtext: 'Flash your CampusFeed app at billing for instant unlock.',
-      code: 'LDHNIK',
-      gradient: 'linear-gradient(135deg, #f97316, #e11d48)'
-    },
-    {
-      id: 'ldh-bakefresh',
-      name: 'Bake Fresh Cafe',
-      location: 'Model Town, Ludhiana',
-      category: 'Student Cafe',
-      logo: '🍕',
-      deal: 'Flat 25% Off Pizza & Shakes',
-      subtext: 'Valid for group tables of 2 or more classmates.',
-      code: 'BAKEFRESH',
-      gradient: 'linear-gradient(135deg, #10b981, #06b6d4)'
-    },
-    {
-      id: 'ldh-masterprep',
-      name: 'Masterprep Study Abroad',
-      location: 'Ferozepur Road, Ludhiana',
-      category: 'Global Careers',
-      logo: '🎓',
-      deal: 'Free SAT/IELTS Counseling',
-      subtext: 'One-on-one study abroad roadmap for high schoolers.',
-      code: 'MASTERLDH',
-      gradient: 'linear-gradient(135deg, #6366f1, #a855f7)'
-    }
-  ]
-};
+const ACADEMIC_B2B_SPONSORS = [
+  {
+    id: 'aakash-demo',
+    name: 'Aakash Institute',
+    location: '100 Feet Road Hub, Bathinda',
+    category: 'Verified Coaching Partner',
+    logo: '🩺',
+    deal: 'Book a Free 11th Medical Demo',
+    subtext: 'Includes complimentary NEET Diagnostic Test & Rank Analysis.',
+    code: 'AAKASH11MED',
+    gradient: 'linear-gradient(135deg, #0284c7, #2563eb)',
+    tag: 'B2B EXCLUSIVE'
+  },
+  {
+    id: 'allen-scholarship',
+    name: 'ALLEN Career Institute',
+    location: 'Bathinda Campus',
+    category: 'Academic Sponsor',
+    logo: '🏆',
+    deal: 'TALLENTEX: Up to 90% Scholarship',
+    subtext: 'Free registration & previous year solved sample papers for Bathinda students.',
+    code: 'ALLENBTI',
+    gradient: 'linear-gradient(135deg, #10b981, #0d9488)',
+    tag: 'SCHOLARSHIP'
+  },
+  {
+    id: 'pw-vidyapeeth',
+    name: 'Physics Wallah Vidyapeeth',
+    location: 'Bathinda Offline Centre',
+    category: 'Premier Coaching Partner',
+    logo: '⚡',
+    deal: 'Flat ₹5,000 Off on 11th/12th Batches',
+    subtext: 'Valid for JEE/NEET offline batches. Instant verification with CampusFeed.',
+    code: 'PWBTI5K',
+    gradient: 'linear-gradient(135deg, #f97316, #dc2626)',
+    tag: 'POPULAR'
+  },
+  {
+    id: 'kapil-ajit',
+    name: 'Kapil Institute',
+    location: 'Ajit Road Hub, Bathinda',
+    category: 'Ajit Road Anchor',
+    logo: '🎯',
+    deal: 'Free 3-Day Crash Course Pass',
+    subtext: 'Specialized faculty for Board + Competitive exam synergy.',
+    code: 'KAPILAJIT',
+    gradient: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+    tag: 'HUB SPECIAL'
+  }
+];
 
-export default function SponsorBanner({ city = 'Bathinda' }) {
-  const normalizedCity = (city || 'Bathinda').toLowerCase().trim();
-  const activeCityKey = normalizedCity.includes('ludhiana') ? 'ludhiana' : 'bathinda';
-  const sponsors = CITY_SPONSORS[activeCityKey] || CITY_SPONSORS.bathinda;
-
+export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub' }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [copiedCode, setCopiedCode] = useState(null);
 
-  const currentSponsor = sponsors[currentIndex] || sponsors[0];
-  const cityName = activeCityKey === 'ludhiana' ? 'Ludhiana' : 'Bathinda';
+  const currentSponsor = ACADEMIC_B2B_SPONSORS[currentIndex] || ACADEMIC_B2B_SPONSORS[0];
 
   const handleCopyCode = (code, e) => {
     e.stopPropagation();
@@ -92,6 +65,12 @@ export default function SponsorBanner({ city = 'Bathinda' }) {
       navigator.clipboard.writeText(code);
     }
     setCopiedCode(code);
+    
+    // Haptic feedback
+    if (window.navigator?.vibrate) {
+      window.navigator.vibrate([15, 30, 15]);
+    }
+
     try {
       confetti({
         particleCount: 50,
@@ -100,98 +79,149 @@ export default function SponsorBanner({ city = 'Bathinda' }) {
         colors: ['#fbbf24', '#ff5500', '#10b981']
       });
     } catch (_) {}
+
     setTimeout(() => setCopiedCode(null), 2500);
   };
 
-  const handleNextSponsor = (e) => {
-    e.stopPropagation();
-    setCurrentIndex((prev) => (prev + 1) % sponsors.length);
+  const nextSponsor = () => {
+    setCurrentIndex((prev) => (prev + 1) % ACADEMIC_B2B_SPONSORS.length);
+  };
+
+  const prevSponsor = () => {
+    setCurrentIndex((prev) => (prev - 1 + ACADEMIC_B2B_SPONSORS.length) % ACADEMIC_B2B_SPONSORS.length);
   };
 
   return (
-    <div style={{ width: '100%', marginTop: '16px', marginBottom: '8px', boxSizing: 'border-box' }}>
-      {/* Header Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 6px 4px' }}>
+    <div
+      style={{
+        marginTop: '18px',
+        width: '100%',
+        boxSizing: 'border-box'
+      }}
+    >
+      {/* Top Section Header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '8px',
+          padding: '0 4px'
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '13px' }}>📍</span>
-          <span style={{ fontSize: '11px', fontWeight: '800', color: '#a1a1aa', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            {cityName} Student Perks
+          <span style={{ fontSize: '11px', fontWeight: '900', color: '#ff5500', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            🎓 Bathinda Coaching Perks
           </span>
-          <span style={{ background: 'rgba(255, 85, 0, 0.15)', border: '1px solid rgba(255, 85, 0, 0.3)', color: '#ff7700', fontSize: '9.5px', fontWeight: '900', padding: '1px 6px', borderRadius: '10px' }}>
-            SPONSORED
+          <span
+            style={{
+              fontSize: '9.5px',
+              padding: '2px 7px',
+              borderRadius: '10px',
+              background: 'rgba(255, 85, 0, 0.15)',
+              border: '1px solid rgba(255, 85, 0, 0.35)',
+              color: '#ff8800',
+              fontWeight: '800'
+            }}
+          >
+            Verified Partner
           </span>
         </div>
 
-        {sponsors.length > 1 && (
+        {/* Carousel indicators & navigation */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button
-            onClick={handleNextSponsor}
-            type="button"
+            onClick={prevSponsor}
+            aria-label="Previous Offer"
             style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#71717a',
-              fontSize: '11px',
-              fontWeight: '700',
-              cursor: 'pointer',
+              background: '#18181b',
+              border: '1px solid #27272a',
+              color: '#a1a1aa',
+              width: '22px',
+              height: '22px',
+              borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px'
+              justifyContent: 'center',
+              fontSize: '11px',
+              cursor: 'pointer',
+              padding: 0
             }}
           >
-            <span>Next deal</span>
-            <span>➔</span>
+            ‹
           </button>
-        )}
+          <span style={{ fontSize: '10.5px', color: '#71717a', fontWeight: '700' }}>
+            {currentIndex + 1}/{ACADEMIC_B2B_SPONSORS.length}
+          </span>
+          <button
+            onClick={nextSponsor}
+            aria-label="Next Offer"
+            style={{
+              background: '#18181b',
+              border: '1px solid #27272a',
+              color: '#a1a1aa',
+              width: '22px',
+              height: '22px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '11px',
+              cursor: 'pointer',
+              padding: 0
+            }}
+          >
+            ›
+          </button>
+        </div>
       </div>
 
-      {/* Main Sponsor Card */}
+      {/* Interactive Academic Offer Card */}
       <AnimatePresence mode="wait">
         <motion.div
           key={currentSponsor.id}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.2 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.18 }}
           style={{
-            background: '#121214',
-            border: '1px solid #27272a',
-            borderRadius: '20px',
-            padding: '14px 16px',
             position: 'relative',
+            borderRadius: '20px',
+            background: '#141416',
+            border: '1px solid #27272a',
             overflow: 'hidden',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+            padding: '14px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+            boxSizing: 'border-box'
           }}
         >
-          {/* Subtle Glow Accent */}
+          {/* Subtle Ambient Accent Top Bar */}
           <div
             style={{
               position: 'absolute',
-              top: '-20px',
-              right: '-20px',
-              width: '80px',
-              height: '80px',
-              borderRadius: '50%',
-              background: currentSponsor.gradient,
-              filter: 'blur(35px)',
-              opacity: 0.25,
-              pointerEvents: 'none'
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '3px',
+              background: currentSponsor.gradient
             }}
           />
 
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+            {/* Institute Identity */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div
                 style={{
                   width: '42px',
                   height: '42px',
-                  borderRadius: '12px',
-                  background: '#18181b',
-                  border: '1px solid #27272a',
+                  borderRadius: '14px',
+                  background: currentSponsor.gradient,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '22px',
-                  flexShrink: 0
+                  fontSize: '20px',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
                 }}
               >
                 {currentSponsor.logo}
@@ -199,49 +229,58 @@ export default function SponsorBanner({ city = 'Bathinda' }) {
 
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <h4 style={{ margin: 0, color: '#ffffff', fontSize: '13.5px', fontWeight: '800' }}>
+                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: '#ffffff' }}>
                     {currentSponsor.name}
                   </h4>
-                  <span style={{ fontSize: '10px', color: '#10b981', fontWeight: '800' }}>✓</span>
+                  <span
+                    style={{
+                      fontSize: '9px',
+                      background: 'rgba(56, 189, 248, 0.15)',
+                      color: '#38bdf8',
+                      padding: '1px 6px',
+                      borderRadius: '6px',
+                      fontWeight: '800'
+                    }}
+                  >
+                    {currentSponsor.tag}
+                  </span>
                 </div>
-                <div style={{ fontSize: '11px', color: '#71717a', marginTop: '1px' }}>
-                  {currentSponsor.location}
-                </div>
+                <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#71717a', fontWeight: '600' }}>
+                  📍 {currentSponsor.location}
+                </p>
               </div>
             </div>
 
-            {/* Code / Claim Pill */}
-            <motion.button
-              whileTap={{ scale: 0.94 }}
+            {/* Voucher Code / Claim Button */}
+            <button
               onClick={(e) => handleCopyCode(currentSponsor.code, e)}
               style={{
-                background: copiedCode === currentSponsor.code ? '#10b981' : '#18181b',
-                border: copiedCode === currentSponsor.code ? '1px solid #10b981' : '1px dashed #ff7700',
-                color: copiedCode === currentSponsor.code ? '#ffffff' : '#fbbf24',
+                background: copiedCode === currentSponsor.code ? '#10b981' : '#1e1e24',
+                border: copiedCode === currentSponsor.code ? '1px solid #10b981' : '1px solid #333338',
+                color: copiedCode === currentSponsor.code ? '#ffffff' : '#f4f4f5',
                 padding: '6px 12px',
                 borderRadius: '12px',
-                fontSize: '11px',
-                fontWeight: '900',
+                fontSize: '11.5px',
+                fontWeight: '800',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
+                gap: '5px',
                 flexShrink: 0,
                 transition: 'all 0.15s ease'
               }}
-              title="Click to copy student promo code"
             >
-              <span>{copiedCode === currentSponsor.code ? '✓' : '🏷️'}</span>
-              <span>{copiedCode === currentSponsor.code ? 'COPIED!' : currentSponsor.code}</span>
-            </motion.button>
+              <span>{copiedCode === currentSponsor.code ? '✓' : '🎟️'}</span>
+              <span>{copiedCode === currentSponsor.code ? 'Copied' : currentSponsor.code}</span>
+            </button>
           </div>
 
-          {/* Deal Description */}
-          <div style={{ marginTop: '10px', padding: '8px 10px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-            <div style={{ color: '#ffffff', fontSize: '12.5px', fontWeight: '800' }}>
-              {currentSponsor.deal}
+          {/* Deal Headline & Subtext */}
+          <div style={{ marginTop: '10px', padding: '10px 12px', background: '#0e0e10', borderRadius: '12px', border: '1px solid #1f1f23' }}>
+            <div style={{ fontSize: '13px', fontWeight: '800', color: '#fbbf24', marginBottom: '2px' }}>
+              ⚡ {currentSponsor.deal}
             </div>
-            <div style={{ color: '#a1a1aa', fontSize: '11px', marginTop: '2px', lineHeight: '1.3' }}>
+            <div style={{ fontSize: '11.5px', color: '#a1a1aa', lineHeight: '1.35' }}>
               {currentSponsor.subtext}
             </div>
           </div>

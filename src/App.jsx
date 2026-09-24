@@ -20,6 +20,7 @@ const Feed = lazy(() => import('./components/Feed'));
 const Explore = lazy(() => import('./components/Explore'));
 const BatchCaptainsLeaderboard = lazy(() => import('./components/BatchCaptainsLeaderboard'));
 import AddToHomeScreenGuide from './components/AddToHomeScreenGuide';
+import InstituteCombobox, { findHubForInstitute } from './components/InstituteCombobox';
 
 // --- INITIALIZE CONFIGURED SUPABASE CLIENT & NAVIGATION ---
 import { supabase } from './supabase';
@@ -37,6 +38,28 @@ const AURA_RINGS = {
   crimsonFire: { border: '4px double #ef4444', boxShadow: '0 0 20px rgba(239, 68, 68, 0.8), inset 0 0 10px rgba(239, 68, 68, 0.4)' }
 };
 
+// Dynamic taxonomy badge for city-wide coaching network
+function getCoachingBadge(u) {
+  if (!u) return '🔥 BATHINDA';
+  const hub = (u.coaching_hub || u.hub || '').toLowerCase();
+  const stream = (u.stream || '').toLowerCase();
+  const grade = (u.grade || '').toString().toLowerCase();
+
+  let hubText = 'BATHINDA';
+  if (hub.includes('ajit')) hubText = 'AJIT ROAD';
+  else if (hub.includes('100')) hubText = '100 FEET RD';
+
+  let streamText = '11TH MED';
+  if (stream.includes('non')) streamText = '11TH NON-MED';
+  else if (stream.includes('med')) streamText = '11TH MED';
+  else if (stream.includes('comm') || stream.includes('12')) streamText = '12TH COMM';
+  else if (stream.includes('drop') || grade.includes('drop')) streamText = 'DROPPER';
+  else if (grade === '12') streamText = '12TH BOARD';
+  else if (grade === '11') streamText = '11TH MED';
+
+  return `🔥 ${hubText} • ${streamText}`;
+}
+
 const pageVariants = {
   initial: { opacity: 0, scale: 0.98, y: 10 },
   animate: { opacity: 1, scale: 1, y: 0 },
@@ -47,6 +70,12 @@ const pageVariants = {
 function UnauthenticatedLanding({
   grade,
   setGrade,
+  stream,
+  setStream,
+  institute,
+  setInstitute,
+  coachingHub,
+  setCoachingHub,
   loginWithGoogle,
   isAuthenticating,
   showManualLogin,
@@ -129,7 +158,9 @@ function UnauthenticatedLanding({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span className="gas-school-badge">St. Kabir • Classes 9 to 12</span>
+          <span className="gas-school-badge" style={{ borderColor: 'rgba(255, 85, 0, 0.4)', color: '#ff7700', fontWeight: '900', letterSpacing: '0.04em' }}>
+            🔥 BATHINDA COACHING NETWORK
+          </span>
 
           <div className="tooltip-wrapper">
             <li className="nav-link">
@@ -169,7 +200,7 @@ function UnauthenticatedLanding({
           }}
         >
           <div className="gas-pill-badge">
-            <span>✦</span> The Anonymous Loop for St. Kabir
+            <span>✦</span> The Anonymous Loop for Bathinda Coaching Hubs
           </div>
 
           <h1 className="gas-hero-title">
@@ -192,8 +223,8 @@ function UnauthenticatedLanding({
                 <span className="gas-stat-label">Anonymous</span>
               </div>
               <div className="gas-stat-card">
-                <span className="gas-stat-number">Class 11 & 12</span>
-                <span className="gas-stat-label">St. Kabir Only</span>
+                <span className="gas-stat-number">Class 11, 12 & Droppers</span>
+                <span className="gas-stat-label">Bathinda Hubs</span>
               </div>
             </div>
 
@@ -272,8 +303,8 @@ function UnauthenticatedLanding({
               <span className="gas-stat-label">Anonymous</span>
             </div>
             <div className="gas-stat-card">
-              <span className="gas-stat-number">Class 11 & 12</span>
-              <span className="gas-stat-label">St. Kabir</span>
+              <span className="gas-stat-number">Class 11, 12 & Droppers</span>
+              <span className="gas-stat-label">Bathinda Hubs</span>
             </div>
           </div>
         </div>
@@ -325,7 +356,7 @@ function UnauthenticatedLanding({
 
             <div className="pricing-modal">
               <h3 className="pricing-title">Choose Your Access</h3>
-              <p className="pricing-description">Instantly activates across all St. Kabir Class 11 & 12 polls.</p>
+              <p className="pricing-description">Instantly activates across all Bathinda Coaching Hub polls.</p>
 
               <div className="tab-container">
                 <div className="indicator" data-active={activePlan}></div>
@@ -402,15 +433,65 @@ function UnauthenticatedLanding({
 
             <p style={{ marginTop: '8px' }}>
               Join the Loop.
-              <span>Select your class at St. Kabir to continue</span>
+              <span style={{ color: '#ff7700', fontWeight: '800', display: 'block', marginTop: '2px' }}>
+                Select your Coaching Hub to enter the loop.
+              </span>
             </p>
 
-            <select value={grade} onChange={(e) => setGrade(e.target.value)} style={{ marginBottom: '14px' }}>
-              <option value="9">Class 9 (Freshmen)</option>
-              <option value="10">Class 10 (Sophomores)</option>
-              <option value="11">Class 11 (St. Kabir)</option>
-              <option value="12">Class 12 (Seniors)</option>
-            </select>
+            {/* Searchable Institute Combobox */}
+            <div style={{ marginBottom: '12px', textAlign: 'left' }}>
+              <label style={{ fontSize: '10.5px', fontWeight: '800', color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '5px' }}>
+                Coaching Institute
+              </label>
+              <InstituteCombobox
+                value={institute}
+                onChange={(val) => {
+                  setInstitute(val);
+                  setCoachingHub(findHubForInstitute(val));
+                }}
+                onSelectHub={(hub) => setCoachingHub(hub)}
+              />
+              <div style={{ marginTop: '5px', fontSize: '11px', color: '#ff7700', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span>📍 Hub:</span>
+                <span>{coachingHub || findHubForInstitute(institute)}</span>
+              </div>
+            </div>
+
+            {/* Stream Selection Pills (11th Medical, 11th Non-Med, 12th Commerce, Dropper) */}
+            <div style={{ marginBottom: '16px', textAlign: 'left' }}>
+              <label style={{ fontSize: '10.5px', fontWeight: '800', color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '5px' }}>
+                Batch / Stream
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+                {['11th Medical', '11th Non-Med', '12th Commerce', 'Dropper'].map((s) => {
+                  const isSelected = stream === s;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => {
+                        if (window.navigator?.vibrate) window.navigator.vibrate(8);
+                        setStream(s);
+                        setGrade(s.includes('12') ? '12' : s.includes('drop') ? 'dropper' : '11');
+                      }}
+                      style={{
+                        padding: '9px 6px',
+                        borderRadius: '10px',
+                        border: isSelected ? '1px solid #ff5500' : '1px solid rgba(255, 255, 255, 0.1)',
+                        background: isSelected ? 'rgba(255, 85, 0, 0.2)' : '#161616',
+                        color: isSelected ? '#ffffff' : '#a1a1aa',
+                        fontWeight: '800',
+                        fontSize: '11.5px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Prioritized One-Tap Google Button with Glowing Aura */}
             <motion.button
@@ -539,6 +620,9 @@ export default function App() {
   const [handle, setHandle] = useState('');
   const [password, setPassword] = useState('');
   const [grade, setGrade] = useState('11');
+  const [stream, setStream] = useState('11th Medical');
+  const [institute, setInstitute] = useState('Kapil Institute');
+  const [coachingHub, setCoachingHub] = useState('Ajit Road Hub');
   const [avatar, setAvatar] = useState('😎');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
@@ -858,6 +942,9 @@ export default function App() {
   const loginWithGoogle = async () => {
     setIsAuthenticating(true);
     localStorage.setItem('campus_grade', grade);
+    localStorage.setItem('campus_stream', stream);
+    localStorage.setItem('campus_institute', institute);
+    localStorage.setItem('campus_hub', coachingHub || findHubForInstitute(institute));
     
     const redirectUrl = (typeof window !== 'undefined' && window.location.origin)
       ? `${window.location.origin}/feed`
@@ -992,6 +1079,9 @@ export default function App() {
   };
 
   const handleNav = (newView) => {
+    if (window.navigator?.vibrate) {
+      window.navigator.vibrate(10);
+    }
     setView(newView);
     const targetPath = newView === 'poll' ? '/feed' : `/${newView}`;
     if (window.location.pathname !== targetPath) {
@@ -1136,7 +1226,7 @@ export default function App() {
     const userHandle = (user?.handle || 'campus').replace(/^@/, '').trim();
     const shareData = {
       title: 'CampusFeed',
-      text: `Someone from St. Kabir voted for you! Join to see who. Use code: ${userHandle}`,
+      text: `Someone from your coaching hub voted for you! Join to see who. Use code: ${userHandle}`,
       url: 'https://campusfeed-frontend.vercel.app'
     };
     if (navigator.share) {
@@ -1260,7 +1350,7 @@ export default function App() {
         color: '#ffffff',
         width: '100%'
       }}>
-        <HamsterLoader message="Entering St. Kabir Loop..." />
+        <HamsterLoader message="Entering Bathinda Coaching Loop..." />
       </div>
     );
   }
@@ -1284,6 +1374,12 @@ export default function App() {
       <UnauthenticatedLanding
         grade={grade}
         setGrade={setGrade}
+        stream={stream}
+        setStream={setStream}
+        institute={institute}
+        setInstitute={setInstitute}
+        coachingHub={coachingHub}
+        setCoachingHub={setCoachingHub}
         loginWithGoogle={loginWithGoogle}
         isAuthenticating={isAuthenticating}
         showManualLogin={showManualLogin}
@@ -1362,8 +1458,7 @@ export default function App() {
 
         <header className="gas-app-header">
           <div className="gas-header-title">
-            <span style={{ fontSize: '18px' }}>🔥</span>
-            <span>ST. KABIR • CL-{user.grade}</span>
+            <span>{getCoachingBadge(user)}</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1548,7 +1643,7 @@ export default function App() {
                         @{publicProfile.handle}
                       </h2>
                       <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '20px' }}>
-                        {publicProfile.bio || 'Classmate at St. Kabir'}
+                        {publicProfile.bio || (publicProfile.institute ? `${publicProfile.institute} • ${publicProfile.stream || 'Bathinda'}` : 'Bathinda Coaching Network')}
                       </p>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 85, 0, 0.15)', padding: '6px 14px', borderRadius: '20px', color: '#ff8800', fontWeight: '800' }}>
                         <span>🔥</span> {publicProfile.total_votes || 0} Flames Received
@@ -1724,7 +1819,7 @@ export default function App() {
                         marginBottom: '8px'
                       }}>
                         <span>{activeRevealPopup.vote.voterGender === 'girl' ? '🌸🔥' : '💙🔥'}</span>
-                        <span>{activeRevealPopup.vote.voterGender === 'girl' ? 'Sent by a Girl in St. Kabir' : 'Sent by a Boy in St. Kabir'}</span>
+                        <span>{activeRevealPopup.vote.voterGender === 'girl' ? 'Sent by a Girl in your coaching hub' : 'Sent by a Boy in your coaching hub'}</span>
                       </div>
                     )}
 
@@ -1956,7 +2051,7 @@ export default function App() {
                               @{req.requester?.handle}
                             </span>
                             <span style={{ color: '#ff8800', fontSize: '11px', fontWeight: '800' }}>
-                              Class {req.requester?.grade || '11'} • St. Kabir
+                              {req.requester?.stream || '11th Med'} • {req.requester?.institute || 'Bathinda'}
                             </span>
                           </div>
                         </div>

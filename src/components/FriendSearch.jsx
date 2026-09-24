@@ -167,7 +167,7 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
             Find Classmates
           </h4>
           <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>
-            Search by handle to build your St. Kabir friend circle
+            Search by handle to build your coaching hub friend circle
           </p>
         </div>
       </div>
@@ -179,7 +179,7 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
         </span>
         <input
           type="text"
-          placeholder="Search @handle (e.g. nikhil, kabir)..."
+          placeholder="Search @handle across Bathinda hubs..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           style={{
