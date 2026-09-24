@@ -154,7 +154,7 @@ function UnauthenticatedLanding({
       <header className="gas-landing-nav">
         <div className="gas-logo">
           <span className="flame-icon">🔥</span>
-          <span>CAMPUSFEED</span>
+          <span>CENTERINSIDER</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -599,7 +599,7 @@ function UnauthenticatedLanding({
             >
               <h2 style={{ color: '#ffffff', marginTop: 0, fontSize: '22px', fontWeight: 800 }}>{legalView === 'terms' ? 'Terms & Conditions' : 'Privacy Policy'}</h2>
               <p style={{ color: '#a1a1aa', fontSize: '14px', lineHeight: '1.6' }}>
-                CampusFeed is an anonymous positive voting platform built for school communities. Compliments are moderated to promote positivity. Razorpay handles secure transactions.
+                CenterInsider is an anonymous positive voting platform built for coaching hubs & student communities. Compliments are moderated to promote positivity. Razorpay handles secure transactions.
               </p>
               <button
                 style={{ padding: '10px 20px', background: '#ffffff', color: '#000000', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', marginTop: '16px' }}
@@ -1174,7 +1174,7 @@ export default function App() {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: 'CampusFeed',
+        name: 'CenterInsider',
         description: 'Unlock God Mode',
         order_id: orderData.id,
         handler: async (response) => {
@@ -1225,9 +1225,9 @@ export default function App() {
   const handleInviteShare = async () => {
     const userHandle = (user?.handle || 'campus').replace(/^@/, '').trim();
     const shareData = {
-      title: 'CampusFeed',
+      title: 'CenterInsider',
       text: `Someone from your coaching hub voted for you! Join to see who. Use code: ${userHandle}`,
-      url: 'https://campusfeed-frontend.vercel.app'
+      url: window.location.origin
     };
     if (navigator.share) {
       try {

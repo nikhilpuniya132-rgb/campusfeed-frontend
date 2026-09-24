@@ -76,7 +76,7 @@ export default function Profile({
 
   const copyInviteToClipboard = () => {
     const hubText = user?.stream || 'your batch';
-    const shareText = `Someone from ${hubText} voted for you on CampusFeed! Join to see who: ${inviteLink} (Code: ${my_invite_code})`;
+    const shareText = `Someone from ${hubText} voted for you on CenterInsider! Join to see who: ${inviteLink} (Code: ${my_invite_code})`;
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(shareText);
     }
@@ -90,7 +90,7 @@ export default function Profile({
     } else {
       const hubText = user?.stream || 'your coaching batch';
       const shareData = {
-        title: 'CampusFeed',
+        title: 'CenterInsider',
         text: `Someone from ${hubText} voted for you! Join to see who. Use code: ${my_invite_code}`,
         url: inviteLink
       };

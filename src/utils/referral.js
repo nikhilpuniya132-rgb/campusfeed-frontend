@@ -1,5 +1,5 @@
 /**
- * CampusFeed Referral Engine Utility (Beta 1.0)
+ * CenterInsider Referral Engine Utility (Beta 1.0)
  * Generates unique, trackable invite links and WhatsApp viral sharing URLs
  */
 
@@ -22,7 +22,7 @@ export function getWhatsAppShareUrl(user, customMessage = '') {
   const streamText = user?.stream || (user?.grade ? `Class ${user.grade}` : 'our coaching batch');
   const instituteText = user?.institute ? ` at ${user.institute}` : '';
   
-  const defaultText = `🔥 *CampusFeed Bathinda*: Someone in ${streamText}${instituteText} just secretly voted for you! 🤫\n\nFind out who voted for you and see your compliments here:\n👉 ${link}\n\n(Takes 10 seconds to join • Free)`;
+  const defaultText = `🔥 *CenterInsider Bathinda*: Someone in ${streamText}${instituteText} just secretly voted for you! 🤫\n\nFind out who voted for you and see your compliments here:\n👉 ${link}\n\n(Takes 10 seconds to join • Free)`;
   
   const message = customMessage || defaultText;
   return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
@@ -34,7 +34,7 @@ export function getWhatsAppShareUrl(user, customMessage = '') {
 export async function copyReferralLink(user) {
   const link = getReferralLink(user);
   const streamText = user?.stream || 'your batch';
-  const shareText = `Someone from ${streamText} voted for you on CampusFeed! Join to see who: ${link}`;
+  const shareText = `Someone from ${streamText} voted for you on CenterInsider! Join to see who: ${link}`;
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
     try {

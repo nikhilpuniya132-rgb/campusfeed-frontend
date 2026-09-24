@@ -1,4 +1,4 @@
-const CACHE_NAME = 'campusfeed-beta-v1.0';
+const CACHE_NAME = 'centerinsider-beta-v1.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

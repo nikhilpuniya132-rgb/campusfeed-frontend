@@ -34,7 +34,7 @@ const ACADEMIC_B2B_SPONSORS = [
     category: 'Premier Coaching Partner',
     logo: '⚡',
     deal: 'Flat ₹5,000 Off on 11th/12th Batches',
-    subtext: 'Valid for JEE/NEET offline batches. Instant verification with CampusFeed.',
+    subtext: 'Valid for JEE/NEET offline batches. Instant verification with CenterInsider.',
     code: 'PWBTI5K',
     gradient: 'linear-gradient(135deg, #f97316, #dc2626)',
     tag: 'POPULAR'

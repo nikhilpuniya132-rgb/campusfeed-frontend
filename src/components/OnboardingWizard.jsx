@@ -85,7 +85,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
   // Dynamic invite link
   const safeHandle = (handle || 'campus').replace(/^@/, '').toLowerCase();
   const shareUrl = `${window.location.origin}/?ref=${safeHandle}`;
-  const shareText = `Someone from your coaching hub voted for you on CampusFeed! Join to see who it is. Use my invite link: ${shareUrl}`;
+  const shareText = `Someone from your coaching hub voted for you on CenterInsider! Join to see who it is. Use my invite link: ${shareUrl}`;
 
   const handleCopyLink = () => {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -882,7 +882,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                   Invite your friends
                 </h2>
                 <p style={{ fontSize: '13px', color: '#888888', margin: 0, lineHeight: '1.4' }}>
-                  CampusFeed is built for you and your classmates.
+                  CenterInsider is built for you and your coaching batch.
                 </p>
               </div>
 

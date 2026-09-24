@@ -1,7 +1,7 @@
 {
-  "name": "CampusFeed | Student Loop",
-  "short_name": "CampusFeed",
-  "description": "The anonymous compliments and voting network for campus classmates.",
+  "name": "CenterInsider | Coaching Hub Loop",
+  "short_name": "CenterInsider",
+  "description": "The anonymous compliments and voting network for coaching hubs & institutes.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

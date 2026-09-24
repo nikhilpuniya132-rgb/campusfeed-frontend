@@ -36,8 +36,8 @@ export default function CooldownScreen({
   const handleShareToSkip = async () => {
     const handle = (user?.handle || 'campus').replace(/^@/, '');
     const shareData = {
-      title: 'CampusFeed',
-      text: `Someone from your coaching hub voted for you on CampusFeed! Join to see who it is! Use my invite link: ${window.location.origin}/?ref=${handle}`
+      title: 'CenterInsider',
+      text: `Someone from your coaching hub voted for you on CenterInsider! Join to see who it is! Use my invite link: ${window.location.origin}/?ref=${handle}`
     };
 
     if (navigator.share) {

@@ -169,7 +169,7 @@ export default function AddToHomeScreenGuide({ installPrompt, onInstallDirect })
                     3
                   </div>
                   <div style={{ fontSize: '12.5px', color: '#d4d4d8', lineHeight: '1.4' }}>
-                    Tap <strong style={{ color: '#ffffff' }}>"Add"</strong> in the top right. Launch CampusFeed directly from your home screen with zero browser bars!
+                    Tap <strong style={{ color: '#ffffff' }}>"Add"</strong> in the top right. Launch CenterInsider directly from your home screen with zero browser bars!
                   </div>
                 </div>
               </div>
@@ -237,7 +237,7 @@ export default function AddToHomeScreenGuide({ installPrompt, onInstallDirect })
                     3
                   </div>
                   <div style={{ fontSize: '12.5px', color: '#d4d4d8', lineHeight: '1.4' }}>
-                    Confirm with <strong style={{ color: '#ffffff' }}>"Install"</strong>. CampusFeed will open full screen with native app performance!
+                    Confirm with <strong style={{ color: '#ffffff' }}>"Install"</strong>. CenterInsider will open full screen with native app performance!
                   </div>
                 </div>
               </div>
