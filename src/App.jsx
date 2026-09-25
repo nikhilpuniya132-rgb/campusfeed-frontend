@@ -569,7 +569,6 @@ export default function App() {
       options: {
         redirectTo: redirectUrl,
         queryParams: {
-          access_type: 'offline',
           prompt: 'consent select_account',
         },
       },

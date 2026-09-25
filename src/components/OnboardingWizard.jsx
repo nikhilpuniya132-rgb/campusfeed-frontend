@@ -41,6 +41,9 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
   const initialName = googleUser?.name || '';
   const initialHandle = initialName ? initialName.toLowerCase().replace(/[^a-z0-9_]/g, '') : '';
 
+  const [currentUserEmail, setCurrentUserEmail] = useState(googleUser?.email || '');
+  const [currentUserId, setCurrentUserId] = useState(googleUser?.googleId || googleUser?.id || '');
+
   const [name, setName] = useState(initialName);
   const [institute, setInstitute] = useState('Kapil Institute');
   const [coachingHub, setCoachingHub] = useState('Ajit Road Hub');
@@ -54,6 +57,37 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
   const [profilePic, setProfilePic] = useState(googleUser?.avatar || '');
   const [avatarEmoji, setAvatarEmoji] = useState('😎');
   const [shareToast, setShareToast] = useState('');
+
+  // Task 3: Strictly pull email directly from newly resolved session.user.email on mount
+  useEffect(() => {
+    let isMounted = true;
+    const fetchFreshSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (isMounted && session?.user) {
+          if (session.user.email) {
+            setCurrentUserEmail(session.user.email);
+          }
+          if (session.user.id) {
+            setCurrentUserId(session.user.id);
+          }
+          if (!name.trim()) {
+            const resolvedName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || '';
+            setName(resolvedName);
+            setHandle(resolvedName.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+          }
+          if (!profilePic) {
+            const resolvedAvatar = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '';
+            if (resolvedAvatar) setProfilePic(resolvedAvatar);
+          }
+        }
+      } catch (err) {
+        console.warn("Error fetching fresh session in Onboarding:", err);
+      }
+    };
+    fetchFreshSession();
+    return () => { isMounted = false; };
+  }, []);
 
   const [refCode] = useState(() => {
     try {
@@ -155,8 +189,8 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       const finalAvatar = gender === 'girl' ? (avatarEmoji === '😎' ? '🌸' : avatarEmoji) : avatarEmoji;
 
       // 1. Direct Supabase save (Primary database of truth)
-      let authenticatedUserId = googleUser?.googleId || googleUser?.id;
-      let sessionEmail = googleUser?.email;
+      let authenticatedUserId = currentUserId || googleUser?.googleId || googleUser?.id;
+      let sessionEmail = currentUserEmail || googleUser?.email;
       if (supabase) {
         try {
           const { data: sessionData } = await supabase.auth.getSession();
@@ -317,9 +351,9 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
               textOverflow: 'ellipsis',
               maxWidth: '190px'
             }}
-            title={googleUser?.email || googleUser?.name || 'Logged in'}
+            title={currentUserEmail || googleUser?.email || googleUser?.name || 'Logged in'}
           >
-            {googleUser?.email || googleUser?.name || 'Google Account'}
+            {currentUserEmail || googleUser?.email || googleUser?.name || 'Google Account'}
           </span>
         </div>
         <button
