@@ -74,18 +74,8 @@ const pageVariants = {
 };
 
 export default function App() {
-  const [user, setUser] = useState(() => {
-    try {
-      const cached = localStorage.getItem('campus_cached_user');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed?.id && parsed?.institute && parsed.institute.trim()) {
-          return parsed;
-        }
-      }
-    } catch (_) {}
-    return null;
-  });
+  const [user, setUser] = useState(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [handle, setHandle] = useState('');
   const [password, setPassword] = useState('');
   const [grade, setGrade] = useState('11');
@@ -370,7 +360,11 @@ export default function App() {
   // SMART POST-AUTH ROUTING (THE SORTER) & AUTH LISTENER
   // =========================================================
   const handleSmartPostAuthRouting = async (sessionUser) => {
-    if (!sessionUser?.id) return;
+    if (!sessionUser?.id) {
+      setIsProfileLoading(false);
+      return;
+    }
+    setIsProfileLoading(true);
     setIsCheckingSession(true);
     setIsAuthLoading(true);
 
@@ -388,9 +382,34 @@ export default function App() {
             profile = userData;
           }
         } catch (e) {
-          console.warn('Direct users table query error:', e);
+          console.warn('Direct users table query by id error:', e);
         }
 
+        // Also check by google_id
+        if (!profile && sessionUser.id) {
+          try {
+            const { data: byGid } = await supabase
+              .from('users')
+              .select('*')
+              .eq('google_id', sessionUser.id)
+              .maybeSingle();
+            if (byGid) profile = byGid;
+          } catch (_) {}
+        }
+
+        // Also check by email
+        if (!profile && sessionUser.email) {
+          try {
+            const { data: byEmail } = await supabase
+              .from('users')
+              .select('*')
+              .eq('email', sessionUser.email)
+              .maybeSingle();
+            if (byEmail) profile = byEmail;
+          } catch (_) {}
+        }
+
+        // Also check profiles table
         if (!profile) {
           try {
             const { data: profileData, error: profErr } = await supabase
@@ -405,11 +424,38 @@ export default function App() {
         }
       }
 
-      // Check if user's profile has a valid, non-null institute value
+      // If direct queries didn't yield a record, query backend API
+      if (!profile) {
+        try {
+          const selectedGrade = localStorage.getItem('campus_grade') || grade || '11';
+          const cleanRef = (sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
+          const res = await fetch(`${API}/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              googleId: sessionUser.id,
+              email: sessionUser.email,
+              name: sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0],
+              avatar: sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '',
+              grade: selectedGrade,
+              refCode: cleanRef || undefined,
+              referred_by: cleanRef || undefined
+            })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.user) profile = data.user;
+          }
+        } catch (apiErr) {
+          console.warn('API sync fallback error:', apiErr);
+        }
+      }
+
+      // Crucial: Only evaluate institute status after profile fetch resolves, and set isProfileLoading to false
       const hasInstitute = Boolean(profile?.institute && profile.institute.trim());
 
       if (hasInstitute) {
-        // Routing Logic: Valid non-null institute -> instantly navigate('/feed')
+        // Valid non-null institute -> instantly navigate('/feed')
         const userRing = profile.selected_ring || profile.ring || localStorage.getItem('campus_user_ring') || 'gold';
         localStorage.setItem('campus_user_ring', userRing);
         const fullUser = { ...profile, ring: userRing, selected_ring: userRing };
@@ -419,6 +465,7 @@ export default function App() {
         setIsOnboarding(false);
         setOnboardingGoogleUser(null);
         setView('poll');
+        setIsProfileLoading(false);
         navigate('/feed');
 
         setGradeFilter(profile.grade ? profile.grade.toString() : '11');
@@ -427,7 +474,7 @@ export default function App() {
         fetchAcceptedFriends(profile.id);
         fetchInbox(profile.id);
       } else {
-        // Routing Logic: Profile lacks an institute (null or empty) -> instantly navigate('/onboarding')
+        // Lacks an institute (null or empty) -> instantly navigate('/onboarding')
         const cleanRef = (sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
         const wizardUser = {
           ...(profile || {}),
@@ -438,15 +485,18 @@ export default function App() {
           refCode: cleanRef,
           referred_by: cleanRef
         };
+        setUser(profile ? { ...profile } : null);
         setOnboardingGoogleUser(wizardUser);
         setIsOnboarding(true);
+        setIsProfileLoading(false);
         navigate('/onboarding');
       }
     } catch (err) {
       console.error('Smart post-auth routing exception:', err);
-      // Fallback: Never leave user stranded on root landing page if authenticated
+      setIsProfileLoading(false);
       navigate('/onboarding');
     } finally {
+      setIsProfileLoading(false);
       setIsCheckingSession(false);
       setIsAuthLoading(false);
       setIsAuthenticating(false);
@@ -465,6 +515,7 @@ export default function App() {
     const initAuth = async () => {
       // 1. Manual Interception & Explicit Exchange
       if (code) {
+        setIsProfileLoading(true);
         setIsCheckingSession(true);
         setIsAuthLoading(true);
         setIsAuthenticating(true);
@@ -491,10 +542,12 @@ export default function App() {
             }
           } else {
             console.error('Failed to establish session after PKCE exchange');
+            setIsProfileLoading(false);
             navigate('/');
           }
         } catch (err) {
           console.error('PKCE exchange exception:', err);
+          setIsProfileLoading(false);
           navigate('/');
         } finally {
           isProcessingCode = false;
@@ -507,6 +560,7 @@ export default function App() {
       } else {
         // 2. Standard Persistent Auth Check: check for existing, unexpired Supabase session
         try {
+          setIsProfileLoading(true);
           setIsCheckingSession(true);
           setIsAuthLoading(true);
           const { data: { session }, error } = await supabase.auth.getSession();
@@ -527,38 +581,19 @@ export default function App() {
                 await handleSmartPostAuthRouting(refreshed.session.user);
               } else {
                 setUser(null);
+                setIsProfileLoading(false);
                 localStorage.removeItem('campus_cached_user');
               }
             }
           } else {
-            // Check if user logged in via manual credentials cached in localStorage
-            const cached = localStorage.getItem('campus_cached_user');
-            if (cached) {
-              try {
-                const parsed = JSON.parse(cached);
-                if (parsed?.id && parsed?.institute && parsed.institute.trim()) {
-                  setUser(parsed);
-                  navigate('/feed');
-                  setGradeFilter(parsed.grade ? parsed.grade.toString() : '11');
-                  loadNextPoll(parsed.grade ? parsed.grade.toString() : '11', parsed.id);
-                  fetchPendingRequests(parsed.id);
-                  fetchAcceptedFriends(parsed.id);
-                  fetchInbox(parsed.id);
-                } else {
-                  setUser(null);
-                  localStorage.removeItem('campus_cached_user');
-                }
-              } catch (_) {
-                setUser(null);
-                localStorage.removeItem('campus_cached_user');
-              }
-            } else {
-              setUser(null);
-            }
+            // No session present on load
+            setUser(null);
+            setIsProfileLoading(false);
           }
         } catch (err) {
           console.error('Session retrieval error:', err);
           setUser(null);
+          setIsProfileLoading(false);
         } finally {
           if (isMounted) {
             setIsCheckingSession(false);
@@ -585,6 +620,7 @@ export default function App() {
       // When SIGNED_IN occurs, immediately query profiles/users and smartly route
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (session?.user) {
+          setIsProfileLoading(true);
           await handleSmartPostAuthRouting(session.user);
         }
       }
@@ -602,6 +638,7 @@ export default function App() {
   // automatically redirect them away from the base URL (/ or landing page) directly to the main app interface (/feed).
   // A logged-in user should never see the public landing page again unless they explicitly click a "Sign Out" button.
   useEffect(() => {
+    if (isProfileLoading) return;
     if (user && user.institute && user.institute.trim()) {
       const currentPath = window.location.pathname.replace(/^\//, '');
       if (!currentPath || currentPath === 'landing') {
@@ -609,10 +646,11 @@ export default function App() {
         setView('poll');
       }
     }
-  }, [user]);
+  }, [user, isProfileLoading]);
 
   useEffect(() => {
     const handlePopState = () => {
+      if (isProfileLoading) return;
       if (user && user.institute && user.institute.trim()) {
         const path = window.location.pathname.replace(/^\//, '');
         if (!path || path === 'landing') {
@@ -630,7 +668,7 @@ export default function App() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [user]);
+  }, [user, isProfileLoading]);
 
   const loginWithGoogle = async () => {
     setIsAuthenticating(true);
@@ -1132,7 +1170,7 @@ export default function App() {
     );
   };
 
-  if ((isCheckingSession || isAuthLoading || isAuthenticating) && !user && !isOnboarding) {
+  if (isProfileLoading || isCheckingSession || isAuthLoading || (isAuthenticating && !user)) {
     return (
       <div style={{
         display: 'flex',
@@ -1148,11 +1186,10 @@ export default function App() {
     );
   }
 
-  // Protected Route Check (Task 2):
-  // If user has a valid auth session but their institute in database is null/empty,
-  // force redirect to /onboarding. They must never see /feed or other pages until their profile is complete.
+  // Protected Route Check:
+  // Only evaluate if (!profile.institute) navigate('/onboarding') after the fetch completes and isProfileLoading is set to false.
   const isProfileIncomplete = Boolean(user && (!user.institute || !user.institute.trim()));
-  if (isOnboarding || isProfileIncomplete) {
+  if (!isProfileLoading && (isOnboarding || isProfileIncomplete)) {
     if (window.location.pathname !== '/onboarding') {
       window.history.replaceState(null, '', '/onboarding');
     }
