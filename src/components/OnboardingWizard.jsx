@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 
@@ -28,7 +28,7 @@ const stepVariants = {
 };
 
 export default function OnboardingWizard({ googleUser, API, onComplete }) {
-  // Step navigation (1 through 6 UI steps, completing leads to step 7 / feed)
+  // Step navigation (Strict order: 1. Institute/Class -> 2. Username -> 3. Password -> 4. Gender -> 5. Invite Friends -> 6. Profile Picture)
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,47 +39,29 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
   const initialHandle = initialName ? initialName.toLowerCase().replace(/[^a-z0-9_]/g, '') : '';
 
   const [name, setName] = useState(initialName);
+  const [institute, setInstitute] = useState('Kapil Institute');
+  const [coachingHub, setCoachingHub] = useState('Ajit Road Hub');
+  const [stream, setStream] = useState('11th Medical');
+  const [grade, setGrade] = useState('11');
+
   const [handle, setHandle] = useState(initialHandle);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [gender, setGender] = useState('boy');
   const [profilePic, setProfilePic] = useState(googleUser?.avatar || '');
   const [avatarEmoji, setAvatarEmoji] = useState('😎');
-  const [institute, setInstitute] = useState('Kapil Institute');
-  const [coachingHub, setCoachingHub] = useState('Ajit Road Hub');
-  const [stream, setStream] = useState('11th Medical');
-  const [grade, setGrade] = useState('11');
-  const [city] = useState('Bathinda'); // Frictionless: Fixed default city
+  const [shareToast, setShareToast] = useState('');
+
   const [refCode] = useState(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const fromUrl = urlParams.get('ref');
-      const fromStorage = localStorage.getItem('campus_ref_code');
-      return (fromUrl || fromStorage || '').trim().replace(/^@/, '');
+      const fromStorage = localStorage.getItem('campus_ref_code') || sessionStorage.getItem('campus_ref_code');
+      return (fromUrl || fromStorage || googleUser?.refCode || '').trim().replace(/^@/, '');
     } catch {
       return '';
     }
   });
-
-  // Step 6 Classmates State
-  const [suggestedClassmates, setSuggestedClassmates] = useState([]);
-  const [addedFriends, setAddedFriends] = useState(new Set());
-  const [isLoadingClassmates, setIsLoadingClassmates] = useState(false);
-  const [shareToast, setShareToast] = useState('');
-
-  // Fetch classmates when entering step 6
-  useEffect(() => {
-    if (step === 6) {
-      setIsLoadingClassmates(true);
-      fetch(`${API}/classmates/suggested?grade=${grade}`)
-        .then(r => r.json())
-        .then(d => {
-          setSuggestedClassmates(d.classmates || []);
-        })
-        .catch(err => console.error('Failed to load classmates:', err))
-        .finally(() => setIsLoadingClassmates(false));
-    }
-  }, [step, grade, API]);
 
   // Dynamic invite link
   const safeHandle = (handle || 'campus').replace(/^@/, '').toLowerCase();
@@ -90,11 +72,11 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(shareText);
     }
-    setShareToast('Link copied to clipboard!');
+    setShareToast('Invite link copied to clipboard!');
     setTimeout(() => setShareToast(''), 3000);
   };
 
-  const handleWhatsAppShare = async () => {
+  const handleWhatsAppShare = () => {
     const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
     window.open(waUrl, '_blank');
     setShareToast('Opening WhatsApp...');
@@ -115,17 +97,9 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
     reader.readAsDataURL(file);
   };
 
-  const toggleAddFriend = (classmateId) => {
-    setAddedFriends(prev => {
-      const next = new Set(prev);
-      if (next.has(classmateId)) next.delete(classmateId);
-      else next.add(classmateId);
-      return next;
-    });
-  };
-
   const nextStep = () => {
     setErrorMsg('');
+    // Step 1 Validation: Institute and Class selection
     if (step === 1) {
       if (!name.trim()) {
         return setErrorMsg('Please enter your full name');
@@ -133,14 +107,22 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       if (!institute.trim()) {
         return setErrorMsg('Please select your coaching institute');
       }
+      if (!stream.trim()) {
+        return setErrorMsg('Please select your batch / stream');
+      }
     }
+    // Step 2 Validation: Username creation
     if (step === 2) {
-      if (!handle.trim()) {
+      const cleanH = handle.trim().replace(/^@/, '');
+      if (!cleanH) {
         return setErrorMsg('Please enter a username');
       }
-      if (handle.trim().length < 3) {
+      if (cleanH.length < 3) {
         return setErrorMsg('Username must be at least 3 characters');
       }
+    }
+    // Step 3 Validation: Password setup
+    if (step === 3) {
       if (!password.trim()) {
         return setErrorMsg('Please create an account password');
       }
@@ -148,6 +130,9 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
         return setErrorMsg('Password should be at least 4 characters');
       }
     }
+    // Step 4: Gender selection (already has default 'boy')
+    // Step 5: Invite Friends step (can continue or skip)
+
     setDirection(1);
     setStep(prev => Math.min(6, prev + 1));
   };
@@ -158,7 +143,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
     setStep(prev => Math.max(1, prev - 1));
   };
 
-  // Final Routing & Submission (No confetti per instructions)
+  // Final Step 6: Submit Profile Picture and finalize onboarding
   const handleFinish = async () => {
     setIsSubmitting(true);
     setErrorMsg('');
@@ -192,24 +177,13 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to complete profile');
 
-      // Send friend requests for any classmates selected in Step 6
-      if (addedFriends.size > 0 && data.user?.id) {
-        Array.from(addedFriends).forEach(targetId => {
-          fetch(`${API}/friends/request`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ requesterId: data.user.id, receiverId: targetId })
-          }).catch(e => console.error('Friend request error:', e));
-        });
-      }
-
       // Clear referral code from storage
       sessionStorage.removeItem('campus_ref_code');
       sessionStorage.removeItem('referred_by');
       localStorage.removeItem('campus_ref_code');
       localStorage.removeItem('referred_by');
 
-      // Direct transition to voting game feed
+      // Transition to main app feed
       onComplete(data.user);
     } catch (err) {
       console.error('Onboarding finish error:', err);
@@ -284,11 +258,11 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
               letterSpacing: '0.04em'
             }}
           >
-            🔥 BATHINDA NETWORK
+            🔥 BATHINDA HUBS
           </span>
         </div>
 
-        {/* Surface Step Progress Line */}
+        {/* Step Progress Line */}
         <div
           style={{
             width: '100%',
@@ -306,7 +280,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
         </div>
       </div>
 
-      {/* Surface 1: Main Minimalist Container Enclosure */}
+      {/* Main Container Card */}
       <div
         style={{
           background: '#ffffff',
@@ -321,7 +295,10 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
         }}
       >
         <AnimatePresence mode="wait" custom={direction}>
-          {/* STEP 1: NAME & BASIC INFO */}
+
+          {/* ======================================================== */}
+          {/* STEP 1: INSTITUTE AND CLASS SELECTION                     */}
+          {/* ======================================================== */}
           {step === 1 && (
             <motion.div
               key="step1"
@@ -332,16 +309,17 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
               exit="exit"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <div style={{ textAlign: 'center', marginBottom: '22px' }}>
+              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
                 <h2 style={{ fontSize: '20px', fontWeight: '900', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
-                  Select your Coaching Hub to enter the loop.
+                  Institute & Class Selection
                 </h2>
                 <p style={{ fontSize: '12.5px', color: '#6b7280', margin: 0, lineHeight: '1.4' }}>
-                  Connect with peers across Ajit Road, 100 Feet Rd & Bathinda centres.
+                  Connect with your exact coaching peers across Ajit Road & 100 Feet Rd centres.
                 </p>
               </div>
 
-              <div style={{ margin: 'auto 0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ margin: 'auto 0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {/* Full Name */}
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
                     Full Name
@@ -354,12 +332,12 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                     autoFocus
                     style={{
                       width: '100%',
-                      padding: '13px 16px',
+                      padding: '12px 14px',
                       borderRadius: '14px',
                       border: '1px solid #e5e7eb',
                       background: '#f9fafb',
                       color: '#000000',
-                      fontSize: '14.5px',
+                      fontSize: '14px',
                       fontWeight: '700',
                       outline: 'none',
                       boxSizing: 'border-box'
@@ -367,7 +345,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                   />
                 </div>
 
-                {/* Searchable Institute Combobox */}
+                {/* Coaching Institute Combobox */}
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
                     Coaching Institute
@@ -386,22 +364,20 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                   </div>
                 </div>
 
-                {/* Stream Selection Pills */}
+                {/* Class / Batch Stream Pills */}
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
-                    Batch / Stream
+                    Batch / Class
                   </label>
                   <div
-                    className="flex flex-nowrap overflow-x-auto hide-scrollbar"
                     style={{
                       display: 'flex',
                       flexWrap: 'nowrap',
                       overflowX: 'auto',
                       gap: '8px',
-                      padding: '2px 2px 8px 2px',
+                      padding: '2px 2px 6px 2px',
                       scrollbarWidth: 'none',
-                      msOverflowStyle: 'none',
-                      WebkitOverflowScrolling: 'touch'
+                      msOverflowStyle: 'none'
                     }}
                   >
                     {['11th Medical', '11th Non-Med', '12th Commerce', 'Dropper'].map(s => {
@@ -417,16 +393,15 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                           }}
                           style={{
                             flexShrink: 0,
-                            padding: '10px 16px',
+                            padding: '10px 14px',
                             borderRadius: '12px',
                             border: isSelected ? '1px solid #000000' : '1px solid #e5e7eb',
                             background: isSelected ? '#000000' : '#f3f4f6',
                             color: isSelected ? '#ffffff' : '#4b5563',
                             fontWeight: '800',
-                            fontSize: '12.5px',
+                            fontSize: '12px',
                             cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                            boxShadow: 'none'
+                            transition: 'all 0.15s ease'
                           }}
                         >
                           {s}
@@ -434,6 +409,90 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                       );
                     })}
                   </div>
+                </div>
+              </div>
+
+              {errorMsg && (
+                <p style={{ color: '#ef4444', fontSize: '12.5px', textAlign: 'center', margin: '8px 0 0 0' }}>
+                  {errorMsg}
+                </p>
+              )}
+
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={nextStep}
+                style={{
+                  width: '100%',
+                  marginTop: '22px',
+                  padding: '14px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  background: '#000000',
+                  color: '#ffffff',
+                  fontSize: '14px',
+                  fontWeight: '800',
+                  cursor: 'pointer'
+                }}
+              >
+                Next: Create Username ➔
+              </motion.button>
+            </motion.div>
+          )}
+
+          {/* ======================================================== */}
+          {/* STEP 2: USERNAME CREATION                                */}
+          {/* ======================================================== */}
+          {step === 2 && (
+            <motion.div
+              key="step2"
+              custom={direction}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+            >
+              <div style={{ textAlign: 'center', marginBottom: '22px' }}>
+                <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+                  Create your Username
+                </h2>
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: '1.4' }}>
+                  Your @handle is how classmates tag you in polls and add you as a friend.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', margin: 'auto 0' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
+                    Username (Handle)
+                  </label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '16px', color: '#6b7280', fontWeight: '800', fontSize: '16px' }}>
+                      @
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="username"
+                      value={handle}
+                      onChange={e => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                      autoFocus
+                      style={{
+                        width: '100%',
+                        padding: '14px 16px 14px 34px',
+                        borderRadius: '14px',
+                        border: '1px solid #e5e7eb',
+                        background: '#f9fafb',
+                        color: '#000000',
+                        fontSize: '15px',
+                        fontWeight: '700',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <span style={{ fontSize: '11.5px', color: '#6b7280', marginTop: '6px', display: 'block' }}>
+                    Only lowercase letters, numbers, and underscores allowed.
+                  </span>
                 </div>
               </div>
 
@@ -459,15 +518,17 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                   cursor: 'pointer'
                 }}
               >
-                Continue ➔
+                Next: Set Password ➔
               </motion.button>
             </motion.div>
           )}
 
-          {/* STEP 2: ACCOUNT CREATION (HANDLE & PASSWORD) */}
-          {step === 2 && (
+          {/* ======================================================== */}
+          {/* STEP 3: PASSWORD SETUP                                   */}
+          {/* ======================================================== */}
+          {step === 3 && (
             <motion.div
-              key="step2"
+              key="step3"
               custom={direction}
               variants={stepVariants}
               initial="enter"
@@ -477,44 +538,14 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             >
               <div style={{ textAlign: 'center', marginBottom: '22px' }}>
                 <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
-                  Account details
+                  Password Setup
                 </h2>
                 <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: '1.4' }}>
-                  Set your username and secure account password.
+                  Set an account password to log in and confirm critical actions like account deletion.
                 </p>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', margin: 'auto 0' }}>
-                <div>
-                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
-                    Username (Handle)
-                  </label>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ position: 'absolute', left: '16px', color: '#6b7280', fontWeight: '800', fontSize: '15px' }}>
-                      @
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="username"
-                      value={handle}
-                      onChange={e => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                      autoFocus
-                      style={{
-                        width: '100%',
-                        padding: '14px 16px 14px 34px',
-                        borderRadius: '14px',
-                        border: '1px solid #e5e7eb',
-                        background: '#f9fafb',
-                        color: '#000000',
-                        fontSize: '15px',
-                        fontWeight: '700',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                </div>
-
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', margin: 'auto 0' }}>
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
                     Account Password
@@ -525,9 +556,10 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                       placeholder="Create a password"
                       value={password}
                       onChange={e => setPassword(e.target.value)}
+                      autoFocus
                       style={{
                         width: '100%',
-                        padding: '14px 44px 14px 16px',
+                        padding: '14px 50px 14px 16px',
                         borderRadius: '14px',
                         border: '1px solid #e5e7eb',
                         background: '#f9fafb',
@@ -548,7 +580,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                         border: 'none',
                         color: '#6b7280',
                         cursor: 'pointer',
-                        fontSize: '13px',
+                        fontSize: '12.5px',
                         padding: '6px',
                         fontWeight: '700'
                       }}
@@ -556,8 +588,8 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                       {showPassword ? 'Hide' : 'Show'}
                     </button>
                   </div>
-                  <span style={{ fontSize: '11.5px', color: '#6b7280', marginTop: '4px', display: 'block' }}>
-                    Use this password to sign back in from any device.
+                  <span style={{ fontSize: '11.5px', color: '#6b7280', marginTop: '6px', display: 'block' }}>
+                    Required for security and verifying future account changes.
                   </span>
                 </div>
               </div>
@@ -589,10 +621,12 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             </motion.div>
           )}
 
-          {/* STEP 3: GENDER SELECTION */}
-          {step === 3 && (
+          {/* ======================================================== */}
+          {/* STEP 4: GENDER SELECTION                                 */}
+          {/* ======================================================== */}
+          {step === 4 && (
             <motion.div
-              key="step3"
+              key="step4"
               custom={direction}
               variants={stepVariants}
               initial="enter"
@@ -602,10 +636,10 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             >
               <div style={{ textAlign: 'center', marginBottom: '22px' }}>
                 <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
-                  Select your gender
+                  Select your Gender
                 </h2>
                 <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: '1.4' }}>
-                  Helps friends identify who voted for them via flame colors.
+                  Determines your flame color on anonymous voting feeds.
                 </p>
               </div>
 
@@ -629,7 +663,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                         padding: '14px 16px',
                         borderRadius: '16px',
                         border: isSelected ? '2px solid #000000' : '1px solid #e5e7eb',
-                        background: isSelected ? '#f3f4f6' : '#ffffff',
+                        background: isSelected ? '#f9fafb' : '#ffffff',
                         color: '#000000',
                         display: 'flex',
                         alignItems: 'center',
@@ -686,180 +720,14 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                   cursor: 'pointer'
                 }}
               >
-                Continue ➔
+                Next: Invite Friends ➔
               </motion.button>
             </motion.div>
           )}
 
-          {/* STEP 4: PROFILE PICTURE */}
-          {step === 4 && (
-            <motion.div
-              key="step4"
-              custom={direction}
-              variants={stepVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
-              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
-                  Profile picture
-                </h2>
-                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: '1.4' }}>
-                  Upload a photo or choose an avatar icon.
-                </p>
-              </div>
-
-              {/* Avatar Preview */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: 'auto 0' }}>
-                <div style={{ position: 'relative', marginBottom: '14px' }}>
-                  {profilePic ? (
-                    <img
-                      src={profilePic}
-                      alt="profile preview"
-                      style={{
-                        width: '88px',
-                        height: '88px',
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                        border: '2px solid #000000'
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        width: '88px',
-                        height: '88px',
-                        borderRadius: '50%',
-                        background: '#f3f4f6',
-                        border: '1px solid #e5e7eb',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '44px'
-                      }}
-                    >
-                      {avatarEmoji}
-                    </div>
-                  )}
-
-                  {profilePic && (
-                    <button
-                      type="button"
-                      onClick={() => setProfilePic('')}
-                      style={{
-                        position: 'absolute',
-                        bottom: '0px',
-                        right: '-4px',
-                        background: '#ffffff',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '50%',
-                        width: '24px',
-                        height: '24px',
-                        color: '#ef4444',
-                        fontSize: '11px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      title="Remove photo"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-
-                {/* Upload Action */}
-                <label
-                  style={{
-                    padding: '8px 18px',
-                    borderRadius: '12px',
-                    background: '#f3f4f6',
-                    border: '1px solid #e5e7eb',
-                    color: '#000000',
-                    fontSize: '13px',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    marginBottom: '18px'
-                  }}
-                >
-                  <span>📷</span>
-                  <span>{profilePic ? 'Change Photo' : 'Upload Photo'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    style={{ display: 'none' }}
-                  />
-                </label>
-
-                {/* Quick Emoji Avatar Fallbacks */}
-                <div>
-                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', textAlign: 'center', marginBottom: '8px' }}>
-                    Or pick an avatar
-                  </span>
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    {['😎', '🌸', '⚡', '👑', '🦄', '🚀'].map(emoji => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        onClick={() => {
-                          setAvatarEmoji(emoji);
-                          setProfilePic('');
-                        }}
-                        style={{
-                          width: '38px',
-                          height: '38px',
-                          borderRadius: '12px',
-                          border: (!profilePic && avatarEmoji === emoji) ? '2px solid #000000' : '1px solid #e5e7eb',
-                          background: (!profilePic && avatarEmoji === emoji) ? '#f3f4f6' : '#ffffff',
-                          fontSize: '18px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {errorMsg && (
-                <p style={{ color: '#ef4444', fontSize: '12.5px', textAlign: 'center', margin: '8px 0 0 0' }}>
-                  {errorMsg}
-                </p>
-              )}
-
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={nextStep}
-                style={{
-                  width: '100%',
-                  marginTop: '24px',
-                  padding: '14px',
-                  borderRadius: '14px',
-                  border: 'none',
-                  background: '#000000',
-                  color: '#ffffff',
-                  fontSize: '14.5px',
-                  fontWeight: '800',
-                  cursor: 'pointer'
-                }}
-              >
-                Continue ➔
-              </motion.button>
-            </motion.div>
-          )}
-
-          {/* STEP 5: THE VIRAL LOOP (INVITE FRIENDS) */}
+          {/* ======================================================== */}
+          {/* STEP 5: "INVITE FRIENDS" STEP                            */}
+          {/* ======================================================== */}
           {step === 5 && (
             <motion.div
               key="step5"
@@ -872,10 +740,10 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             >
               <div style={{ textAlign: 'center', marginBottom: '18px' }}>
                 <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
-                  Invite your friends
+                  Invite your Friends
                 </h2>
                 <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: '1.4' }}>
-                  CenterInsider is built for you and your coaching batch.
+                  CenterInsider unlocks when classmates join. Invite 25 friends to claim Batch Captain status!
                 </p>
               </div>
 
@@ -957,7 +825,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                 </p>
               )}
 
-              {/* Primary Next Action + Explicit Skip For Now Button */}
+              {/* Action Buttons */}
               <div style={{ marginTop: 'auto', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <motion.button
                   whileTap={{ scale: 0.97 }}
@@ -974,7 +842,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                     cursor: 'pointer'
                   }}
                 >
-                  Continue to Classmates ➔
+                  Next: Profile Picture ➔
                 </motion.button>
 
                 <button
@@ -996,7 +864,9 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             </motion.div>
           )}
 
-          {/* STEP 6: ADD CLASSMATES (BENTO GRID) */}
+          {/* ======================================================== */}
+          {/* STEP 6: PROFILE PICTURE UPLOAD (FINAL STEP)              */}
+          {/* ======================================================== */}
           {step === 6 && (
             <motion.div
               key="step6"
@@ -1007,152 +877,166 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
               exit="exit"
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
-              <div style={{ textAlign: 'center', marginBottom: '14px' }}>
-                <h2 style={{ fontSize: '21px', fontWeight: '800', color: '#000000', margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>
-                  Add classmates
+              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+                  Profile Picture
                 </h2>
-                <p style={{ fontSize: '12.5px', color: '#6b7280', margin: 0, lineHeight: '1.4' }}>
-                  Send quick friend requests to peers in your coaching hub.
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: '1.4' }}>
+                  Upload a photo or choose an avatar icon for your profile.
                 </p>
               </div>
 
-              {/* Classmates Bento Grid */}
-              <div style={{ flex: 1, overflowY: 'auto', maxHeight: '250px', paddingRight: '2px', marginBottom: '14px' }}>
-                {isLoadingClassmates ? (
-                  <div style={{ padding: '40px 0', textAlign: 'center', color: '#6b7280', fontSize: '13px' }}>
-                    Finding classmates in Class {grade}...
-                  </div>
-                ) : suggestedClassmates.length === 0 ? (
-                  <div style={{ padding: '30px 10px', textAlign: 'center', color: '#6b7280', background: '#f9fafb', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
-                    <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#000000', fontWeight: '700' }}>You're an early bird!</p>
-                    <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Share your link so friends can join your class feed.</p>
-                  </div>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    {suggestedClassmates.map(c => {
-                      const isAdded = addedFriends.has(c.id);
-                      return (
-                        <div
-                          key={c.id}
-                          style={{
-                            background: '#f9fafb',
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '16px',
-                            padding: '10px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            textAlign: 'center',
-                            boxSizing: 'border-box'
-                          }}
-                        >
-                          {c.profile_pic ? (
-                            <img
-                              src={c.profile_pic}
-                              alt={c.handle}
-                              style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', marginBottom: '6px' }}
-                            />
-                          ) : (
-                            <div
-                              style={{
-                                width: '38px',
-                                height: '38px',
-                                borderRadius: '50%',
-                                background: '#e5e7eb',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '18px',
-                                marginBottom: '6px'
-                              }}
-                            >
-                              {c.avatar || '😎'}
-                            </div>
-                          )}
+              {/* Avatar Preview */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: 'auto 0' }}>
+                <div style={{ position: 'relative', marginBottom: '14px' }}>
+                  {profilePic ? (
+                    <img
+                      src={profilePic}
+                      alt="profile preview"
+                      style={{
+                        width: '92px',
+                        height: '92px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '2px solid #000000'
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '92px',
+                        height: '92px',
+                        borderRadius: '50%',
+                        background: '#f3f4f6',
+                        border: '1px solid #e5e7eb',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '46px'
+                      }}
+                    >
+                      {avatarEmoji}
+                    </div>
+                  )}
 
-                          <span style={{ fontSize: '12px', fontWeight: '800', color: '#000000', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            @{c.handle}
-                          </span>
-                          <span style={{ fontSize: '10.5px', color: '#6b7280', marginBottom: '8px' }}>
-                            Class {c.grade || grade}
-                          </span>
+                  {profilePic && (
+                    <button
+                      type="button"
+                      onClick={() => setProfilePic('')}
+                      style={{
+                        position: 'absolute',
+                        bottom: '0px',
+                        right: '-4px',
+                        background: '#ffffff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '50%',
+                        width: '24px',
+                        height: '24px',
+                        color: '#ef4444',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Remove photo"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
 
-                          <button
-                            type="button"
-                            onClick={() => toggleAddFriend(c.id)}
-                            style={{
-                              width: '100%',
-                              padding: '6px 0',
-                              borderRadius: '10px',
-                              border: isAdded ? '1px solid #e5e7eb' : 'none',
-                              background: isAdded ? '#f3f4f6' : '#000000',
-                              color: isAdded ? '#4b5563' : '#ffffff',
-                              fontSize: '11.5px',
-                              fontWeight: '800',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            {isAdded ? '✓ Added' : '+ Add'}
-                          </button>
-                        </div>
-                      );
-                    })}
+                {/* Upload Action Button */}
+                <label
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: '12px',
+                    background: '#f3f4f6',
+                    border: '1px solid #e5e7eb',
+                    color: '#000000',
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    marginBottom: '18px'
+                  }}
+                >
+                  <span>📷</span>
+                  <span>{profilePic ? 'Change Photo' : 'Upload Photo'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+
+                {/* Quick Emoji Avatar Fallbacks */}
+                <div>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', textAlign: 'center', marginBottom: '8px' }}>
+                    Or pick an avatar icon
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    {['😎', '🌸', '⚡', '👑', '🦄', '🚀'].map(emoji => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => {
+                          setAvatarEmoji(emoji);
+                          setProfilePic('');
+                        }}
+                        style={{
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '12px',
+                          border: (!profilePic && avatarEmoji === emoji) ? '2px solid #000000' : '1px solid #e5e7eb',
+                          background: (!profilePic && avatarEmoji === emoji) ? '#f3f4f6' : '#ffffff',
+                          fontSize: '18px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
 
               {errorMsg && (
-                <p style={{ color: '#ef4444', fontSize: '12.5px', textAlign: 'center', margin: '0 0 8px 0' }}>
+                <p style={{ color: '#ef4444', fontSize: '12.5px', textAlign: 'center', margin: '8px 0 0 0' }}>
                   {errorMsg}
                 </p>
               )}
 
-              {/* Route to Feed on finish or skip */}
-              <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  disabled={isSubmitting}
-                  onClick={handleFinish}
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    borderRadius: '14px',
-                    border: 'none',
-                    background: '#000000',
-                    color: '#ffffff',
-                    fontSize: '14.5px',
-                    fontWeight: '800',
-                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                    opacity: isSubmitting ? 0.6 : 1
-                  }}
-                >
-                  {isSubmitting
-                    ? 'Entering Network...'
-                    : addedFriends.size > 0
-                    ? `Add ${addedFriends.size} Friend${addedFriends.size > 1 ? 's' : ''} & Start ➔`
-                    : 'Finish & Start Voting ➔'}
-                </motion.button>
-
-                <button
-                  type="button"
-                  disabled={isSubmitting}
-                  onClick={handleFinish}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#6b7280',
-                    fontSize: '12.5px',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    padding: '6px'
-                  }}
-                >
-                  Skip
-                </button>
-              </div>
+              {/* Submit Final Onboarding */}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                disabled={isSubmitting}
+                onClick={handleFinish}
+                style={{
+                  width: '100%',
+                  marginTop: '24px',
+                  padding: '14px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  background: '#000000',
+                  color: '#ffffff',
+                  fontSize: '14.5px',
+                  fontWeight: '800',
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  opacity: isSubmitting ? 0.6 : 1
+                }}
+              >
+                {isSubmitting ? 'Saving Profile & Entering Feed...' : 'Finish Setup & Enter Feed ➔'}
+              </motion.button>
             </motion.div>
           )}
+
         </AnimatePresence>
       </div>
     </div>

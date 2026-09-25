@@ -153,9 +153,19 @@ export default function App() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Authentication sync failed');
-      if (data.isNewUser) {
-        setOnboardingGoogleUser({ ...(data.googleUser || {}), refCode: cleanRef, referred_by: cleanRef });
+      if (data.isNewUser || !data.user?.handle || !data.user?.password || !data.user?.institute) {
+        setOnboardingGoogleUser({
+          ...(data.googleUser || {}),
+          googleId: sessionUser.id,
+          email: sessionUser.email,
+          name: data.user?.name || sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0],
+          avatar: data.user?.profile_pic || data.user?.avatar || sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '',
+          refCode: cleanRef,
+          referred_by: cleanRef
+        });
         setIsOnboarding(true);
+        window.history.replaceState(null, '', '/onboarding');
+      } else if (data.user) {
         const userRing = data.user?.selected_ring || data.user?.ring || localStorage.getItem('campus_user_ring') || 'gold';
         localStorage.setItem('campus_user_ring', userRing);
         setUser(prev => ({ ...(prev || {}), ...data.user, ring: userRing, selected_ring: userRing }));
@@ -325,8 +335,6 @@ export default function App() {
             window.history.replaceState(null, '', '/feed');
 
             if (isMounted) {
-              setUser(activeSession.user);
-              setView('poll');
               await syncWithBackend(activeSession.user);
             }
           } else {
@@ -350,7 +358,6 @@ export default function App() {
           const { data: { session } } = await supabase.auth.getSession();
           if (!isMounted) return;
           if (session?.user) {
-            setUser(session.user);
             syncWithBackend(session.user).catch(console.warn);
           }
         } catch (err) {
@@ -618,14 +625,59 @@ export default function App() {
   };
 
   const deleteAccount = async () => {
-    const pass = prompt('Warning: This is permanent. Enter password to delete account:');
-    if (!pass) return;
-    const res = await fetch(`${API}/profile/${user.id}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass })
-    });
-    if (res.ok) setUser(null); else alert('Incorrect password.');
+    const pass = prompt('Warning: This action is permanent and cannot be undone.\nEnter your account password to confirm deletion:');
+    if (!pass || !pass.trim()) {
+      alert('Password is required. Account deletion cancelled.');
+      return;
+    }
+    const enteredPassword = pass.trim();
+
+    try {
+      // 1. Validate entered password against stored profile
+      if (supabase && user?.id) {
+        const { data: dbUser } = await supabase
+          .from('users')
+          .select('password')
+          .eq('id', user.id)
+          .single();
+
+        if (dbUser && dbUser.password && dbUser.password !== enteredPassword) {
+          alert('Incorrect password. Account deletion aborted.');
+          return;
+        }
+      }
+
+      // 2. Execute deletion API on backend
+      const res = await fetch(`${API}/profile/${user.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: enteredPassword })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Incorrect password. Account deletion aborted.');
+        return;
+      }
+
+      // 3. Delete Supabase Auth session & local profile row
+      if (supabase && user?.id) {
+        try {
+          await supabase.from('users').delete().eq('id', user.id);
+        } catch (_) {}
+        try {
+          await supabase.auth.signOut();
+        } catch (_) {}
+      }
+
+      setUser(null);
+      localStorage.clear();
+      sessionStorage.clear();
+      alert('Your account has been deleted successfully.');
+      window.location.href = '/';
+    } catch (err) {
+      console.error('Account deletion error:', err);
+      alert('Failed to delete account: ' + err.message);
+    }
   };
 
   const handleUpgrade = async (amount = 99) => {
@@ -800,8 +852,8 @@ export default function App() {
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: '100svh',
-        background: '#09090b',
-        color: '#ffffff',
+        background: '#ffffff',
+        color: '#000000',
         width: '100%'
       }}>
         <HamsterLoader message="Entering Bathinda Coaching Loop..." />
@@ -809,10 +861,25 @@ export default function App() {
     );
   }
 
-  if (isOnboarding && onboardingGoogleUser) {
+  if (isOnboarding) {
+    if (!onboardingGoogleUser) {
+      return (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100svh',
+          background: '#ffffff',
+          color: '#000000',
+          width: '100%'
+        }}>
+          <HamsterLoader message="Loading Onboarding..." />
+        </div>
+      );
+    }
     return (
       <div className="gas-landing-wrapper">
-        <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100svh', background: '#09090b' }}><HamsterLoader message="Loading Onboarding..." /></div>}>
+        <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100svh', background: '#ffffff', color: '#000000' }}><HamsterLoader message="Loading Onboarding..." /></div>}>
           <OnboardingWizard
             googleUser={onboardingGoogleUser}
             API={API}

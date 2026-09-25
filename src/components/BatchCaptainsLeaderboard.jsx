@@ -23,7 +23,9 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
       const res = await fetch(`${API}/referrals/leaderboard`);
       const data = await res.json();
       if (data.leaderboard) {
-        setCaptains(data.leaderboard);
+        // Strict 25+ recruits filter: do not display users with 0, 1, or 3 recruits
+        const verified = data.leaderboard.filter(c => ((c.invites || c.recruits || 0) >= 25 || c.batch_captain_admin_override));
+        setCaptains(verified);
       }
     } catch (err) {
       console.error('Failed to load Batch Captains:', err);
@@ -391,8 +393,10 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
       ) : filteredCaptains.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280' }}>
           <div style={{ fontSize: '36px', marginBottom: '10px' }}>👑</div>
-          <p style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#000000' }}>No captains yet in this class.</p>
-          <p style={{ margin: '6px 0 16px 0', fontSize: '12px' }}>Be the first captain by sharing your invite link!</p>
+          <p style={{ margin: 0, fontSize: '14.5px', fontWeight: '800', color: '#000000', lineHeight: '1.4' }}>
+            No Batch Captains yet. Be the first to invite 25 students and claim the crown.
+          </p>
+          <p style={{ margin: '8px 0 16px 0', fontSize: '12px' }}>Share your personal invite link to build your recruits!</p>
           <button
             onClick={handleWhatsAppShare}
             aria-label="Share Link"

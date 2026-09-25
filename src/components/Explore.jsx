@@ -40,16 +40,18 @@ export default function Explore({
         const res = await fetch(`${API}/explore/legends`);
         const data = await res.json();
         if (data.legends && data.legends.length > 0) {
-          setLegends(data.legends);
+          const verified = data.legends.filter(u => ((u.invites || u.recruits || 0) >= 25 || u.batch_captain_admin_override));
+          setLegends(verified);
         } else if (supabase) {
           const { data: dbLegends } = await supabase
             .from('users')
-            .select('id, handle, name, avatar, profile_pic, ring, selected_ring, total_votes, is_pro, grade, stream, institute, invites, is_batch_captain')
+            .select('id, handle, name, avatar, profile_pic, ring, selected_ring, total_votes, is_pro, grade, stream, institute, invites, is_batch_captain, batch_captain_admin_override')
+            .gte('invites', 25)
             .order('invites', { ascending: false })
             .limit(30);
 
           const filtered = (dbLegends || []).filter(u =>
-            u.is_batch_captain || (u.invites || 0) >= 25 || u.is_pro
+            ((u.invites || u.recruits || 0) >= 25 || u.batch_captain_admin_override)
           );
           setLegends(filtered);
         }
@@ -448,20 +450,23 @@ export default function Explore({
                       Loading Legends...
                     </div>
                   ) : legends.length === 0 ? (
-                    <div style={{ padding: '20px 0', textAlign: 'left' }}>
-                      <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
-                        No Batch Captains have been crowned yet.
+                    <div style={{ padding: '24px 8px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '32px', marginBottom: '8px' }}>👑</div>
+                      <p style={{ margin: '0 0 8px 0', fontSize: '14.5px', fontWeight: '800', color: '#000000', lineHeight: '1.4' }}>
+                        No Batch Captains yet. Be the first to invite 25 students and claim the crown.
+                      </p>
+                      <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: '#6b7280' }}>
+                        Invite 25 friends to become an official Batch Captain and lead your hub.
                       </p>
                       <button
                         onClick={() => navigate('/captains')}
                         style={{
-                          marginTop: '10px',
-                          padding: '8px 14px',
+                          padding: '10px 18px',
                           background: '#000000',
                           color: '#ffffff',
                           border: 'none',
-                          borderRadius: '10px',
-                          fontSize: '12px',
+                          borderRadius: '12px',
+                          fontSize: '12.5px',
                           fontWeight: '800',
                           cursor: 'pointer'
                         }}
