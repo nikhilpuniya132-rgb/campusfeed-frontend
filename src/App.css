@@ -58,6 +58,17 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Utilities for Auth Blocking Loader */
+.flex { display: flex; }
+.h-screen { height: 100vh; min-height: 100svh; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.bg-white { background-color: #ffffff; }
+.text-black { color: #000000; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.font-bold { font-weight: 700; }
+
+
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 5px;

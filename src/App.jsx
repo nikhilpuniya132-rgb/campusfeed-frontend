@@ -528,6 +528,7 @@ export default function App() {
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (currentSession?.user) {
+          setIsAuthLoading(true);
           setIsProfileLoading(true);
           setSession(currentSession);
           await fetchProfile(currentSession);
@@ -545,7 +546,7 @@ export default function App() {
   // automatically redirect them away from the base URL (/ or landing page) directly to the main app interface (/feed).
   // A logged-in user should never see the public landing page again unless they explicitly click a "Sign Out" button.
   useEffect(() => {
-    if (isProfileLoading) return;
+    if (isAuthLoading || isProfileLoading) return;
     if (user && user.institute && user.institute.trim()) {
       const currentPath = window.location.pathname.replace(/^\//, '');
       if (!currentPath || currentPath === 'landing') {
@@ -553,11 +554,11 @@ export default function App() {
         setView('poll');
       }
     }
-  }, [user, isProfileLoading]);
+  }, [user, isAuthLoading, isProfileLoading]);
 
   useEffect(() => {
     const handlePopState = () => {
-      if (isProfileLoading) return;
+      if (isAuthLoading || isProfileLoading) return;
       if (user && user.institute && user.institute.trim()) {
         const path = window.location.pathname.replace(/^\//, '');
         if (!path || path === 'landing') {
@@ -603,9 +604,10 @@ export default function App() {
       options: {
         redirectTo: redirectUrl,
         queryParams: {
-          prompt: 'select_account'
-        }
-      }
+          access_type: 'offline',
+          prompt: 'consent select_account',
+        },
+      },
     });
     
     if (error) {
@@ -1090,32 +1092,18 @@ export default function App() {
     );
   };
 
-  if (isProfileLoading) {
+  if (isAuthLoading || isProfileLoading) {
     return (
-      <div
-        className="flex h-screen items-center justify-center bg-white text-black text-xl font-bold"
-        style={{
-          display: 'flex',
-          height: '100vh',
-          minHeight: '100svh',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#ffffff',
-          color: '#000000',
-          fontSize: '1.25rem',
-          fontWeight: '700',
-          width: '100%'
-        }}
-      >
-        Loading CenterInsider...
+      <div className="flex h-screen items-center justify-center bg-white text-black text-xl font-bold">
+        Loading...
       </div>
     );
   }
 
   // Protected Route Check:
-  // Only evaluate if (!profile.institute) navigate('/onboarding') after the fetch completes and isProfileLoading is set to false.
+  // Only evaluate if (!profile.institute) navigate('/onboarding') after the fetch completes and isAuthLoading & isProfileLoading are false.
   const isProfileIncomplete = Boolean(user && (!user.institute || !user.institute.trim()));
-  if (!isProfileLoading && (isOnboarding || isProfileIncomplete)) {
+  if (!isAuthLoading && !isProfileLoading && (isOnboarding || isProfileIncomplete)) {
     if (window.location.pathname !== '/onboarding') {
       window.history.replaceState(null, '', '/onboarding');
     }
