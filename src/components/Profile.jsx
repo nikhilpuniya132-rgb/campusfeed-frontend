@@ -173,29 +173,30 @@ export default function Profile({
         institute: editInstitute,
         school: editInstitute,
         coaching_hub: computedHub,
-        city: 'Bathinda',
+        district: 'Bathinda',
         profile_pic: editProfilePic
       };
 
       if (onUpdateUser) onUpdateUser(updatedUser);
 
       if (supabase && user?.id) {
-        await supabase
-          .from('users')
-          .update({
-            bio: editBio,
-            avatar: editAvatar,
-            ring: selectedRing,
-            selected_ring: selectedRing,
-            grade: computedGrade,
-            stream: editStream,
-            institute: editInstitute,
-            school: editInstitute,
-            coaching_hub: computedHub,
-            city: 'Bathinda',
-            profile_pic: editProfilePic
-          })
-          .eq('id', user.id);
+        const updatePayload = {
+          bio: editBio,
+          avatar: editAvatar,
+          ring: selectedRing,
+          selected_ring: selectedRing,
+          grade: computedGrade,
+          stream: editStream,
+          institute: editInstitute,
+          school: editInstitute,
+          coaching_hub: computedHub,
+          district: 'Bathinda',
+          profile_pic: editProfilePic
+        };
+        await supabase.from('users').update(updatePayload).eq('id', user.id);
+        try {
+          await supabase.from('profiles').update(updatePayload).eq('id', user.id);
+        } catch (_) {}
       }
 
       await fetch(`${API}/profile/${user.id}`, {
@@ -210,7 +211,7 @@ export default function Profile({
           institute: editInstitute,
           school: editInstitute,
           coaching_hub: computedHub,
-          city: 'Bathinda',
+          district: 'Bathinda',
           profile_pic: editProfilePic
         })
       });

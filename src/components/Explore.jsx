@@ -32,27 +32,36 @@ export default function Explore({
     setOpenAccordion(prev => (prev === id ? null : id));
   };
 
-  // 1. Fetch Legends (Batch Captains)
+  // 1. Fetch Legends (Batch Captains) strictly isolated to user's institute
   useEffect(() => {
     const fetchLegends = async () => {
       setIsLoadingLegends(true);
       try {
-        const res = await fetch(`${API}/explore/legends`);
+        const instParam = encodeURIComponent(currentUser?.institute || '');
+        const res = await fetch(`${API}/explore/legends?institute=${instParam}`);
         const data = await res.json();
         if (data.legends && data.legends.length > 0) {
-          const verified = data.legends.filter(u => ((u.invites || u.recruits || 0) >= 25 || u.batch_captain_admin_override));
+          const verified = data.legends
+            .filter(u => !currentUser?.institute || u.institute === currentUser.institute)
+            .filter(u => ((u.invites || u.recruits || 0) >= 25 || u.batch_captain_admin_override));
           setLegends(verified);
         } else if (supabase) {
-          const { data: dbLegends } = await supabase
+          let query = supabase
             .from('users')
-            .select('id, handle, name, avatar, profile_pic, ring, selected_ring, total_votes, is_pro, grade, stream, institute, invites, is_batch_captain, batch_captain_admin_override')
+            .select('id, handle, name, avatar, profile_pic, ring, selected_ring, total_votes, is_pro, grade, stream, institute, invites, is_batch_captain, batch_captain_admin_override');
+
+          if (currentUser?.institute) {
+            query = query.eq('institute', currentUser.institute);
+          }
+
+          const { data: dbLegends } = await query
             .gte('invites', 25)
             .order('invites', { ascending: false })
             .limit(30);
 
-          const filtered = (dbLegends || []).filter(u =>
-            ((u.invites || u.recruits || 0) >= 25 || u.batch_captain_admin_override)
-          );
+          const filtered = (dbLegends || [])
+            .filter(u => !currentUser?.institute || u.institute === currentUser.institute)
+            .filter(u => ((u.invites || u.recruits || 0) >= 25 || u.batch_captain_admin_override));
           setLegends(filtered);
         }
       } catch (err) {
@@ -62,31 +71,41 @@ export default function Explore({
       }
     };
     fetchLegends();
-  }, [API, supabase]);
+  }, [API, supabase, currentUser?.institute]);
 
-  // 2. Fetch Leaderboard across all institutes
+  // 2. Fetch Leaderboard strictly isolated to user's institute
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setIsLoadingLeaderboard(true);
       try {
-        const res = await fetch(`${API}/explore/leaderboard`);
+        const instParam = encodeURIComponent(currentUser?.institute || '');
+        const res = await fetch(`${API}/explore/leaderboard?institute=${instParam}`);
         const data = await res.json();
         if (data.leaderboard && data.leaderboard.length > 0) {
-          setLeaderboard(data.leaderboard);
+          const instituteFiltered = data.leaderboard.filter(u => !currentUser?.institute || u.institute === currentUser.institute);
+          setLeaderboard(instituteFiltered);
         } else if (supabase) {
-          const { data: dbUsers } = await supabase
+          let query = supabase
             .from('users')
-            .select('id, handle, name, avatar, profile_pic, ring, selected_ring, total_votes, is_pro, grade, stream, institute, coaching_hub, invites, is_batch_captain')
+            .select('id, handle, name, avatar, profile_pic, ring, selected_ring, total_votes, is_pro, grade, stream, institute, coaching_hub, invites, is_batch_captain');
+
+          if (currentUser?.institute) {
+            query = query.eq('institute', currentUser.institute);
+          }
+
+          const { data: dbUsers } = await query
             .order('total_votes', { ascending: false })
             .limit(100);
 
-          const sanitized = (dbUsers || []).map(u => ({
-            ...u,
-            institute: u.institute || 'Kapil Institute',
-            stream: u.stream || (u.grade === 12 ? '12th Board' : '11th Medical'),
-            grade: u.grade || 11,
-            coaching_hub: u.coaching_hub || 'Ajit Road Hub'
-          }));
+          const sanitized = (dbUsers || [])
+            .filter(u => !currentUser?.institute || u.institute === currentUser.institute)
+            .map(u => ({
+              ...u,
+              institute: u.institute || currentUser?.institute || 'Kapil Institute',
+              stream: u.stream || (u.grade === 12 ? '12th Board' : '11th Medical'),
+              grade: u.grade || 11,
+              coaching_hub: u.coaching_hub || 'Ajit Road Hub'
+            }));
           setLeaderboard(sanitized);
         }
       } catch (err) {
@@ -96,7 +115,7 @@ export default function Explore({
       }
     };
     fetchLeaderboard();
-  }, [API, supabase]);
+  }, [API, supabase, currentUser?.institute]);
 
   // 3. Handle Friend Search
   useEffect(() => {
@@ -110,10 +129,12 @@ export default function Explore({
     setIsSearching(true);
     const delayTimer = setTimeout(async () => {
       try {
-        const url = `${API}/friends/search?q=${encodeURIComponent(query)}&userId=${currentUser?.id || ''}`;
+        const instParam = encodeURIComponent(currentUser?.institute || '');
+        const url = `${API}/friends/search?q=${encodeURIComponent(query)}&userId=${currentUser?.id || ''}&institute=${instParam}`;
         const res = await fetch(url);
         const data = await res.json();
-        setSearchResults(data.users || []);
+        const isolatedUsers = (data.users || []).filter(u => !currentUser?.institute || u.institute === currentUser.institute);
+        setSearchResults(isolatedUsers);
       } catch (err) {
         console.error('Friend search error:', err);
       } finally {
@@ -122,7 +143,7 @@ export default function Explore({
     }, 280);
 
     return () => clearTimeout(delayTimer);
-  }, [searchQuery, API, currentUser?.id]);
+  }, [searchQuery, API, currentUser?.id, currentUser?.institute]);
 
   // 4. Send Friend Request
   const handleSendFriendRequest = async (targetUserId) => {
@@ -687,7 +708,7 @@ export default function Explore({
           </AnimatePresence>
         </div>
 
-        {/* ACCORDION 3: ALL BATHINDA (CITY-WIDE LEADERBOARD) */}
+        {/* ACCORDION 3: INSTITUTE-WIDE LEADERBOARD */}
         <div style={{
           background: '#ffffff',
           border: '1px solid #e5e7eb',
@@ -714,7 +735,7 @@ export default function Explore({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '16px' }}>📍</span>
               <span style={{ fontSize: '15px', fontWeight: '900', color: '#000000' }}>
-                All Bathinda
+                {currentUserInstitute} Rankings
               </span>
             </div>
             <span style={{
@@ -739,7 +760,7 @@ export default function Explore({
               >
                 <div style={{ padding: '8px 16px 16px 16px' }}>
                   <p style={{ margin: '4px 0 12px 0', fontSize: '12px', color: '#6b7280', textAlign: 'left' }}>
-                    City-wide hierarchy across all coaching hubs and institutes.
+                    Rankings strictly isolated to {currentUserInstitute} students.
                   </p>
 
                   {isLoadingLeaderboard ? (

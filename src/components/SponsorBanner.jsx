@@ -1,9 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub' }) {
-  const mailtoHref = "mailto:admin@centerinsider.com?cc=nikhilpuniya132@gmail.com&subject=CenterInsider%20B2B%20Sponsorship%20Inquiry&body=Hi%20CenterInsider%20Team,%0A%0AWe%20are%20interested%20in%20the%20exclusive%20CenterInsider%20B2B%20Retainer%20for%20our%20institute.%0A%0AInstitute%20Name:%20%0ALocation:%20%0AContact%20Number:%20";
-
+export default function SponsorBanner() {
   return (
     <div
       style={{
@@ -12,22 +10,23 @@ export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub'
         boxSizing: 'border-box'
       }}
     >
-      {/* Subtle Dark-Mode B2B Sponsorship Placeholder Card */}
+      {/* Static B2B Sponsorship Placeholder Card (Minimalist White UI) */}
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
+        initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
         style={{
           position: 'relative',
-          borderRadius: '16px',
-          background: '#0d0d0f',
-          border: '1.5px dashed #404040',
+          borderRadius: '18px',
+          background: '#ffffff',
+          border: '1px solid #e5e7eb',
           padding: '18px 18px',
           boxSizing: 'border-box',
-          color: '#ffffff',
+          color: '#000000',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px'
+          gap: '10px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
         }}
       >
         {/* Header Tag & Title */}
@@ -37,8 +36,8 @@ export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub'
               style={{
                 margin: 0,
                 fontSize: '15px',
-                fontWeight: '800',
-                color: '#ffffff',
+                fontWeight: '900',
+                color: '#000000',
                 letterSpacing: '-0.01em',
                 display: 'flex',
                 alignItems: 'center',
@@ -54,12 +53,12 @@ export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub'
               fontSize: '10px',
               fontWeight: '800',
               textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              background: '#1c1c21',
-              color: '#a1a1aa',
+              letterSpacing: '0.06em',
+              background: '#f3f4f6',
+              color: '#374151',
               padding: '3px 8px',
               borderRadius: '6px',
-              border: '1px solid #2e2e36'
+              border: '1px solid #e5e7eb'
             }}
           >
             SPONSOR SPOTLIGHT
@@ -71,7 +70,7 @@ export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub'
           style={{
             margin: 0,
             fontSize: '12.5px',
-            color: '#a1a1aa',
+            color: '#6b7280',
             lineHeight: 1.45,
             fontWeight: '500'
           }}
@@ -80,30 +79,28 @@ export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub'
         </p>
 
         {/* CTA Button Action */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginTop: '2px' }}>
-          <motion.a
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            href={mailtoHref}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginTop: '4px' }}>
+          <a
+            href="mailto:nikhilpuniya132@gmail.com"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              background: '#ffffff',
-              color: '#000000',
+              background: '#000000',
+              color: '#ffffff',
               padding: '8px 16px',
-              borderRadius: '10px',
+              borderRadius: '12px',
               fontSize: '12.5px',
               fontWeight: '800',
               textDecoration: 'none',
               cursor: 'pointer',
-              border: 'none',
-              transition: 'background 0.15s ease'
+              border: '1px solid #000000',
+              transition: 'transform 0.15s ease'
             }}
           >
             <span>✉️</span>
             <span>Contact Admin</span>
-          </motion.a>
+          </a>
         </div>
       </motion.div>
     </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getWhatsAppShareUrl, copyReferralLink, getReferralLink } from '../utils/referral';
 import HamsterLoader from './HamsterLoader';
+import { supabase } from '../supabase';
 
 export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProfilePic }) {
   const [captains, setCaptains] = useState([]);
@@ -15,16 +16,42 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
 
   useEffect(() => {
     fetchCaptains();
-  }, []);
+  }, [user?.institute]);
 
   const fetchCaptains = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/referrals/leaderboard`);
+      // 1. Direct Supabase query strictly isolated to current user's institute
+      if (supabase) {
+        let query = supabase
+          .from('users')
+          .select('id, handle, name, avatar, profile_pic, grade, stream, institute, coaching_hub, invites, feed_drops, total_votes, is_pro, ring, is_batch_captain, batch_captain_admin_override')
+          .gte('invites', 25)
+          .order('invites', { ascending: false });
+
+        if (user?.institute) {
+          query = query.eq('institute', user.institute);
+        }
+
+        const { data: dbCaptains } = await query.limit(50);
+        if (dbCaptains && dbCaptains.length > 0) {
+          const verified = dbCaptains
+            .filter(c => !user?.institute || c.institute === user.institute)
+            .filter(c => ((c.invites || c.recruits || 0) >= 25 || c.batch_captain_admin_override));
+          setCaptains(verified);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 2. Fallback to API with institute param & client-side filter
+      const instParam = encodeURIComponent(user?.institute || '');
+      const res = await fetch(`${API}/referrals/leaderboard?institute=${instParam}`);
       const data = await res.json();
       if (data.leaderboard) {
-        // Strict 25+ recruits filter: do not display users with 0, 1, or 3 recruits
-        const verified = data.leaderboard.filter(c => ((c.invites || c.recruits || 0) >= 25 || c.batch_captain_admin_override));
+        // Strict Institute Silo: Never show Captains from a rival institute
+        const instituteFiltered = data.leaderboard.filter(c => !user?.institute || c.institute === user.institute);
+        const verified = instituteFiltered.filter(c => ((c.invites || c.recruits || 0) >= 25 || c.batch_captain_admin_override));
         setCaptains(verified);
       }
     } catch (err) {

@@ -50,20 +50,27 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
       setIsLoading(true);
       setErrorMsg('');
       try {
-        const res = await fetch(`${API}/friends/search?q=${encodeURIComponent(query.trim())}&userId=${currentUser?.id || ''}`);
+        const instParam = encodeURIComponent(currentUser?.institute || '');
+        const res = await fetch(`${API}/friends/search?q=${encodeURIComponent(query.trim())}&userId=${currentUser?.id || ''}&institute=${instParam}`);
         if (res.ok) {
           const data = await res.json();
-          setResults(data.users || []);
+          const isolated = (data.users || []).filter(u => !currentUser?.institute || u.institute === currentUser.institute);
+          setResults(isolated);
         } else {
-          // Fallback to direct Supabase query
+          // Fallback to direct Supabase query with strict institute silo
           if (supabase) {
             const clean = query.trim().replace(/^@/, '');
-            const { data: directUsers } = await supabase
+            let queryBuilder = supabase
               .from('users')
-              .select('id, handle, name, avatar, profile_pic, grade, ring, is_pro')
+              .select('id, handle, name, avatar, profile_pic, grade, ring, is_pro, institute')
               .ilike('handle', `%${clean}%`)
-              .neq('id', currentUser?.id || '')
-              .limit(20);
+              .neq('id', currentUser?.id || '');
+
+            if (currentUser?.institute) {
+              queryBuilder = queryBuilder.eq('institute', currentUser.institute);
+            }
+
+            const { data: directUsers } = await queryBuilder.limit(20);
             setResults(directUsers || []);
           }
         }
@@ -73,12 +80,17 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
         if (supabase) {
           try {
             const clean = query.trim().replace(/^@/, '');
-            const { data: directUsers } = await supabase
+            let queryBuilder = supabase
               .from('users')
-              .select('id, handle, name, avatar, profile_pic, grade, ring, is_pro')
+              .select('id, handle, name, avatar, profile_pic, grade, ring, is_pro, institute')
               .ilike('handle', `%${clean}%`)
-              .neq('id', currentUser?.id || '')
-              .limit(20);
+              .neq('id', currentUser?.id || '');
+
+            if (currentUser?.institute) {
+              queryBuilder = queryBuilder.eq('institute', currentUser.institute);
+            }
+
+            const { data: directUsers } = await queryBuilder.limit(20);
             setResults(directUsers || []);
           } catch (e) {
             setErrorMsg('Unable to search classmates. Check connection.');

@@ -153,7 +153,7 @@ export default function App() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Authentication sync failed');
-      if (data.isNewUser || !data.user?.handle || !data.user?.password || !data.user?.institute) {
+      if (data.isNewUser || !data.user?.handle || !data.user?.password || !data.user?.institute || !data.user.institute.trim()) {
         setOnboardingGoogleUser({
           ...(data.googleUser || {}),
           googleId: sessionUser.id,
@@ -180,16 +180,37 @@ export default function App() {
       }
     } catch (err) {
       console.error('Google Auth Sync Error:', err);
-      setUser(prev => prev || {
-        id: sessionUser.id,
-        email: sessionUser.email,
-        handle: sessionUser.email?.split('@')[0] || 'Member',
-        name: sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || 'Classmate',
-        avatar: sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '😎',
-        grade: localStorage.getItem('campus_grade') || '11',
-        flames: 0,
-        is_pro: false
-      });
+      // Fallback: check Supabase users table directly
+      let dbUser = null;
+      if (supabase && sessionUser?.id) {
+        try {
+          const { data } = await supabase.from('users').select('*').eq('id', sessionUser.id).maybeSingle();
+          dbUser = data;
+        } catch (_) {}
+      }
+
+      if (dbUser && dbUser.institute && dbUser.institute.trim()) {
+        const userRing = dbUser.selected_ring || dbUser.ring || localStorage.getItem('campus_user_ring') || 'gold';
+        localStorage.setItem('campus_user_ring', userRing);
+        setUser(prev => ({ ...(prev || {}), ...dbUser, ring: userRing, selected_ring: userRing }));
+        setIsOnboarding(false);
+        setOnboardingGoogleUser(null);
+        setView('poll');
+        setGradeFilter(dbUser.grade ? dbUser.grade.toString() : '11');
+        loadNextPoll(dbUser.grade ? dbUser.grade.toString() : '11', dbUser.id);
+      } else {
+        // User has auth session but institute is null/empty -> Lock route and force redirect to /onboarding
+        setOnboardingGoogleUser({
+          googleId: sessionUser.id,
+          email: sessionUser.email,
+          name: sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0],
+          avatar: sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '',
+          refCode: cleanRef,
+          referred_by: cleanRef
+        });
+        setIsOnboarding(true);
+        window.history.replaceState(null, '', '/onboarding');
+      }
     } finally {
       setIsAuthenticating(false);
       setIsCheckingSession(false);
@@ -288,6 +309,11 @@ export default function App() {
 
   useEffect(() => {
     const handleNavEvent = (e) => {
+      if (user && (!user.institute || !user.institute.trim())) {
+        setIsOnboarding(true);
+        window.history.replaceState(null, '', '/onboarding');
+        return;
+      }
       const targetView = e.detail?.view;
       if (targetView === 'feed' || targetView === 'poll' || !targetView) {
         setView('poll');
@@ -386,18 +412,7 @@ export default function App() {
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (session?.user) {
-          setUser(session.user);
-          setIsCheckingSession(false);
-          setIsAuthLoading(false);
-          setIsAuthenticating(false);
-          
-          if (window.location.search.includes('code=')) {
-            window.history.replaceState(null, '', '/feed');
-          } else if (window.location.hash.includes('access_token')) {
-            window.history.replaceState(null, '', '/feed');
-          } else if (window.location.pathname === '/' || window.location.pathname === '/login') {
-            navigate('/feed');
-          }
+          syncWithBackend(session.user).catch(console.warn);
         }
       }
     });
@@ -482,15 +497,53 @@ export default function App() {
     setGradeFilter(targetGrade);
     const targetId = explicitId || user?.id;
     try {
-      const res = await fetch(`${API}/play/${targetId}?gradeFilter=${targetGrade}`);
-      const data = await res.json();
-      setCurrentPoll(data.poll);
-      setOptions((data.options || []).slice(0, 4));
-      if (data.cooldown_until) {
-        setCooldownUntil(data.cooldown_until);
-      } else {
-        setCooldownUntil(null);
+      let pollItem = null;
+      let pollOptions = [];
+      let cooldownTime = null;
+
+      // 1. Direct Supabase query strictly isolated to current user's institute
+      if (supabase && user?.institute) {
+        try {
+          const [{ data: dbPolls }, { data: dbOptions }] = await Promise.all([
+            supabase.from('polls').select('*'),
+            supabase
+              .from('users')
+              .select('id, handle, name, avatar, profile_pic, grade, stream, institute, coaching_hub, is_pro, ring, selected_ring')
+              .eq('institute', user.institute)
+              .neq('id', targetId)
+          ]);
+          if (dbPolls && dbPolls.length > 0) {
+            pollItem = dbPolls[Math.floor(Math.random() * dbPolls.length)];
+          }
+          if (dbOptions) {
+            pollOptions = dbOptions;
+          }
+        } catch (dbErr) {
+          console.warn('Direct Supabase poll load error:', dbErr);
+        }
       }
+
+      // 2. Fetch from backend API with institute filter
+      const instParam = encodeURIComponent(user?.institute || '');
+      const res = await fetch(`${API}/play/${targetId}?gradeFilter=${targetGrade}&institute=${instParam}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (!pollItem && data.poll) pollItem = data.poll;
+        if (data.options) {
+          const filteredOptions = data.options.filter(o => !user?.institute || o.institute === user.institute);
+          if (pollOptions.length === 0) {
+            pollOptions = filteredOptions;
+          }
+        }
+        if (data.cooldown_until) cooldownTime = data.cooldown_until;
+      }
+
+      setCurrentPoll(pollItem);
+      // Strictly isolated options for current user's institute
+      const finalFiltered = pollOptions.filter(o => !user?.institute || o.institute === user.institute);
+      const shuffled = [...finalFiltered].sort(() => 0.5 - Math.random());
+      setOptions(shuffled);
+      setCooldownUntil(cooldownTime);
     } catch (e) {
       console.error(e);
     }
@@ -555,6 +608,11 @@ export default function App() {
   };
 
   const handleNav = (newView) => {
+    if (user && (!user.institute || !user.institute.trim())) {
+      setIsOnboarding(true);
+      window.history.replaceState(null, '', '/onboarding');
+      return;
+    }
     if (window.navigator?.vibrate) {
       window.navigator.vibrate(10);
     }
@@ -861,27 +919,25 @@ export default function App() {
     );
   }
 
-  if (isOnboarding) {
-    if (!onboardingGoogleUser) {
-      return (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '100svh',
-          background: '#ffffff',
-          color: '#000000',
-          width: '100%'
-        }}>
-          <HamsterLoader message="Loading Onboarding..." />
-        </div>
-      );
+  // Protected Route Check (Task 2):
+  // If user has a valid auth session but their institute in database is null/empty,
+  // force redirect to /onboarding. They must never see /feed or other pages until their profile is complete.
+  const isProfileIncomplete = Boolean(user && (!user.institute || !user.institute.trim()));
+  if (isOnboarding || isProfileIncomplete) {
+    if (window.location.pathname !== '/onboarding') {
+      window.history.replaceState(null, '', '/onboarding');
     }
+    const wizardUser = onboardingGoogleUser || {
+      googleId: user?.id || user?.google_id,
+      email: user?.email,
+      name: user?.name || user?.email?.split('@')[0] || '',
+      avatar: user?.profile_pic || user?.avatar || ''
+    };
     return (
       <div className="gas-landing-wrapper">
         <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100svh', background: '#ffffff', color: '#000000' }}><HamsterLoader message="Loading Onboarding..." /></div>}>
           <OnboardingWizard
-            googleUser={onboardingGoogleUser}
+            googleUser={wizardUser}
             API={API}
             onComplete={handleOnboardingComplete}
           />

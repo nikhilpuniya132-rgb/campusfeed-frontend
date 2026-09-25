@@ -302,26 +302,60 @@ export default function Feed({
             </h3>
           </motion.div>
 
-          {/* 4 Classmate Candidate Buttons */}
-          {displayOptions.length === 0 ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#6b7280', padding: '30px 0' }}>
-              <p style={{ fontSize: '13.5px', margin: '0 0 12px 0' }}>Not enough classmates found in this stream.</p>
-              <button
-                onClick={() => onLoadNextPoll('all')}
+          {/* 4 Classmate Candidate Buttons or Empty State */}
+          {displayOptions.length < 4 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '36px 16px',
+                textAlign: 'center',
+                background: '#ffffff',
+                border: '1px solid #e5e7eb',
+                borderRadius: '20px',
+                marginBottom: '16px',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
+              }}
+            >
+              <div style={{ fontSize: '36px', marginBottom: '12px' }}>👥</div>
+              <p
                 style={{
-                  padding: '10px 18px',
-                  borderRadius: '14px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  lineHeight: '1.5',
+                  maxWidth: '320px',
+                  margin: '0 0 16px 0'
+                }}
+              >
+                Not enough members in {user?.institute || 'your institute'} to unlock polls. Invite more students to start voting.
+              </p>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleSharePoll}
+                style={{
                   background: '#000000',
                   color: '#ffffff',
                   border: '1px solid #000000',
+                  borderRadius: '12px',
+                  padding: '10px 20px',
+                  fontSize: '13px',
                   fontWeight: '800',
-                  fontSize: '12.5px',
                   cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                Try All Bathinda
-              </button>
-            </div>
+                <span>🚀</span>
+                <span>Invite Classmates</span>
+              </motion.button>
+            </motion.div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
               {displayOptions.map((opt) => (
@@ -392,31 +426,33 @@ export default function Feed({
           )}
 
           {/* Bottom Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: '4px' }}>
-            <motion.button
-              whileTap={{ scale: 0.94 }}
-              disabled={shuffleCount >= 3}
-              onClick={handleShuffleClick}
-              style={{
-                background: shuffleCount >= 3 ? '#f3f4f6' : '#f9fafb',
-                border: '1px solid #e5e7eb',
-                color: shuffleCount >= 3 ? '#9ca3af' : '#374151',
-                padding: '10px 16px',
-                borderRadius: '16px',
-                fontSize: '12.5px',
-                fontWeight: '700',
-                cursor: shuffleCount >= 3 ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                opacity: shuffleCount >= 3 ? 0.6 : 1,
-              }}
-            >
-              <span>🔀</span>
-              <span>
-                {shuffleCount >= 3 ? 'No shuffles left' : `Shuffle (${3 - shuffleCount} left)`}
-              </span>
-            </motion.button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: displayOptions.length < 4 ? 'flex-end' : 'space-between', marginTop: 'auto', paddingTop: '4px' }}>
+            {displayOptions.length >= 4 && (
+              <motion.button
+                whileTap={{ scale: 0.94 }}
+                disabled={shuffleCount >= 3}
+                onClick={handleShuffleClick}
+                style={{
+                  background: shuffleCount >= 3 ? '#f3f4f6' : '#f9fafb',
+                  border: '1px solid #e5e7eb',
+                  color: shuffleCount >= 3 ? '#9ca3af' : '#374151',
+                  padding: '10px 16px',
+                  borderRadius: '16px',
+                  fontSize: '12.5px',
+                  fontWeight: '700',
+                  cursor: shuffleCount >= 3 ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  opacity: shuffleCount >= 3 ? 0.6 : 1,
+                }}
+              >
+                <span>🔀</span>
+                <span>
+                  {shuffleCount >= 3 ? 'No shuffles left' : `Shuffle (${3 - shuffleCount} left)`}
+                </span>
+              </motion.button>
+            )}
 
             <motion.button
               whileTap={{ scale: 0.94 }}

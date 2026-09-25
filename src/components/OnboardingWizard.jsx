@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
+import { supabase } from '../supabase';
 
 // Hardware-accelerated step transitions (opacity + transform only)
 const stepVariants = {
@@ -165,7 +166,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
           institute: institute.trim(),
           coaching_hub: coachingHub || findHubForInstitute(institute),
           stream: stream,
-          city: 'Bathinda',
+          district: 'Bathinda',
           grade: stream.includes('12') ? 12 : stream.includes('drop') ? 'dropper' : 11,
           avatar: finalAvatar,
           profilePic: profilePic || '',
@@ -176,6 +177,32 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to complete profile');
+
+      // Sync directly to Supabase profiles & users table using district key (absolutely do not send city)
+      if (supabase) {
+        const uid = data.user?.id || googleUser?.googleId;
+        if (uid) {
+          const supabasePayload = {
+            district: 'Bathinda',
+            institute: institute.trim(),
+            school: institute.trim(),
+            stream: stream,
+            coaching_hub: coachingHub || findHubForInstitute(institute),
+            name: name.trim(),
+            handle: handle.trim().replace(/^@/, '').toLowerCase(),
+            gender,
+            avatar: finalAvatar,
+            profile_pic: profilePic || '',
+            grade: stream.includes('12') ? 12 : stream.includes('drop') ? 'dropper' : 11
+          };
+          try {
+            await supabase.from('profiles').update(supabasePayload).eq('id', uid);
+          } catch (_) {}
+          try {
+            await supabase.from('users').update(supabasePayload).eq('id', uid);
+          } catch (_) {}
+        }
+      }
 
       // Clear referral code from storage
       sessionStorage.removeItem('campus_ref_code');
