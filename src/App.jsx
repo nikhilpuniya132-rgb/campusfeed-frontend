@@ -154,8 +154,10 @@ export default function App() {
         })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Authentication sync failed');
-      if (data.isNewUser || !data.user?.handle || !data.user?.password || !data.user?.institute || !data.user.institute.trim()) {
+      const backendInstitute = (data.user?.school || data.user?.institute || '').trim();
+      const alreadyHasInstitute = Boolean(userRef.current?.institute || userRef.current?.school);
+
+      if ((data.isNewUser || !data.user?.handle || !backendInstitute) && !alreadyHasInstitute) {
         setOnboardingGoogleUser({
           ...(data.googleUser || {}),
           googleId: sessionUser.id,
@@ -167,10 +169,17 @@ export default function App() {
         });
         setIsOnboarding(true);
         window.history.replaceState(null, '', '/onboarding');
-      } else if (data.user) {
+      } else if (data.user || alreadyHasInstitute) {
+        const resolvedInstitute = backendInstitute || userRef.current?.institute || userRef.current?.school || 'Kapil Institute';
         const userRing = data.user?.selected_ring || data.user?.ring || localStorage.getItem('campus_user_ring') || 'gold';
         localStorage.setItem('campus_user_ring', userRing);
-        const fullUser = { ...(data.user), ring: userRing, selected_ring: userRing };
+        const fullUser = {
+          ...(data.user || {}),
+          institute: resolvedInstitute,
+          school: resolvedInstitute,
+          ring: userRing,
+          selected_ring: userRing
+        };
         localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
         setUser(fullUser);
         setIsOnboarding(false);
@@ -186,11 +195,15 @@ export default function App() {
           setView('poll');
         }
 
-        setGradeFilter(data.user.grade ? data.user.grade.toString() : '11');
-        loadNextPoll(data.user.grade ? data.user.grade.toString() : '11', data.user.id);
-        fetchPendingRequests(data.user.id);
-        fetchAcceptedFriends(data.user.id);
-        fetchInbox(data.user.id);
+        if (data.user?.grade) {
+          setGradeFilter(data.user.grade.toString());
+        }
+        if (data.user?.id) {
+          loadNextPoll(data.user.grade ? data.user.grade.toString() : '11', data.user.id);
+          fetchPendingRequests(data.user.id);
+          fetchAcceptedFriends(data.user.id);
+          fetchInbox(data.user.id);
+        }
       }
     } catch (err) {
       console.error('Google Auth Sync Error:', err);
@@ -198,15 +211,30 @@ export default function App() {
       let dbUser = null;
       if (supabase && sessionUser?.id) {
         try {
-          const { data } = await supabase.from('users').select('*').eq('id', sessionUser.id).maybeSingle();
+          let { data } = await supabase.from('users').select('*').eq('id', sessionUser.id).maybeSingle();
+          if (!data) {
+            const { data: byGid } = await supabase.from('users').select('*').eq('google_id', sessionUser.id).maybeSingle();
+            data = byGid;
+          }
+          if (!data && sessionUser.email) {
+            const { data: byEmail } = await supabase.from('users').select('*').eq('email', sessionUser.email).maybeSingle();
+            data = byEmail;
+          }
           dbUser = data;
         } catch (_) {}
       }
 
-      if (dbUser && dbUser.institute && dbUser.institute.trim()) {
-        const userRing = dbUser.selected_ring || dbUser.ring || localStorage.getItem('campus_user_ring') || 'gold';
+      const dbInstitute = (dbUser?.school || dbUser?.institute || userRef.current?.institute || userRef.current?.school || '').trim();
+      if (dbInstitute) {
+        const userRing = dbUser?.selected_ring || dbUser?.ring || localStorage.getItem('campus_user_ring') || 'gold';
         localStorage.setItem('campus_user_ring', userRing);
-        const fullUser = { ...dbUser, ring: userRing, selected_ring: userRing };
+        const fullUser = {
+          ...(dbUser || {}),
+          institute: dbInstitute,
+          school: dbInstitute,
+          ring: userRing,
+          selected_ring: userRing
+        };
         localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
         setUser(fullUser);
         setIsOnboarding(false);
@@ -220,9 +248,13 @@ export default function App() {
           setView('poll');
         }
 
-        setGradeFilter(dbUser.grade ? dbUser.grade.toString() : '11');
-        loadNextPoll(dbUser.grade ? dbUser.grade.toString() : '11', dbUser.id);
-      } else {
+        if (dbUser?.grade) {
+          setGradeFilter(dbUser.grade.toString());
+        }
+        if (dbUser?.id) {
+          loadNextPoll(dbUser.grade ? dbUser.grade.toString() : '11', dbUser.id);
+        }
+      } else if (!userRef.current?.institute && !userRef.current?.school) {
         // User has auth session but institute is null/empty -> Lock route and force redirect to /onboarding
         setOnboardingGoogleUser({
           googleId: sessionUser.id,
@@ -239,6 +271,7 @@ export default function App() {
       setIsAuthenticating(false);
       setIsCheckingSession(false);
       setIsAuthLoading(false);
+      setIsProfileLoading(false);
     }
   };
 
@@ -339,7 +372,8 @@ export default function App() {
   useEffect(() => {
     const handleNavEvent = (e) => {
       const currentUser = userRef.current;
-      if (currentUser && (!currentUser.institute || !currentUser.institute.trim())) {
+      const currentInst = (currentUser?.school || currentUser?.institute || '').trim();
+      if (currentUser && !currentInst) {
         setIsOnboarding(true);
         window.history.replaceState(null, '', '/onboarding');
         return;
@@ -363,10 +397,12 @@ export default function App() {
   const fetchProfile = async (session) => {
     if (!session?.user?.id) {
       setIsProfileLoading(false);
+      setIsAuthLoading(false);
       return;
     }
 
     setIsProfileLoading(true);
+    setIsAuthLoading(true);
 
     try {
       // The Database Query: Query the 'users' table using maybeSingle()
@@ -382,7 +418,7 @@ export default function App() {
         console.error("Supabase user query error in Auth Guard:", error);
       }
 
-      // Safe fallback if data was not found by direct id: check by google_id or email
+      // Safe fallback if data was not found by direct id: check by google_id
       if (!data) {
         try {
           const { data: byGid } = await supabase
@@ -394,6 +430,7 @@ export default function App() {
         } catch (_) {}
       }
 
+      // Safe fallback: check by email
       if (!data && session.user.email) {
         try {
           const { data: byEmail } = await supabase
@@ -406,28 +443,32 @@ export default function App() {
       }
 
       // The Routing Decision:
-      // If data exists AND data.institute has a valid string: Set profileData, set isProfileLoading to false, and navigate('/feed').
-      // If data does NOT exist, OR data.institute is null/empty: Set isProfileLoading to false, and navigate('/onboarding').
-      const hasInstitute = Boolean(
-        data &&
-        typeof data.institute === 'string' &&
-        data.institute.trim() !== ''
-      );
+      // In Supabase users table, the institute is saved in the 'school' column
+      const userInstitute = (data?.school || data?.institute || '').trim();
+      const hasInstitute = Boolean(userInstitute !== '');
 
       if (data && hasInstitute) {
         const userRing = data.selected_ring || data.ring || localStorage.getItem('campus_user_ring') || 'gold';
         localStorage.setItem('campus_user_ring', userRing);
-        const fullUser = { ...data, ring: userRing, selected_ring: userRing };
+        const fullUser = {
+          ...data,
+          institute: userInstitute,
+          school: userInstitute,
+          ring: userRing,
+          selected_ring: userRing
+        };
         localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
 
         setProfileData(fullUser);
         setUser(fullUser);
+        userRef.current = fullUser;
         setIsOnboarding(false);
         setOnboardingGoogleUser(null);
         setView('poll');
         setGradeFilter(fullUser.grade ? fullUser.grade.toString() : '11');
 
         setIsProfileLoading(false);
+        setIsAuthLoading(false);
         navigate('/feed');
 
         // Background non-blocking queries
@@ -447,18 +488,21 @@ export default function App() {
           referred_by: cleanRef
         });
         setProfileData(data || null);
-        setUser(data ? { ...data } : null);
+        setUser(data ? { ...data, institute: userInstitute, school: userInstitute } : null);
         setIsOnboarding(true);
         setIsProfileLoading(false);
+        setIsAuthLoading(false);
         navigate('/onboarding');
       }
     } catch (err) {
       console.error('fetchProfile routing error:', err);
       setIsProfileLoading(false);
+      setIsAuthLoading(false);
       navigate('/onboarding');
     } finally {
       setIsCheckingSession(false);
       setIsAuthLoading(false);
+      setIsProfileLoading(false);
       setIsAuthenticating(false);
     }
 
@@ -471,7 +515,16 @@ export default function App() {
   // On initial mount, immediately call supabase.auth.getSession() and block UI rendering
   useEffect(() => {
     let isMounted = true;
+    setIsAuthLoading(true);
     setIsProfileLoading(true);
+
+    // Guaranteed failsafe timer (3.5s max) to prevent infinite "Loading..." state
+    const safetyTimer = setTimeout(() => {
+      if (isMounted) {
+        setIsAuthLoading(false);
+        setIsProfileLoading(false);
+      }
+    }, 3500);
 
     const initAuth = async () => {
       try {
@@ -496,6 +549,7 @@ export default function App() {
           setUser(null);
           setProfileData(null);
           setIsProfileLoading(false);
+          setIsAuthLoading(false);
         }
       } catch (err) {
         console.error('Initial session mount error:', err);
@@ -503,6 +557,12 @@ export default function App() {
           setSession(null);
           setUser(null);
           setProfileData(null);
+          setIsProfileLoading(false);
+          setIsAuthLoading(false);
+        }
+      } finally {
+        if (isMounted) {
+          setIsAuthLoading(false);
           setIsProfileLoading(false);
         }
       }
@@ -522,6 +582,7 @@ export default function App() {
         setUser(null);
         setProfileData(null);
         setIsProfileLoading(false);
+        setIsAuthLoading(false);
         navigate('/');
         return;
       }
@@ -538,6 +599,7 @@ export default function App() {
 
     return () => {
       isMounted = false;
+      clearTimeout(safetyTimer);
       subscription?.unsubscribe();
     };
   }, []);
@@ -547,7 +609,8 @@ export default function App() {
   // A logged-in user should never see the public landing page again unless they explicitly click a "Sign Out" button.
   useEffect(() => {
     if (isAuthLoading || isProfileLoading) return;
-    if (user && user.institute && user.institute.trim()) {
+    const userInstitute = (user?.school || user?.institute || '').trim();
+    if (user && userInstitute) {
       const currentPath = window.location.pathname.replace(/^\//, '');
       if (!currentPath || currentPath === 'landing') {
         window.history.replaceState(null, '', '/feed');
@@ -559,7 +622,8 @@ export default function App() {
   useEffect(() => {
     const handlePopState = () => {
       if (isAuthLoading || isProfileLoading) return;
-      if (user && user.institute && user.institute.trim()) {
+      const userInstitute = (user?.school || user?.institute || '').trim();
+      if (user && userInstitute) {
         const path = window.location.pathname.replace(/^\//, '');
         if (!path || path === 'landing') {
           window.history.replaceState(null, '', '/feed');
@@ -576,7 +640,7 @@ export default function App() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [user, isProfileLoading]);
+  }, [user, isAuthLoading, isProfileLoading]);
 
   const loginWithGoogle = async () => {
     setIsAuthenticating(true);
@@ -1102,7 +1166,8 @@ export default function App() {
 
   // Protected Route Check:
   // Only evaluate if (!profile.institute) navigate('/onboarding') after the fetch completes and isAuthLoading & isProfileLoading are false.
-  const isProfileIncomplete = Boolean(user && (!user.institute || !user.institute.trim()));
+  const userInstitute = (user?.school || user?.institute || '').trim();
+  const isProfileIncomplete = Boolean(user && !userInstitute);
   if (!isAuthLoading && !isProfileLoading && (isOnboarding || isProfileIncomplete)) {
     if (window.location.pathname !== '/onboarding') {
       window.history.replaceState(null, '', '/onboarding');

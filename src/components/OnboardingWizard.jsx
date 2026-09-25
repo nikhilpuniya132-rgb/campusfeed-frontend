@@ -197,15 +197,12 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             email: googleUser?.email || data.user?.email || null,
             name: name.trim(),
             handle: handle.trim().replace(/^@/, '').toLowerCase(),
-            username: handle.trim().replace(/^@/, '').toLowerCase(),
-            institute: institute.trim(),
             school: institute.trim(),
             district: 'Bathinda',
-            stream: stream,
-            coaching_hub: coachingHub || findHubForInstitute(institute),
             gender,
             avatar: finalAvatar,
             profile_pic: profilePic || '',
+            bio: `${institute.trim()} • ${stream}`,
             grade: stream.includes('12') ? 12 : stream.includes('drop') ? 'dropper' : 11
           };
 
@@ -255,6 +252,17 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Sign out error:", e);
+    }
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = '/';
+  };
+
   return (
     <div
       style={{
@@ -274,6 +282,55 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
         fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Geist', 'Segoe UI', Roboto, sans-serif"
       }}
     >
+      {/* Account Info & Visible Sign Out Button */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: '#f9fafb',
+          border: '1px solid #e5e7eb',
+          borderRadius: '12px',
+          padding: '8px 12px',
+          marginBottom: '16px',
+          fontSize: '12px'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+          <span style={{ fontSize: '14px' }}>👤</span>
+          <span
+            style={{
+              color: '#374151',
+              fontWeight: '600',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '190px'
+            }}
+            title={googleUser?.email || googleUser?.name || 'Logged in'}
+          >
+            {googleUser?.email || googleUser?.name || 'Google Account'}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={handleSignOut}
+          style={{
+            background: '#ffffff',
+            color: '#dc2626',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            padding: '5px 12px',
+            fontSize: '12px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          Sign Out
+        </button>
+      </div>
+
       {/* Top Header & Minimalist Step Indicator */}
       <div style={{ marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
