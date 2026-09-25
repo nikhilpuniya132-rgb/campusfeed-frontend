@@ -44,27 +44,6 @@ const AURA_RINGS = {
   emerald: { border: '3px solid #059669', boxShadow: '0 0 10px rgba(5, 150, 105, 0.45)' }
 };
 
-// Dynamic taxonomy badge for city-wide coaching network
-function getCoachingBadge(u) {
-  if (!u) return '🔥 BATHINDA';
-  const hub = (u.coaching_hub || u.hub || '').toLowerCase();
-  const stream = (u.stream || '').toLowerCase();
-  const grade = (u.grade || '').toString().toLowerCase();
-
-  let hubText = 'BATHINDA';
-  if (hub.includes('ajit')) hubText = 'AJIT ROAD';
-  else if (hub.includes('100')) hubText = '100 FEET RD';
-
-  let streamText = '11TH MED';
-  if (stream.includes('non')) streamText = '11TH NON-MED';
-  else if (stream.includes('med')) streamText = '11TH MED';
-  else if (stream.includes('comm') || stream.includes('12')) streamText = '12TH COMM';
-  else if (stream.includes('drop') || grade.includes('drop')) streamText = 'DROPPER';
-  else if (grade === '12') streamText = '12TH BOARD';
-  else if (grade === '11') streamText = '11TH MED';
-
-  return `🔥 ${hubText} • ${streamText}`;
-}
 
 const pageVariants = {
   initial: { opacity: 0, scale: 0.98, y: 10 },
@@ -1178,9 +1157,6 @@ export default function App() {
         )}
 
         <header className="gas-app-header">
-          <div className="gas-header-title">
-            <span>{getCoachingBadge(user)}</span>
-          </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div className="gas-header-votes">
