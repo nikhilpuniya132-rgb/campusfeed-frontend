@@ -194,9 +194,6 @@ export default function Profile({
           profile_pic: editProfilePic
         };
         await supabase.from('users').update(updatePayload).eq('id', user.id);
-        try {
-          await supabase.from('profiles').update(updatePayload).eq('id', user.id);
-        } catch (_) {}
       }
 
       await fetch(`${API}/profile/${user.id}`, {

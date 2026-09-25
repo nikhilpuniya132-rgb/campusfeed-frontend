@@ -178,7 +178,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to complete profile');
 
-      // Sync directly to Supabase profiles & users table using district key (absolutely do not send city)
+      // Sync directly to Supabase users table using district key (absolutely do not send city)
       if (supabase) {
         const uid = data.user?.id || googleUser?.googleId;
         if (uid) {
@@ -196,11 +196,10 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             grade: stream.includes('12') ? 12 : stream.includes('drop') ? 'dropper' : 11
           };
           try {
-            await supabase.from('profiles').update(supabasePayload).eq('id', uid);
-          } catch (_) {}
-          try {
             await supabase.from('users').update(supabasePayload).eq('id', uid);
-          } catch (_) {}
+          } catch (uErr) {
+            console.warn('Direct users table update warning:', uErr);
+          }
         }
       }
 

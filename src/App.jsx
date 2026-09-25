@@ -369,9 +369,9 @@ export default function App() {
     setIsProfileLoading(true);
 
     try {
-      // The Database Query (Crucial):
+      // The Database Query (Crucial): Query the 'users' table
       let { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .eq('id', session.user.id)
         .single();
@@ -383,7 +383,7 @@ export default function App() {
       // If the Supabase error object is populated (e.g., an RLS policy violation), do not blindly redirect to onboarding.
       // Alert the error to the screen or log it heavily so the developer knows the database query was rejected.
       if (error) {
-        console.error("🚨 SUPABASE REJECTED PROFILE QUERY! Error details:", {
+        console.error("🚨 SUPABASE REJECTED USER QUERY! Error details:", {
           message: error.message,
           code: error.code,
           details: error.details,
@@ -391,22 +391,22 @@ export default function App() {
           sessionUserId: session?.user?.id
         });
 
-        // Fallback: check if the table in this project is actually 'users'
+        // Fallback: check if row is keyed by google_id instead of id
         try {
-          const { data: userData, error: userError } = await supabase
+          const { data: byGid, error: gidError } = await supabase
             .from('users')
             .select('*')
-            .eq('id', session.user.id)
+            .eq('google_id', session.user.id)
             .maybeSingle();
-          if (userData && !userError && userData.institute) {
-            console.log("Found profile in fallback 'users' table:", userData);
-            data = userData;
+          if (byGid && !gidError && byGid.institute) {
+            console.log("Found profile in users table by google_id:", byGid);
+            data = byGid;
             error = null;
           }
         } catch (_) {}
 
         if (error) {
-          alert(`⚠️ Supabase Database Query Error!\nCode: ${error.code || 'UNKNOWN'}\nMessage: ${error.message}\nCheck RLS policies on 'profiles'.`);
+          alert(`⚠️ Supabase Database Query Error!\nCode: ${error.code || 'UNKNOWN'}\nMessage: ${error.message}\nCheck RLS policies on 'users' table.`);
           setIsProfileLoading(false);
           // Do NOT blindly redirect to onboarding when database query was rejected!
           return;
