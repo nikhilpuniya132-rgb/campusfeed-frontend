@@ -238,7 +238,7 @@ export default function Landing({
         </div>
       </section>
 
-      {/* 3. Pricing Portal Section (Updated: ₹99/week ONLY, Monthly Hidden) */}
+      {/* 3. Pricing Portal Section (Restored: ₹99/week and ₹149/month side-by-side) */}
       <section id="pricing-portal" ref={pricingRef} className="pricing-section">
         <motion.div
           style={{
@@ -268,16 +268,16 @@ export default function Landing({
                 <HolographicCard
                   title="GOD MODE"
                   subtitle="See Who Voted For You"
-                  price={activePlan === 'weekly' ? '₹99' : '₹0'}
-                  period={activePlan === 'weekly' ? '/week' : '/forever'}
+                  price={activePlan === 'weekly' ? '₹99' : activePlan === 'monthly' ? '₹149' : '₹0'}
+                  period={activePlan === 'weekly' ? '/week' : activePlan === 'monthly' ? '/month' : '/forever'}
                   onAction={() => {
                     if (activePlan === 'basic') {
                       document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' });
                     } else {
-                      handleUpgrade(99);
+                      handleUpgrade(activePlan === 'weekly' ? 99 : 149);
                     }
                   }}
-                  actionText={activePlan === 'basic' ? 'Get Started Free ➔' : 'Pay ₹99 / Week ⚡'}
+                  actionText={activePlan === 'basic' ? 'Get Started Free ➔' : `Pay ₹${activePlan === 'weekly' ? '99' : '149'} Instantly ⚡`}
                 />
               </Suspense>
             </div>
@@ -286,8 +286,82 @@ export default function Landing({
               <h3 className="pricing-title" style={{ color: '#ffffff' }}>Choose Your Access</h3>
               <p className="pricing-description" style={{ color: '#a1a1aa' }}>Instantly activates across all Bathinda Coaching Hub polls.</p>
 
-              {/* Pricing Tabs: Only Basic and ₹99/week (Monthly tier completely hidden) */}
-              <div className="tab-container" style={{ background: '#0F0F0F', border: '1px solid #262626' }}>
+              {/* Side-by-Side Paid Tiers (₹99/week & ₹149/month) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%', marginBottom: '14px' }}>
+                <div
+                  onClick={() => setActivePlan('weekly')}
+                  style={{
+                    padding: '12px 10px',
+                    borderRadius: '14px',
+                    border: activePlan === 'weekly' ? '2px solid #ffffff' : '1px solid #262626',
+                    background: activePlan === 'weekly' ? 'rgba(255, 255, 255, 0.08)' : '#121214',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.15s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <div style={{ fontSize: '11px', fontWeight: '800', color: activePlan === 'weekly' ? '#ffffff' : '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Weekly Pass
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff', margin: '4px 0' }}>
+                    ₹99
+                    <span style={{ fontSize: '11px', color: '#71717a', fontWeight: '600' }}>/wk</span>
+                  </div>
+                  <div style={{ fontSize: '10px', color: activePlan === 'weekly' ? '#e4e4e7' : '#71717a', fontWeight: '700' }}>
+                    ⚡ 7 Days Access
+                  </div>
+                </div>
+
+                <div
+                  onClick={() => setActivePlan('monthly')}
+                  style={{
+                    padding: '12px 10px',
+                    borderRadius: '14px',
+                    border: activePlan === 'monthly' ? '2px solid #fbbf24' : '1px solid #262626',
+                    background: activePlan === 'monthly' ? 'rgba(251, 191, 36, 0.09)' : '#121214',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.15s ease',
+                    position: 'relative',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    top: '-9px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: '#fbbf24',
+                    color: '#000000',
+                    fontSize: '8.5px',
+                    fontWeight: '900',
+                    padding: '2px 7px',
+                    borderRadius: '6px',
+                    letterSpacing: '0.03em',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    SAVE 62%
+                  </div>
+                  <div style={{ fontSize: '11px', fontWeight: '800', color: activePlan === 'monthly' ? '#fbbf24' : '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Monthly Pass
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff', margin: '4px 0' }}>
+                    ₹149
+                    <span style={{ fontSize: '11px', color: '#71717a', fontWeight: '600' }}>/mo</span>
+                  </div>
+                  <div style={{ fontSize: '10px', color: activePlan === 'monthly' ? '#fbbf24' : '#71717a', fontWeight: '700' }}>
+                    👑 Best Value (~₹37/wk)
+                  </div>
+                </div>
+              </div>
+
+              {/* Pricing Tabs: Basic vs God Mode options */}
+              <div className="tab-container" style={{ background: '#0F0F0F', border: '1px solid #262626', marginBottom: '14px' }}>
                 <button
                   className="tab"
                   data-active={activePlan === 'basic'}
@@ -298,7 +372,7 @@ export default function Landing({
                     fontWeight: '800'
                   }}
                 >
-                  Basic
+                  Basic (Free)
                 </button>
                 <button
                   className="tab"
@@ -310,7 +384,19 @@ export default function Landing({
                     fontWeight: '800'
                   }}
                 >
-                  Weekly Pass (₹99)
+                  Weekly (₹99)
+                </button>
+                <button
+                  className="tab"
+                  data-active={activePlan === 'monthly'}
+                  onClick={() => setActivePlan('monthly')}
+                  style={{
+                    background: activePlan === 'monthly' ? '#262626' : 'transparent',
+                    color: activePlan === 'monthly' ? '#ffffff' : '#71717a',
+                    fontWeight: '800'
+                  }}
+                >
+                  Monthly (₹149)
                 </button>
               </div>
 
@@ -335,13 +421,19 @@ export default function Landing({
                       <span>Equip Animated God Mode Aura Rings</span>
                     </li>
                   )}
+                  {activePlan === 'monthly' && (
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fbbf24', fontSize: '13px', margin: '8px 0' }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      <span style={{ fontWeight: '700' }}>Save 62% vs Weekly Pass (~₹37/week)</span>
+                    </li>
+                  )}
                 </ul>
               </div>
 
               <div className="modal--footer" style={{ borderTop: '1px solid #262626', paddingTop: '16px' }}>
                 <div className="price" style={{ color: '#ffffff' }}>
-                  <sup style={{ color: '#71717a' }}>₹</sup>{activePlan === 'basic' ? '0' : '99'}
-                  <sub style={{ color: '#71717a' }}>/{activePlan === 'basic' ? 'forever' : 'week'}</sub>
+                  <sup style={{ color: '#71717a' }}>₹</sup>{activePlan === 'basic' ? '0' : activePlan === 'weekly' ? '99' : '149'}
+                  <sub style={{ color: '#71717a' }}>/{activePlan === 'basic' ? 'forever' : activePlan === 'weekly' ? 'week' : 'month'}</sub>
                 </div>
 
                 {activePlan === 'basic' ? (
@@ -355,10 +447,18 @@ export default function Landing({
                 ) : (
                   <button
                     className="upgrade-btn"
-                    style={{ background: '#ffffff', color: '#000000', border: 'none', borderRadius: '12px', padding: '12px 20px', fontWeight: '800', cursor: 'pointer' }}
-                    onClick={() => handleUpgrade(99)}
+                    style={{
+                      background: activePlan === 'monthly' ? '#fbbf24' : '#ffffff',
+                      color: '#000000',
+                      border: 'none',
+                      borderRadius: '12px',
+                      padding: '12px 20px',
+                      fontWeight: '800',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => handleUpgrade(activePlan === 'weekly' ? 99 : 149)}
                   >
-                    Pay ₹99 / Week ⚡
+                    Pay ₹{activePlan === 'weekly' ? '99' : '149'} {activePlan === 'monthly' ? '/ Month' : '/ Week'} ⚡
                   </button>
                 )}
               </div>
@@ -367,16 +467,16 @@ export default function Landing({
         </motion.div>
       </section>
 
-      {/* 4. Login Portal Section (Full Pre-Simplification UI with Combobox & Stream Pills) */}
+      {/* 4. Login Portal Section (Natural Flow & Scrollable) */}
       <section
         id="login-portal"
         ref={loginRef}
         style={{
-          minHeight: '100svh',
+          minHeight: 'auto',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '40px 20px',
+          padding: '60px 20px 80px 20px',
           position: 'relative'
         }}
       >

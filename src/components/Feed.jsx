@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti';
 import SkeletonPollCard from './SkeletonPollCard';
 import CooldownScreen from './CooldownScreen';
 import SponsorBanner from './SponsorBanner';
+import { handleShare } from '../utils/share';
 
 const COACHING_FILTER_PILLS = [
   { id: '11th Medical', label: '11th Medical' },
@@ -109,22 +110,15 @@ export default function Feed({
   const handleSharePoll = async () => {
     if (window.navigator?.vibrate) window.navigator.vibrate(8);
     const questionText = currentPoll?.question || 'Who is most likely to crack NEET on the first attempt?';
-    const shareData = {
+    const userHandle = (user?.invite_code || user?.handle || 'campus').replace(/^@/, '').trim();
+    const shareUrl = `${window.location.origin}/?ref=${encodeURIComponent(userHandle)}`;
+    const shareText = `🔥 "${questionText}"\nVote anonymously on CenterInsider!`;
+
+    await handleShare({
       title: 'CenterInsider',
-      text: `🔥 "${questionText}"\nVote anonymously on CenterInsider!`,
-      url: window.location.origin
-    };
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          navigator.clipboard?.writeText(`${shareData.text} ${shareData.url}`);
-        }
-      }
-    } else {
-      navigator.clipboard?.writeText(`${shareData.text} ${shareData.url}`);
-    }
+      text: shareText,
+      url: shareUrl
+    });
   };
 
   // 1. If in cooldown, show CooldownScreen

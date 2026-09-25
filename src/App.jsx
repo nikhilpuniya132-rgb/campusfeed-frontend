@@ -19,9 +19,11 @@ const Inbox = lazy(() => import('./components/Inbox'));
 const Feed = lazy(() => import('./components/Feed'));
 const Explore = lazy(() => import('./components/Explore'));
 const BatchCaptainsLeaderboard = lazy(() => import('./components/BatchCaptainsLeaderboard'));
+const GodMode = lazy(() => import('./components/GodMode'));
 import AddToHomeScreenGuide from './components/AddToHomeScreenGuide';
 import InstituteCombobox, { findHubForInstitute } from './components/InstituteCombobox';
 import Landing from './components/Landing';
+import { handleShare } from './utils/share';
 
 // --- INITIALIZE CONFIGURED SUPABASE CLIENT & NAVIGATION ---
 import { supabase } from './supabase';
@@ -668,31 +670,16 @@ export default function App() {
     }
   };
 
-  const fallbackCopy = (text) => {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text);
-    }
-    alert("Invite link copied to clipboard! Paste it in WhatsApp.");
-  };
-
   const handleInviteShare = async () => {
-    const userHandle = (user?.handle || 'campus').replace(/^@/, '').trim();
-    const shareData = {
+    const userHandle = (user?.invite_code || user?.handle || 'campus').replace(/^@/, '').trim();
+    const shareUrl = `${window.location.origin}/?ref=${encodeURIComponent(userHandle)}`;
+    const shareText = `Someone from your coaching hub voted for you on CenterInsider! Join to see who: ${shareUrl}`;
+
+    await handleShare({
       title: 'CenterInsider',
-      text: `Someone from your coaching hub voted for you! Join to see who. Use code: ${userHandle}`,
-      url: window.location.origin
-    };
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          fallbackCopy(shareData.text + " " + shareData.url);
-        }
-      }
-    } else {
-      fallbackCopy(shareData.text + " " + shareData.url);
-    }
+      text: shareText,
+      url: shareUrl
+    });
   };
 
   const handleOpenReveal = async (vote) => {
@@ -1038,14 +1025,11 @@ export default function App() {
               )}
 
               {view === 'pro' && (
-                <motion.div key="pro" {...pageVariants} style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <HolographicCard
-                    title={user.is_pro ? 'GOD MODE ACTIVE' : 'GOD MODE VIP'}
-                    subtitle={user.is_pro ? 'All Features Unlocked' : 'Reveal Every Name'}
-                    price="₹99"
-                    period="/week"
-                    onAction={() => handleUpgrade(99)}
-                    actionText={user.is_pro ? '✓ Active Membership' : 'Upgrade Now - ₹99 ⚡'}
+                <motion.div key="pro" {...pageVariants} style={{ width: '100%', overflowY: 'auto' }}>
+                  <GodMode
+                    user={user}
+                    onUpgrade={handleUpgrade}
+                    onNavigate={handleNav}
                   />
                 </motion.div>
               )}
@@ -1318,30 +1302,54 @@ export default function App() {
                       <hr style={{ flex: 1, borderColor: '#262626' }} /> OR UNLOCK WITH GOD MODE <hr style={{ flex: 1, borderColor: '#262626' }} />
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '8px', width: '100%' }}>
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         className="magic-btn"
                         style={{
                           width: '100%',
-                          background: '#ffffff',
-                          color: '#000000',
-                          border: 'none',
+                          background: '#27272a',
+                          color: '#ffffff',
+                          border: '1px solid #3f3f46',
                           borderRadius: '14px',
                           margin: 0,
-                          padding: '13px',
-                          fontSize: '14px',
+                          padding: '12px 6px',
+                          fontSize: '12.5px',
                           fontWeight: '800',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '6px',
+                          gap: '4px',
                           boxShadow: 'none'
                         }}
                         onClick={() => handleUpgrade(99)}
                       >
-                        <span>⚡</span> Pay ₹99 / Week for God Mode
+                        <span>⚡</span> ₹99 / Wk
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="magic-btn"
+                        style={{
+                          width: '100%',
+                          background: '#fbbf24',
+                          color: '#000000',
+                          border: 'none',
+                          borderRadius: '14px',
+                          margin: 0,
+                          padding: '12px 6px',
+                          fontSize: '12.5px',
+                          fontWeight: '900',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          boxShadow: 'none'
+                        }}
+                        onClick={() => handleUpgrade(149)}
+                      >
+                        <span>👑</span> ₹149 / Mo
                       </motion.button>
                     </div>
                   </div>

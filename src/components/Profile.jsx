@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
+import { handleShare } from '../utils/share';
 
 const AURA_OPTIONS = [
   { id: 'none', label: 'None (Default)', color: '#52525b', desc: 'No special aura ring' },
@@ -74,31 +75,29 @@ export default function Profile({
   const my_invite_code = (user?.invite_code || user?.handle || 'campus').replace(/^@/, '').trim();
   const inviteLink = `${window.location.origin}/?ref=${my_invite_code}`;
 
-  const copyInviteToClipboard = () => {
+  const copyInviteToClipboard = async () => {
     const hubText = user?.stream || 'your batch';
     const shareText = `Someone from ${hubText} voted for you on CenterInsider! Join to see who: ${inviteLink} (Code: ${my_invite_code})`;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(shareText);
-    }
+    await handleShare({
+      title: 'CenterInsider',
+      text: shareText,
+      url: inviteLink
+    });
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2500);
   };
 
-  const handleWhatsAppInvite = () => {
+  const handleWhatsAppInvite = async () => {
     if (onInviteShare) {
       onInviteShare();
     } else {
       const hubText = user?.stream || 'your coaching batch';
-      const shareData = {
+      const shareText = `Someone from ${hubText} voted for you on CenterInsider! Join to see who: ${inviteLink} (Code: ${my_invite_code})`;
+      await handleShare({
         title: 'CenterInsider',
-        text: `Someone from ${hubText} voted for you! Join to see who. Use code: ${my_invite_code}`,
+        text: shareText,
         url: inviteLink
-      };
-      if (navigator.share) {
-        navigator.share(shareData).catch(() => copyInviteToClipboard());
-      } else {
-        copyInviteToClipboard();
-      }
+      });
     }
   };
 

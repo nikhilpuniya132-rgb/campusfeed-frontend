@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { handleShare } from '../utils/share';
 
 export default function CooldownScreen({
   cooldownUntil,
@@ -34,21 +35,15 @@ export default function CooldownScreen({
   const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
   const handleShareToSkip = async () => {
-    const handle = (user?.handle || 'campus').replace(/^@/, '');
-    const shareData = {
-      title: 'CenterInsider',
-      text: `Someone from your coaching hub voted for you on CenterInsider! Join to see who it is! Use my invite link: ${window.location.origin}/?ref=${handle}`
-    };
+    const handle = (user?.invite_code || user?.handle || 'campus').replace(/^@/, '');
+    const shareUrl = `${window.location.origin}/?ref=${encodeURIComponent(handle)}`;
+    const shareText = `Someone from your coaching hub voted for you on CenterInsider! Join to see who it is! Use my invite link: ${shareUrl}`;
 
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (e) {
-        // User closed or fallback
-      }
-    } else {
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareData.text)}`, '_blank');
-    }
+    await handleShare({
+      title: 'CenterInsider',
+      text: shareText,
+      url: shareUrl
+    });
 
     // Act of sharing clears cooldown for viral burst
     if (onSkip) onSkip();
@@ -147,29 +142,53 @@ export default function CooldownScreen({
             <span style={{ fontSize: '11px', color: '#71717a' }}>Tap icon to share & skip</span>
           </div>
 
-          {/* Button 2: Monetization (₹99/week God Mode) */}
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onUpgrade && onUpgrade(99)}
-            style={{
-              width: '100%',
-              padding: '13px',
-              borderRadius: '14px',
-              border: 'none',
-              background: '#ffffff',
-              color: '#000000',
-              fontSize: '13.5px',
-              fontWeight: '800',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              boxShadow: 'none'
-            }}
-          >
-            <span>⚡</span> Pay ₹99 / Week for God Mode
-          </motion.button>
+          {/* Button 2: Monetization (Both ₹99/wk and ₹149/mo God Mode) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '8px', width: '100%' }}>
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => onUpgrade && onUpgrade(99)}
+              style={{
+                width: '100%',
+                padding: '12px 6px',
+                borderRadius: '14px',
+                border: '1px solid #3f3f46',
+                background: '#27272a',
+                color: '#ffffff',
+                fontSize: '12.5px',
+                fontWeight: '800',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                boxShadow: 'none'
+              }}
+            >
+              <span>⚡</span> ₹99 / Wk
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => onUpgrade && onUpgrade(149)}
+              style={{
+                width: '100%',
+                padding: '12px 6px',
+                borderRadius: '14px',
+                border: 'none',
+                background: '#fbbf24',
+                color: '#000000',
+                fontSize: '12.5px',
+                fontWeight: '900',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                boxShadow: 'none'
+              }}
+            >
+              <span>👑</span> ₹149 / Mo
+            </motion.button>
+          </div>
         </div>
       </div>
     </div>

@@ -37,19 +37,22 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
-  touch-action: pan-y; /* Smooth mobile vertical scrolling */
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   position: relative;
 }
 
 #root {
   width: 100%;
   max-width: 100%;
-  min-height: 100svh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Custom Scrollbars */
@@ -76,12 +79,13 @@ html, body {
   position: relative;
   width: 100%;
   max-width: 100%;
-  min-height: 100svh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: transparent;
   z-index: 1;
   overflow-x: hidden;
+  overflow-y: visible;
 }
 
 /* Top Navbar */
@@ -142,7 +146,7 @@ html, body {
   width: 100%;
   max-width: 1240px;
   margin: 0 auto;
-  min-height: 100svh;
+  min-height: auto;
   padding: 84px 20px 48px 20px;
   display: flex;
   align-items: center;
