@@ -74,7 +74,7 @@ export default function InteractivePollDemo({ onCtaClick }) {
     <TiltCard
       maxTilt={12}
       perspective={1200}
-      className="interactive-demo-card"
+      className="interactive-demo-card overflow-visible"
       style={{
         width: '100%',
         maxWidth: 'min(380px, 100%)',
@@ -87,10 +87,14 @@ export default function InteractivePollDemo({ onCtaClick }) {
         position: 'relative',
         userSelect: 'none',
         boxSizing: 'border-box',
+        overflow: 'visible',
+        touchAction: 'pan-y',
+        height: 'auto',
+        minHeight: 'auto'
       }}
     >
       {/* 3D Floating Tag */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', transform: 'translateZ(30px)' }}>
+      <div className="overflow-visible" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', transform: 'translateZ(30px)', overflow: 'visible', touchAction: 'pan-y' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#ffffff', boxShadow: 'none' }} />
           <span style={{ fontSize: '11px', fontWeight: '800', color: '#a1a1aa', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
@@ -110,7 +114,8 @@ export default function InteractivePollDemo({ onCtaClick }) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -15, scale: 0.95 }}
           transition={{ duration: 0.25 }}
-          style={{ transform: 'translateZ(35px)', minHeight: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', margin: '0 0 20px 0' }}
+          className="overflow-visible"
+          style={{ transform: 'translateZ(35px)', height: 'auto', minHeight: 'auto', overflow: 'visible', touchAction: 'pan-y', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', margin: '0 0 20px 0' }}
         >
           <h3
             style={{
@@ -133,6 +138,7 @@ export default function InteractivePollDemo({ onCtaClick }) {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.1 }}
+            className="overflow-visible"
             style={{
               position: 'absolute',
               top: '55%',
@@ -149,6 +155,8 @@ export default function InteractivePollDemo({ onCtaClick }) {
               zIndex: 50,
               textAlign: 'center',
               whiteSpace: 'nowrap',
+              overflow: 'visible',
+              pointerEvents: 'none'
             }}
           >
             <div>🔥 +1 Flame Sent!</div>
@@ -161,12 +169,16 @@ export default function InteractivePollDemo({ onCtaClick }) {
       <motion.div
         animate={isShuffling ? { rotateY: 180, opacity: 0.3 } : { rotateY: 0, opacity: 1 }}
         transition={{ duration: 0.3 }}
+        className="overflow-visible"
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
           gap: '12px',
           marginBottom: '18px',
           transform: 'translateZ(25px)',
+          overflow: 'visible',
+          touchAction: 'pan-y',
+          height: 'auto'
         }}
       >
         {currentQ.options.map((opt) => (
@@ -190,12 +202,16 @@ export default function InteractivePollDemo({ onCtaClick }) {
               backdropFilter: 'blur(10px)',
               transition: 'background 0.2s, border-color 0.2s',
               boxShadow: 'none',
+              height: 'auto',
               minHeight: '88px',
               boxSizing: 'border-box',
+              overflow: 'visible',
+              touchAction: 'pan-y'
             }}
-            className="gas-demo-opt-btn"
+            className="gas-demo-opt-btn overflow-visible"
           >
             <div
+              className="overflow-visible"
               style={{
                 width: 'clamp(40px, 9vw, 46px)',
                 height: 'clamp(40px, 9vw, 46px)',
@@ -208,11 +224,13 @@ export default function InteractivePollDemo({ onCtaClick }) {
                 marginBottom: '6px',
                 border: '1px solid #3f3f46',
                 boxShadow: 'none',
+                overflow: 'visible',
+                pointerEvents: 'none'
               }}
             >
               {opt.avatar}
             </div>
-            <span style={{ fontSize: 'clamp(12px, 3.2vw, 13px)', fontWeight: '800', textAlign: 'center', lineHeight: '1.2' }}>
+            <span style={{ fontSize: 'clamp(12px, 3.2vw, 13px)', fontWeight: '800', textAlign: 'center', lineHeight: '1.2', pointerEvents: 'none' }}>
               {opt.name}
             </span>
           </motion.button>
@@ -220,7 +238,7 @@ export default function InteractivePollDemo({ onCtaClick }) {
       </motion.div>
 
       {/* Card Footer Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', transform: 'translateZ(30px)' }}>
+      <div className="overflow-visible" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', transform: 'translateZ(30px)', overflow: 'visible', touchAction: 'pan-y', height: 'auto' }}>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -237,6 +255,7 @@ export default function InteractivePollDemo({ onCtaClick }) {
             gap: '6px',
             padding: '6px 10px',
             borderRadius: '8px',
+            touchAction: 'pan-y'
           }}
         >
           <span style={{ fontSize: '14px' }}>🔀</span> Shuffle Options
@@ -256,6 +275,7 @@ export default function InteractivePollDemo({ onCtaClick }) {
             padding: '8px 16px',
             borderRadius: '20px',
             boxShadow: 'none',
+            touchAction: 'pan-y'
           }}
         >
           Play For Real ➔

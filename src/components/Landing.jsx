@@ -139,7 +139,7 @@ export default function Landing({
       </header>
 
       {/* 2. Hero Section */}
-      <section ref={heroRef} className="gas-hero-section">
+      <section ref={heroRef} className="gas-hero-section overflow-visible" style={{ overflow: 'visible', touchAction: 'pan-y' }}>
         <motion.div
           className="gas-hero-text"
           style={{
@@ -190,11 +190,15 @@ export default function Landing({
 
         {/* 3D Showcase Interactive Stage with Chips */}
         <motion.div
-          className="gas-hero-3d-stage"
+          className="gas-hero-3d-stage overflow-visible"
           style={{
             scale: stageScale,
             rotateX: stageRotateX,
-            opacity: stageOpacity
+            opacity: stageOpacity,
+            overflow: 'visible',
+            touchAction: 'pan-y',
+            height: 'auto',
+            minHeight: 'auto'
           }}
         >
           <div className="gas-float-chip gas-float-chip-1" style={{ background: '#1A1A1A', border: '1px solid #262626', color: '#e4e4e7', boxShadow: 'none' }}>
@@ -204,7 +208,7 @@ export default function Landing({
             <span>👑</span> 100% Private & Anonymous
           </div>
 
-          <Suspense fallback={<div style={{ minHeight: '340px' }} />}>
+          <Suspense fallback={<div className="overflow-visible" style={{ minHeight: 'auto', height: 'auto', overflow: 'visible' }} />}>
             <InteractivePollDemo onVoteAction={() => document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' })} />
           </Suspense>
         </motion.div>

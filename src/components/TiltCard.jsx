@@ -31,10 +31,12 @@ export default function TiltCard({
   const glareY = useTransform(smoothY, [-0.5, 0.5], ['0%', '100%']);
 
   const handlePointerMove = (e) => {
+    // Never trap or intercept mobile touch scrolling
+    if (e.pointerType === 'touch') return;
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
-    const clientX = e.clientX || (e.touches && e.touches[0]?.clientX) || rect.left + rect.width / 2;
-    const clientY = e.clientY || (e.touches && e.touches[0]?.clientY) || rect.top + rect.height / 2;
+    const clientX = e.clientX || rect.left + rect.width / 2;
+    const clientY = e.clientY || rect.top + rect.height / 2;
 
     const normalizedX = (clientX - rect.left) / rect.width - 0.5;
     const normalizedY = (clientY - rect.top) / rect.height - 0.5;
@@ -56,7 +58,7 @@ export default function TiltCard({
   return (
     <motion.div
       ref={cardRef}
-      className={`tilt-card-wrapper ${className}`}
+      className={`tilt-card-wrapper overflow-visible ${className}`}
       onPointerMove={handlePointerMove}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
@@ -67,18 +69,24 @@ export default function TiltCard({
         transformStyle: 'preserve-3d',
         position: 'relative',
         cursor: onClick ? 'pointer' : 'default',
+        overflow: 'visible',
+        touchAction: 'pan-y',
+        height: 'auto',
         ...style,
       }}
     >
       <motion.div
+        className="overflow-visible"
         style={{
           rotateX,
           rotateY,
           transformStyle: 'preserve-3d',
           width: '100%',
-          height: '100%',
+          height: 'auto',
           borderRadius: 'inherit',
           position: 'relative',
+          overflow: 'visible',
+          touchAction: 'pan-y',
         }}
       >
         {children}

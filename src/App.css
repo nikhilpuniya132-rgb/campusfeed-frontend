@@ -323,6 +323,22 @@ html, body {
   max-width: 440px;
   perspective: 1200px;
   transform-style: preserve-3d;
+  overflow: visible !important;
+  touch-action: pan-y !important;
+  height: auto !important;
+  min-height: auto !important;
+}
+
+.interactive-demo-card,
+.tilt-card-wrapper {
+  overflow: visible !important;
+  touch-action: pan-y !important;
+  height: auto !important;
+  min-height: auto !important;
+}
+
+.overflow-visible {
+  overflow: visible !important;
 }
 
 @media (max-width: 960px) {
