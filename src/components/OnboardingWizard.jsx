@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 import { supabase } from '../supabase';
+import { useNavigate } from '../useNavigate';
 
 // Hardware-accelerated step transitions (opacity + transform only)
 const stepVariants = {
@@ -29,6 +30,7 @@ const stepVariants = {
 };
 
 export default function OnboardingWizard({ googleUser, API, onComplete }) {
+  const navigate = useNavigate();
   // Step navigation (Strict order: 1. Institute/Class -> 2. Username -> 3. Password -> 4. Gender -> 5. Invite Friends -> 6. Profile Picture)
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
@@ -178,27 +180,39 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to complete profile');
 
-      // Sync directly to Supabase users table using district key (absolutely do not send city)
+      // Sync directly to Supabase users table using explicit authenticated session user ID
+      let authenticatedUserId = googleUser?.googleId || googleUser?.id || data.user?.id;
       if (supabase) {
-        const uid = data.user?.id || googleUser?.googleId;
-        if (uid) {
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData?.session?.user?.id) {
+            authenticatedUserId = sessionData.session.user.id;
+          }
+        } catch (_) {}
+
+        if (authenticatedUserId) {
           const supabasePayload = {
-            district: 'Bathinda',
-            institute: institute.trim(),
-            school: institute.trim(),
-            stream: stream,
-            coaching_hub: coachingHub || findHubForInstitute(institute),
+            id: authenticatedUserId,
+            google_id: googleUser?.googleId || authenticatedUserId,
+            email: googleUser?.email || data.user?.email || null,
             name: name.trim(),
             handle: handle.trim().replace(/^@/, '').toLowerCase(),
+            username: handle.trim().replace(/^@/, '').toLowerCase(),
+            institute: institute.trim(),
+            school: institute.trim(),
+            district: 'Bathinda',
+            stream: stream,
+            coaching_hub: coachingHub || findHubForInstitute(institute),
             gender,
             avatar: finalAvatar,
             profile_pic: profilePic || '',
             grade: stream.includes('12') ? 12 : stream.includes('drop') ? 'dropper' : 11
           };
-          try {
-            await supabase.from('users').update(supabasePayload).eq('id', uid);
-          } catch (uErr) {
-            console.warn('Direct users table update warning:', uErr);
+
+          const { error } = await supabase.from('users').upsert(supabasePayload);
+          console.log("Onboarding Save Error:", error);
+          if (error) {
+            console.error("Supabase upsert into users table failed:", error);
           }
         }
       }
@@ -209,8 +223,30 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       localStorage.removeItem('campus_ref_code');
       localStorage.removeItem('referred_by');
 
-      // Transition to main app feed
-      onComplete(data.user);
+      // Task 3: Ensure Immediate State Update and redirect to /feed
+      const completedUser = {
+        ...(data.user || {}),
+        id: authenticatedUserId,
+        name: name.trim(),
+        handle: handle.trim().replace(/^@/, '').toLowerCase(),
+        username: handle.trim().replace(/^@/, '').toLowerCase(),
+        institute: institute.trim(),
+        school: institute.trim(),
+        district: 'Bathinda',
+        stream: stream,
+        coaching_hub: coachingHub || findHubForInstitute(institute),
+        gender,
+        avatar: finalAvatar,
+        profile_pic: profilePic || '',
+        grade: stream.includes('12') ? 12 : stream.includes('drop') ? 'dropper' : 11
+      };
+
+      localStorage.setItem('campus_cached_user', JSON.stringify(completedUser));
+
+      if (onComplete) {
+        onComplete(completedUser);
+      }
+      navigate('/feed');
     } catch (err) {
       console.error('Onboarding finish error:', err);
       setErrorMsg(err.message || 'Something went wrong. Please try again.');
