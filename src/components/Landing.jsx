@@ -1,4 +1,4 @@
-import React, { useRef, useState, Suspense, lazy } from 'react';
+import React, { useRef, useState, useEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence, useScroll, useSpring, useTransform } from 'framer-motion';
 import AddToHomeScreenGuide from './AddToHomeScreenGuide';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
@@ -43,6 +43,36 @@ export default function Landing({
   const [localActivePlan, setLocalActivePlan] = useState('weekly');
   const activePlan = propActivePlan !== undefined ? propActivePlan : localActivePlan;
   const setActivePlan = propSetActivePlan || setLocalActivePlan;
+
+  const [referralCode, setReferralCode] = useState(() => {
+    try {
+      if (typeof window === 'undefined') return '';
+      const urlParams = new URLSearchParams(window.location.search);
+      const ref = urlParams.get('ref');
+      return ref ? ref.trim().replace(/^@/, '') : (sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '');
+    } catch (_) {
+      return '';
+    }
+  });
+
+  // Task 2: Capture ?ref= parameter on Landing page and persist in sessionStorage and localStorage
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const urlParams = new URLSearchParams(window.location.search);
+      const refParam = urlParams.get('ref');
+      if (refParam) {
+        const cleanRef = refParam.trim().replace(/^@/, '');
+        setReferralCode(cleanRef);
+        sessionStorage.setItem('campus_ref_code', cleanRef);
+        sessionStorage.setItem('referred_by', cleanRef);
+        localStorage.setItem('campus_ref_code', cleanRef);
+        localStorage.setItem('referred_by', cleanRef);
+      }
+    } catch (e) {
+      console.error('Error capturing referral parameter in Landing:', e);
+    }
+  }, []);
 
   const doPasswordLogin = loginWithPassword || login;
 
@@ -504,7 +534,7 @@ export default function Landing({
               boxShadow: 'none'
             }}
           >
-            <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
               <span
                 style={{
                   background: 'rgba(255, 255, 255, 0.05)',
@@ -519,6 +549,24 @@ export default function Landing({
               >
                 ⚡ 1-TAP ONE-TOUCH ACCESS
               </span>
+              {referralCode && (
+                <span
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    color: '#34d399',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    padding: '3px 10px',
+                    borderRadius: '16px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <span>🎁</span> Invited by @{referralCode}
+                </span>
+              )}
             </div>
 
             <p style={{ marginTop: '8px', textAlign: 'center', fontSize: '14px', color: '#ffffff' }}>

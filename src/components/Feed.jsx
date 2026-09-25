@@ -127,9 +127,17 @@ export default function Feed({
       <CooldownScreen
         cooldownUntil={cooldownUntil}
         user={user}
-        onSkip={onSkipCooldown}
         onUpgrade={onUpgrade}
-        onCooldownFinished={() => onLoadNextPoll(gradeFilter)}
+        onCooldownFinished={() => {
+          if (onCooldownUnlocked) onCooldownUnlocked();
+          else if (onSkipCooldown) onSkipCooldown();
+          else onLoadNextPoll(gradeFilter);
+        }}
+        onCooldownUnlocked={() => {
+          if (onCooldownUnlocked) onCooldownUnlocked();
+          else if (onSkipCooldown) onSkipCooldown();
+          else onLoadNextPoll(gradeFilter);
+        }}
       />
     );
   }

@@ -171,7 +171,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
     setIsSubmitting(true);
     setErrorMsg('');
     try {
-      const cleanRef = (refCode || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
+      const cleanRef = (refCode || googleUser?.refCode || sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
       const finalAvatar = gender === 'girl' ? (avatarEmoji === '😎' ? '🌸' : avatarEmoji) : avatarEmoji;
 
       const res = await fetch(`${API}/user/complete-onboarding`, {
@@ -192,7 +192,8 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
           grade: stream.includes('12') ? 12 : stream.includes('drop') ? 'dropper' : 11,
           avatar: finalAvatar,
           profilePic: profilePic || '',
-          refCode: cleanRef
+          refCode: cleanRef,
+          referred_by: cleanRef
         })
       });
 
@@ -218,7 +219,10 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       });
 
       // Clear referral code from storage
+      sessionStorage.removeItem('campus_ref_code');
+      sessionStorage.removeItem('referred_by');
       localStorage.removeItem('campus_ref_code');
+      localStorage.removeItem('referred_by');
 
       // Direct zero-jank transition to voting game feed
       onComplete(data.user);

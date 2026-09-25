@@ -134,6 +134,7 @@ export default function App() {
     setIsAuthenticating(true);
     try {
       const selectedGrade = localStorage.getItem('campus_grade') || targetGrade || grade || '11';
+      const cleanRef = (sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
       const res = await fetch(`${API}/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -142,13 +143,15 @@ export default function App() {
           email: sessionUser.email,
           name: sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0],
           avatar: sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '',
-          grade: selectedGrade
+          grade: selectedGrade,
+          refCode: cleanRef || undefined,
+          referred_by: cleanRef || undefined
         })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Authentication sync failed');
       if (data.isNewUser) {
-        setOnboardingGoogleUser(data.googleUser);
+        setOnboardingGoogleUser({ ...(data.googleUser || {}), refCode: cleanRef, referred_by: cleanRef });
         setIsOnboarding(true);
       } else if (data.user) {
         setUser(prev => ({ ...(prev || {}), ...data.user }));
@@ -244,7 +247,10 @@ export default function App() {
       const refParam = urlParams.get('ref');
       if (refParam) {
         const cleanRef = refParam.trim().replace(/^@/, '');
+        sessionStorage.setItem('campus_ref_code', cleanRef);
+        sessionStorage.setItem('referred_by', cleanRef);
         localStorage.setItem('campus_ref_code', cleanRef);
+        localStorage.setItem('referred_by', cleanRef);
       }
     } catch (e) {
       console.error('Ref parameter capture error:', e);
@@ -502,6 +508,11 @@ export default function App() {
     } catch (err) {
       console.error('Vote error:', err);
     }
+  };
+
+  const handleCooldownUnlocked = () => {
+    setCooldownUntil(null);
+    loadNextPoll(gradeFilter || '11');
   };
 
   const handleSkipCooldown = async () => {
@@ -1002,7 +1013,8 @@ export default function App() {
                     onShuffle={shuffleCurrentOptions}
                     renderProfilePic={renderProfilePic}
                     onUpgrade={(amount) => handleUpgrade(amount || 99)}
-                    onSkipCooldown={handleSkipCooldown}
+                    onSkipCooldown={handleCooldownUnlocked}
+                    onCooldownUnlocked={handleCooldownUnlocked}
                   />
                 </motion.div>
               )}
