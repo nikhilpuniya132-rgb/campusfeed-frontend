@@ -10,7 +10,7 @@ const COACHING_FILTER_PILLS = [
   { id: '11th Non-Med', label: '11th Non-Med' },
   { id: '12th Board', label: '12th Board' },
   { id: 'NEET Droppers', label: 'NEET Droppers' },
-  { id: 'all', label: 'All Bathinda' }
+  { id: 'all', label: 'Institute' }
 ];
 
 export default function Feed({

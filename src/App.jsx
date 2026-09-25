@@ -74,7 +74,18 @@ const pageVariants = {
 };
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const cached = localStorage.getItem('campus_cached_user');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.id && parsed?.institute && parsed.institute.trim()) {
+          return parsed;
+        }
+      }
+    } catch (_) {}
+    return null;
+  });
   const [handle, setHandle] = useState('');
   const [password, setPassword] = useState('');
   const [grade, setGrade] = useState('11');
@@ -168,10 +179,22 @@ export default function App() {
       } else if (data.user) {
         const userRing = data.user?.selected_ring || data.user?.ring || localStorage.getItem('campus_user_ring') || 'gold';
         localStorage.setItem('campus_user_ring', userRing);
-        setUser(prev => ({ ...(prev || {}), ...data.user, ring: userRing, selected_ring: userRing }));
+        const fullUser = { ...(data.user), ring: userRing, selected_ring: userRing };
+        localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
+        setUser(fullUser);
         setIsOnboarding(false);
         setOnboardingGoogleUser(null);
-        setView('poll');
+
+        // Persistent Auth Routing: If valid session exists and user has completed profile,
+        // automatically redirect away from base URL (/ or landing page) directly to /feed
+        const currentPath = window.location.pathname.replace(/^\//, '');
+        if (!currentPath || currentPath === 'landing') {
+          window.history.replaceState(null, '', '/feed');
+          setView('poll');
+        } else if (currentPath === 'feed' || currentPath === 'poll') {
+          setView('poll');
+        }
+
         setGradeFilter(data.user.grade ? data.user.grade.toString() : '11');
         loadNextPoll(data.user.grade ? data.user.grade.toString() : '11', data.user.id);
         fetchPendingRequests(data.user.id);
@@ -192,10 +215,20 @@ export default function App() {
       if (dbUser && dbUser.institute && dbUser.institute.trim()) {
         const userRing = dbUser.selected_ring || dbUser.ring || localStorage.getItem('campus_user_ring') || 'gold';
         localStorage.setItem('campus_user_ring', userRing);
-        setUser(prev => ({ ...(prev || {}), ...dbUser, ring: userRing, selected_ring: userRing }));
+        const fullUser = { ...dbUser, ring: userRing, selected_ring: userRing };
+        localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
+        setUser(fullUser);
         setIsOnboarding(false);
         setOnboardingGoogleUser(null);
-        setView('poll');
+
+        const currentPath = window.location.pathname.replace(/^\//, '');
+        if (!currentPath || currentPath === 'landing') {
+          window.history.replaceState(null, '', '/feed');
+          setView('poll');
+        } else if (currentPath === 'feed' || currentPath === 'poll') {
+          setView('poll');
+        }
+
         setGradeFilter(dbUser.grade ? dbUser.grade.toString() : '11');
         loadNextPoll(dbUser.grade ? dbUser.grade.toString() : '11', dbUser.id);
       } else {
@@ -379,26 +412,76 @@ export default function App() {
           }
         }
       } else {
-        // 4. Standard Fallback: No code in URL, gracefully fall back to getSession()
+        // 4. Persistent Auth Check: check for existing, unexpired Supabase session
         try {
-          const { data: { session } } = await supabase.auth.getSession();
+          setIsCheckingSession(true);
+          setIsAuthLoading(true);
+          const { data: { session }, error } = await supabase.auth.getSession();
           if (!isMounted) return;
+
+          if (error) {
+            console.warn('Supabase getSession error:', error.message);
+          }
+
           if (session?.user) {
-            syncWithBackend(session.user).catch(console.warn);
+            const isExpired = session.expires_at ? (session.expires_at * 1000 <= Date.now()) : false;
+            if (!isExpired) {
+              await syncWithBackend(session.user);
+            } else {
+              // Try refreshing expired session
+              const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
+              if (refreshed?.session?.user && !refreshErr) {
+                await syncWithBackend(refreshed.session.user);
+              } else {
+                setUser(null);
+                localStorage.removeItem('campus_cached_user');
+              }
+            }
+          } else {
+            // Check if user logged in via manual credentials cached in localStorage
+            const cached = localStorage.getItem('campus_cached_user');
+            if (cached) {
+              try {
+                const parsed = JSON.parse(cached);
+                if (parsed?.id && parsed?.institute && parsed.institute.trim()) {
+                  setUser(parsed);
+                  const currentPath = window.location.pathname.replace(/^\//, '');
+                  if (!currentPath || currentPath === 'landing') {
+                    window.history.replaceState(null, '', '/feed');
+                    setView('poll');
+                  }
+                  setGradeFilter(parsed.grade ? parsed.grade.toString() : '11');
+                  loadNextPoll(parsed.grade ? parsed.grade.toString() : '11', parsed.id);
+                  fetchPendingRequests(parsed.id);
+                  fetchAcceptedFriends(parsed.id);
+                  fetchInbox(parsed.id);
+                } else {
+                  setUser(null);
+                  localStorage.removeItem('campus_cached_user');
+                }
+              } catch (_) {
+                setUser(null);
+                localStorage.removeItem('campus_cached_user');
+              }
+            } else {
+              setUser(null);
+            }
           }
         } catch (err) {
           console.error('Session retrieval error:', err);
+          setUser(null);
         } finally {
           if (isMounted) {
             setIsCheckingSession(false);
             setIsAuthLoading(false);
+            setIsAuthenticating(false);
           }
         }
       }
     };
 
     // 5. Setup onAuthStateChange with Ghost-Logout Immunity
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
 
       // Ghost-Logout Immunity: Strictly ignore SIGNED_OUT while PKCE code is processing
@@ -412,7 +495,7 @@ export default function App() {
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (session?.user) {
-          syncWithBackend(session.user).catch(console.warn);
+          await syncWithBackend(session.user).catch(console.warn);
         }
       }
     });
@@ -424,6 +507,40 @@ export default function App() {
       subscription?.unsubscribe();
     };
   }, []);
+
+  // Persistent Auth Routing: If a logged-in user with an assigned institute is on the base URL or landing page,
+  // automatically redirect them away from the base URL (/ or landing page) directly to the main app interface (/feed).
+  // A logged-in user should never see the public landing page again unless they explicitly click a "Sign Out" button.
+  useEffect(() => {
+    if (user && user.institute && user.institute.trim()) {
+      const currentPath = window.location.pathname.replace(/^\//, '');
+      if (!currentPath || currentPath === 'landing') {
+        window.history.replaceState(null, '', '/feed');
+        setView('poll');
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (user && user.institute && user.institute.trim()) {
+        const path = window.location.pathname.replace(/^\//, '');
+        if (!path || path === 'landing') {
+          window.history.replaceState(null, '', '/feed');
+          setView('poll');
+          return;
+        }
+        if (path === 'feed' || path === 'poll') setView('poll');
+        else if (path === 'inbox') setView('inbox');
+        else if (path === 'pro' || path === 'vip') setView('pro');
+        else if (path === 'explore') setView('explore');
+        else if (path === 'profile') setView('profile');
+        else if (path === 'captains' || path === 'referrals' || path === 'leaderboard') setView('captains');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [user]);
 
   const loginWithGoogle = async () => {
     setIsAuthenticating(true);
@@ -460,7 +577,20 @@ export default function App() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setUser(data.user);
+      const userRing = data.user?.selected_ring || data.user?.ring || localStorage.getItem('campus_user_ring') || 'gold';
+      localStorage.setItem('campus_user_ring', userRing);
+      const fullUser = { ...data.user, ring: userRing, selected_ring: userRing };
+      localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
+      setUser(fullUser);
+
+      if (data.user.institute && data.user.institute.trim()) {
+        const currentPath = window.location.pathname.replace(/^\//, '');
+        if (!currentPath || currentPath === 'landing') {
+          window.history.replaceState(null, '', '/feed');
+          setView('poll');
+        }
+      }
+
       setGradeFilter(data.user.grade.toString());
       loadNextPoll(data.user.grade.toString(), data.user.id);
       fetchPendingRequests(data.user.id);
@@ -473,16 +603,25 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Sign out error:', e);
+    }
     setUser(null);
     localStorage.clear();
+    sessionStorage.clear();
     window.location.href = '/'; // Hard redirect to completely clear cache
   };
 
   const handleOnboardingComplete = (newUser) => {
-    setUser(newUser);
+    const userRing = newUser?.selected_ring || newUser?.ring || localStorage.getItem('campus_user_ring') || 'gold';
+    const fullUser = { ...newUser, ring: userRing, selected_ring: userRing };
+    localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
+    setUser(fullUser);
     setIsOnboarding(false);
     setOnboardingGoogleUser(null);
+    window.history.replaceState(null, '', '/feed');
     setView('poll');
     setGradeFilter(newUser.grade ? newUser.grade.toString() : '11');
     loadNextPoll(newUser.grade ? newUser.grade.toString() : '11', newUser.id);
@@ -903,7 +1042,7 @@ export default function App() {
     );
   };
 
-  if (isCheckingSession || isAuthLoading || (isAuthenticating && !user && !isOnboarding)) {
+  if ((isCheckingSession || isAuthLoading || isAuthenticating) && !user && !isOnboarding) {
     return (
       <div style={{
         display: 'flex',
