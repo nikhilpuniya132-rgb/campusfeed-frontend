@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import confetti from 'canvas-confetti';
 import { getWhatsAppShareUrl, copyReferralLink, getReferralLink } from '../utils/referral';
 import HamsterLoader from './HamsterLoader';
 
@@ -32,28 +31,12 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
   const handleWhatsAppShare = () => {
     const waUrl = getWhatsAppShareUrl(user);
     window.open(waUrl, '_blank');
-    try {
-      confetti({
-        particleCount: 60,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#25D366', '#128C7E', '#38bdf8', '#fbbf24']
-      });
-    } catch (_) {}
   };
 
   const handleCopy = async () => {
     const res = await copyReferralLink(user);
     if (res.success) {
       setCopyToast(true);
-      try {
-        confetti({
-          particleCount: 50,
-          spread: 60,
-          origin: { y: 0.5 },
-          colors: ['#38bdf8', '#fbbf24', '#ff5500']
-        });
-      } catch (_) {}
       setTimeout(() => setCopyToast(false), 2500);
     }
   };
@@ -92,7 +75,7 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
   const userDrops = user?.feed_drops !== undefined && user?.feed_drops !== null ? user.feed_drops : (userInvites * 50);
 
   return (
-    <div style={{ padding: '16px 16px 80px 16px', maxWidth: '440px', margin: '0 auto', boxSizing: 'border-box' }}>
+    <div style={{ padding: '16px 16px 80px 16px', maxWidth: '440px', margin: '0 auto', boxSizing: 'border-box', background: '#ffffff', minHeight: '100%' }}>
       
       {/* Top Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
@@ -100,9 +83,9 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
           onClick={onBack}
           type="button"
           style={{
-            background: '#18181b',
-            border: '1px solid #27272a',
-            color: '#a1a1aa',
+            background: '#f9fafb',
+            border: '1px solid #e5e7eb',
+            color: '#374151',
             padding: '8px 14px',
             borderRadius: '12px',
             fontSize: '12px',
@@ -118,12 +101,12 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
         </button>
 
         <div style={{ textAlign: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#000000', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
             <span>👑</span>
             <span>Batch Captains</span>
           </h2>
-          <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '700' }}>
-            💧 Non-Monetary Feed Drops Economy
+          <span style={{ fontSize: '11px', color: '#2563eb', fontWeight: '700' }}>
+            💧 Feed Drops Economy
           </span>
         </div>
 
@@ -133,43 +116,43 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
       {/* User's Captain Status Widget */}
       <div
         style={{
-          background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(251, 191, 36, 0.08))',
-          border: '1px solid rgba(56, 189, 248, 0.35)',
+          background: '#f9fafb',
+          border: '1px solid #e5e7eb',
           borderRadius: '20px',
           padding: '16px',
           marginBottom: '16px',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.5)'
+          boxShadow: 'none'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
           <div>
-            <div style={{ fontSize: '11px', fontWeight: '800', color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div style={{ fontSize: '11px', fontWeight: '800', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Your Captain Status
             </div>
-            <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff', marginTop: '2px' }}>
+            <div style={{ fontSize: '20px', fontWeight: '900', color: '#000000', marginTop: '2px' }}>
               Rank #{userRank}{' '}
-              <span style={{ fontSize: '13px', color: '#a1a1aa', fontWeight: '700' }}>
+              <span style={{ fontSize: '13px', color: '#6b7280', fontWeight: '700' }}>
                 ({userInvites} verified)
               </span>
             </div>
           </div>
 
           <div style={{ textAlign: 'right' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '5px 10px', borderRadius: '12px', color: '#38bdf8', fontWeight: '900', fontSize: '13px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '5px 10px', borderRadius: '12px', color: '#1d4ed8', fontWeight: '900', fontSize: '13px' }}>
               <span>💧</span>
               <span>{userDrops} Drops</span>
             </div>
-            <div style={{ fontSize: '10px', color: '#71717a', marginTop: '3px' }}>
+            <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px' }}>
               +50 per verified recruit
             </div>
           </div>
         </div>
 
-        {/* Grand Status Progress Bar: Elite Status: 0 / 25 Active Recruits to unlock Batch Captain. */}
+        {/* Grand Status Progress Bar */}
         <div
           style={{
-            background: '#1A1A1A',
-            border: '1px solid #262626',
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
             borderRadius: '16px',
             padding: '12px 14px',
             marginBottom: '12px',
@@ -177,12 +160,12 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '12px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.01em' }}>
+            <span style={{ fontSize: '12px', fontWeight: '800', color: '#000000', letterSpacing: '-0.01em' }}>
               {isEliteCaptain
                 ? '👑 Elite Status: UNLOCKED (Batch Captain / Moderator)'
                 : `Elite Status: ${userInvites} / 25 Active Recruits to unlock Batch Captain.`}
             </span>
-            <span style={{ fontSize: '11px', fontWeight: '700', color: '#a1a1aa' }}>
+            <span style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280' }}>
               {progressPercent}%
             </span>
           </div>
@@ -192,10 +175,9 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
             style={{
               width: '100%',
               height: '8px',
-              background: '#262626',
+              background: '#e5e7eb',
               borderRadius: '999px',
               overflow: 'hidden',
-              border: '1px solid #3f3f46',
               position: 'relative'
             }}
           >
@@ -205,21 +187,20 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
               transition={{ duration: 0.6, ease: 'easeOut' }}
               style={{
                 height: '100%',
-                background: '#ffffff',
-                boxShadow: 'none',
+                background: '#000000',
                 borderRadius: '999px'
               }}
             />
           </div>
 
           {/* Explanatory Anti-Cheat & Admin Override Subtext */}
-          <div style={{ marginTop: '8px', fontSize: '10.5px', color: '#71717a', lineHeight: '1.4' }}>
+          <div style={{ marginTop: '8px', fontSize: '10.5px', color: '#6b7280', lineHeight: '1.4' }}>
             {isAdminOverride ? (
-              <span style={{ color: '#fbbf24', fontWeight: '800' }}>
+              <span style={{ color: '#000000', fontWeight: '800' }}>
                 ⚡ Admin Override Granted: Full Moderator privileges enabled.
               </span>
             ) : isEliteCaptain ? (
-              <span style={{ color: '#4ade80', fontWeight: '700' }}>
+              <span style={{ color: '#059669', fontWeight: '700' }}>
                 ✓ Official Batch Captain & Moderator unlocked with 25 verified active recruits!
               </span>
             ) : (
@@ -242,8 +223,8 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
               width: '42px',
               height: '42px',
               borderRadius: '12px',
-              border: '1px solid #262626',
-              background: '#262626',
+              border: '1px solid #e5e7eb',
+              background: '#000000',
               color: '#ffffff',
               cursor: 'pointer',
               display: 'flex',
@@ -267,9 +248,9 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
               flex: 1,
               padding: '11px 14px',
               borderRadius: '12px',
-              border: '1px solid #262626',
-              background: copyToast ? '#262626' : '#141416',
-              color: '#ffffff',
+              border: '1px solid #e5e7eb',
+              background: copyToast ? '#f0fdf4' : '#000000',
+              color: copyToast ? '#166534' : '#ffffff',
               fontSize: '12.5px',
               fontWeight: '700',
               cursor: 'pointer',
@@ -286,7 +267,7 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
         </div>
       </div>
 
-      {/* Coaching Stream / Category Switcher Tabs */}
+      {/* Category Switcher Tabs (active: bg-black text-white; inactive: bg-gray-100 text-gray-600) */}
       <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginBottom: '18px', flexWrap: 'wrap' }}>
         {[
           { id: '11th Medical', label: '11th Medical' },
@@ -304,12 +285,12 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
             style={{
               padding: '6px 12px',
               borderRadius: '12px',
-              border: gradeFilter === tab.id ? '1px solid #ff5500' : '1px solid rgba(255, 255, 255, 0.08)',
+              border: gradeFilter === tab.id ? '1px solid #000000' : '1px solid #e5e7eb',
               fontSize: '11.5px',
               fontWeight: '800',
               cursor: 'pointer',
-              background: gradeFilter === tab.id ? '#ff5500' : '#141416',
-              color: gradeFilter === tab.id ? '#ffffff' : '#71717a',
+              background: gradeFilter === tab.id ? '#000000' : '#f3f4f6',
+              color: gradeFilter === tab.id ? '#ffffff' : '#4b5563',
               transition: 'all 0.15s ease'
             }}
           >
@@ -323,10 +304,10 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
           <HamsterLoader message="Verifying Batch Captains..." />
         </div>
       ) : filteredCaptains.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#71717a' }}>
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280' }}>
           <div style={{ fontSize: '36px', marginBottom: '10px' }}>👑</div>
-          <p style={{ margin: 0, fontSize: '14px', fontWeight: '700' }}>No captains yet in this class.</p>
-          <p style={{ margin: '6px 0 16px 0', fontSize: '12px' }}>Be the first captain by sharing your WhatsApp link!</p>
+          <p style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#000000' }}>No captains yet in this class.</p>
+          <p style={{ margin: '6px 0 16px 0', fontSize: '12px' }}>Be the first captain by sharing your invite link!</p>
           <button
             onClick={handleWhatsAppShare}
             aria-label="Share Link"
@@ -335,8 +316,8 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
               width: '42px',
               height: '42px',
               borderRadius: '12px',
-              border: '1px solid #262626',
-              background: '#262626',
+              border: '1px solid #e5e7eb',
+              background: '#000000',
               color: '#ffffff',
               cursor: 'pointer',
               display: 'inline-flex',
@@ -363,16 +344,16 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
                   <div style={{ fontSize: '28px', marginBottom: '4px' }}>
                     {top3[1].avatar || '🔥'}
                   </div>
-                  <div style={{ fontSize: '12px', fontWeight: '800', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', textAlign: 'center' }}>
+                  <div style={{ fontSize: '12px', fontWeight: '800', color: '#000000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', textAlign: 'center' }}>
                     @{top3[1].handle}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '800' }}>
+                  <div style={{ fontSize: '11px', color: '#2563eb', fontWeight: '800' }}>
                     💧 {top3[1].feed_drops !== undefined ? top3[1].feed_drops : (top3[1].invites || 0) * 50}
                   </div>
-                  <div style={{ fontSize: '10px', color: '#71717a', fontWeight: '600' }}>
+                  <div style={{ fontSize: '10px', color: '#6b7280', fontWeight: '600' }}>
                     {top3[1].invites || 0} recruits
                   </div>
-                  <div style={{ width: '100%', height: '60px', background: 'linear-gradient(180deg, #3f3f46, #18181b)', borderRadius: '12px 12px 0 0', marginTop: '8px', border: '1px solid #52525b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', color: '#d4d4d8', fontSize: '16px' }}>
+                  <div style={{ width: '100%', height: '60px', background: '#f3f4f6', borderRadius: '12px 12px 0 0', marginTop: '8px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', color: '#374151', fontSize: '16px' }}>
                     2
                   </div>
                 </div>
@@ -381,20 +362,20 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
               {/* Rank 1 (Tallest) */}
               {top3[0] && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1.2, maxWidth: '115px' }}>
-                  <div style={{ fontSize: '24px', marginBottom: '2px', filter: 'drop-shadow(0 0 8px #fbbf24)' }}>👑</div>
+                  <div style={{ fontSize: '24px', marginBottom: '2px' }}>👑</div>
                   <div style={{ fontSize: '34px', marginBottom: '4px' }}>
                     {top3[0].avatar || '😎'}
                   </div>
-                  <div style={{ fontSize: '13px', fontWeight: '900', color: '#fbbf24', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', textAlign: 'center' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '900', color: '#000000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', textAlign: 'center' }}>
                     @{top3[0].handle}
                   </div>
-                  <div style={{ fontSize: '11.5px', color: '#38bdf8', fontWeight: '900' }}>
+                  <div style={{ fontSize: '11.5px', color: '#2563eb', fontWeight: '900' }}>
                     💧 {top3[0].feed_drops !== undefined ? top3[0].feed_drops : (top3[0].invites || 0) * 50}
                   </div>
-                  <div style={{ fontSize: '10.5px', color: '#fbbf24', fontWeight: '700' }}>
+                  <div style={{ fontSize: '10.5px', color: '#374151', fontWeight: '700' }}>
                     {top3[0].invites || 0} recruits
                   </div>
-                  <div style={{ width: '100%', height: '84px', background: 'linear-gradient(180deg, rgba(251, 191, 36, 0.4), #18181b)', borderRadius: '14px 14px 0 0', marginTop: '8px', border: '1px solid #fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', color: '#fbbf24', fontSize: '20px', boxShadow: '0 0 20px rgba(251, 191, 36, 0.2)' }}>
+                  <div style={{ width: '100%', height: '84px', background: '#e5e7eb', borderRadius: '14px 14px 0 0', marginTop: '8px', border: '1px solid #d1d5db', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', color: '#000000', fontSize: '20px' }}>
                     1
                   </div>
                 </div>
@@ -407,16 +388,16 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
                   <div style={{ fontSize: '28px', marginBottom: '4px' }}>
                     {top3[2].avatar || '✨'}
                   </div>
-                  <div style={{ fontSize: '12px', fontWeight: '800', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', textAlign: 'center' }}>
+                  <div style={{ fontSize: '12px', fontWeight: '800', color: '#000000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', textAlign: 'center' }}>
                     @{top3[2].handle}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '800' }}>
+                  <div style={{ fontSize: '11px', color: '#2563eb', fontWeight: '800' }}>
                     💧 {top3[2].feed_drops !== undefined ? top3[2].feed_drops : (top3[2].invites || 0) * 50}
                   </div>
-                  <div style={{ fontSize: '10px', color: '#71717a', fontWeight: '600' }}>
+                  <div style={{ fontSize: '10px', color: '#6b7280', fontWeight: '600' }}>
                     {top3[2].invites || 0} recruits
                   </div>
-                  <div style={{ width: '100%', height: '46px', background: 'linear-gradient(180deg, #78350f, #18181b)', borderRadius: '12px 12px 0 0', marginTop: '8px', border: '1px solid #92400e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', color: '#f59e0b', fontSize: '16px' }}>
+                  <div style={{ width: '100%', height: '46px', background: '#f3f4f6', borderRadius: '12px 12px 0 0', marginTop: '8px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', color: '#374151', fontSize: '16px' }}>
                     3
                   </div>
                 </div>
@@ -436,31 +417,31 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
                   <div
                     key={captain.id || idx}
                     style={{
-                      background: isCurrent ? 'rgba(56, 189, 248, 0.08)' : '#121214',
-                      border: isCurrent ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid #27272a',
+                      background: isCurrent ? '#eff6ff' : '#f9fafb',
+                      border: isCurrent ? '1px solid #bfdbfe' : '1px solid #e5e7eb',
                       borderRadius: '16px',
                       padding: '12px 14px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                      boxShadow: 'none'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: '900', color: '#71717a', width: '22px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '900', color: '#6b7280', width: '22px', textAlign: 'center' }}>
                         #{rankNum}
                       </span>
 
-                      <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', border: '1px solid #27272a' }}>
+                      <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', border: '1px solid #e5e7eb' }}>
                         {captain.avatar || '😎'}
                       </div>
 
                       <div>
-                        <div style={{ fontSize: '13.5px', fontWeight: '800', color: isCurrent ? '#38bdf8' : '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ fontSize: '13.5px', fontWeight: '800', color: isCurrent ? '#1d4ed8' : '#000000', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span>@{captain.handle}</span>
                           {captain.is_pro && <span style={{ fontSize: '11px' }}>👑</span>}
                         </div>
-                        <div style={{ fontSize: '11px', color: '#71717a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ fontSize: '11px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span>Class {captain.grade || '11'}</span>
                           <span>•</span>
                           <span>📍 {captain.city || 'Bathinda'}</span>
@@ -469,11 +450,11 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '14px', fontWeight: '900', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '3px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '900', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '3px' }}>
                         <span>💧</span>
                         <span>{captainDrops}</span>
                       </div>
-                      <div style={{ fontSize: '10px', color: '#71717a', letterSpacing: '0.02em' }}>
+                      <div style={{ fontSize: '10px', color: '#6b7280', letterSpacing: '0.02em' }}>
                         {captain.invites || 0} recruits
                       </div>
                     </div>
@@ -483,9 +464,9 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
             </div>
           )}
 
-          {/* RBI Regulatory Compliance Notice */}
-          <div style={{ marginTop: '24px', padding: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px', fontSize: '11px', color: '#71717a', lineHeight: '1.45', textAlign: 'center' }}>
-            🏛️ <strong>RBI Regulatory Notice:</strong> Feed Drops (💧) are non-monetary, closed-loop virtual entertainment tokens with zero cash value, strictly conforming to RBI directives on digital loyalty units. Drops cannot be purchased, transferred, or redeemed for fiat currency.
+          {/* Regulatory Notice */}
+          <div style={{ marginTop: '24px', padding: '12px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '14px', fontSize: '11px', color: '#6b7280', lineHeight: '1.45', textAlign: 'center' }}>
+            🏛️ <strong>Notice:</strong> Feed Drops (💧) are non-monetary, closed-loop virtual entertainment tokens with zero cash value, strictly conforming to digital loyalty units. Drops cannot be purchased, transferred, or redeemed for fiat currency.
           </div>
         </div>
       )}

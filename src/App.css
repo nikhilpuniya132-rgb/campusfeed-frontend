@@ -1,22 +1,23 @@
 /* ==========================================================================
-   CENTERINSIDER 3D INTERACTIVE MOTION DESIGN SYSTEM (GAS APP INSPIRED)
-   Ultra-vibrant, 3D interactive, glassmorphic, 100% Mobile & PC perfected
+   CENTERINSIDER MINIMALIST LIGHT MODE (INSTAGRAM STYLE DESIGN SYSTEM)
+   Solid White (#ffffff), Rich Contrast Typography (#000000 / #6b7280),
+   Subtle Gray Borders (#e5e7eb), 100% Mobile & PC Responsive
    ========================================================================== */
 
-/* --- ROOT VARIABLES (STRICT DEEP DARK THEME #0F0F0F / #1A1A1A) --- */
+/* --- ROOT VARIABLES (STRICT MINIMALIST LIGHT THEME) --- */
 :root {
-  --gas-dark-bg: #0F0F0F;
-  --gas-surface: #1A1A1A;
-  --gas-card-bg: #1A1A1A;
-  --gas-card-border: #262626;
-  --gas-card-border-hover: #3f3f46;
-  --gas-accent-gradient: #262626;
-  --gas-accent-fire: #d4d4d8;
-  --gas-text: #ffffff;
-  --gas-muted: #a1a1aa;
-  --gas-muted-dark: #71717a;
-  --gas-border-glass: #262626;
-  --gas-glass-bg: #1A1A1A;
+  --gas-dark-bg: #ffffff;
+  --gas-surface: #ffffff;
+  --gas-card-bg: #ffffff;
+  --gas-card-border: #e5e7eb;
+  --gas-card-border-hover: #d1d5db;
+  --gas-accent-gradient: #000000;
+  --gas-accent-fire: #111827;
+  --gas-text: #000000;
+  --gas-muted: #6b7280;
+  --gas-muted-dark: #9ca3af;
+  --gas-border-glass: #e5e7eb;
+  --gas-glass-bg: #ffffff;
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -31,8 +32,8 @@ html, body {
   width: 100%;
   max-width: 100%;
   min-height: 100%;
-  background: var(--gas-dark-bg);
-  color: var(--gas-text);
+  background: #ffffff;
+  color: #000000;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -50,6 +51,8 @@ html, body {
   display: flex;
   flex-direction: column;
   position: relative;
+  background: #ffffff;
+  color: #000000;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -64,11 +67,11 @@ html, body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 /* ==========================================================================
@@ -82,7 +85,7 @@ html, body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: transparent;
+  background: #ffffff;
   z-index: 1;
   overflow-x: hidden;
   overflow-y: visible;
@@ -99,10 +102,10 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid #e5e7eb;
   z-index: 100;
   box-sizing: border-box;
 }
@@ -113,31 +116,30 @@ html, body {
   gap: 8px;
   font-size: 15px;
   font-weight: 800;
-  letter-spacing: 1px;
-  color: #ffffff;
+  letter-spacing: 0.5px;
+  color: #000000;
   flex-shrink: 0;
 }
 
 .gas-logo .flame-icon {
   font-size: 17px;
-  filter: grayscale(0.5) contrast(1.2);
 }
 
 .gas-school-badge {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
   padding: 5px 12px;
   border-radius: 20px;
   font-size: 11px;
   font-weight: 700;
-  color: #a1a1aa;
+  color: #4b5563;
   letter-spacing: 0.5px;
   white-space: nowrap;
 }
 
 @media (max-width: 480px) {
   .gas-school-badge {
-    display: none; /* Keep navbar clean on small phones */
+    display: none;
   }
 }
 
@@ -154,6 +156,8 @@ html, body {
   gap: 40px;
   position: relative;
   box-sizing: border-box;
+  overflow: visible !important;
+  touch-action: pan-y !important;
 }
 
 @media (max-width: 960px) {
@@ -189,40 +193,30 @@ html, body {
   gap: 8px;
   padding: 6px 14px;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #d4d4d8;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  color: #374151;
   font-size: 11.5px;
   font-weight: 650;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
   margin-bottom: 20px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   box-shadow: none;
 }
 
 .gas-hero-title {
   font-size: clamp(34px, 8vw, 76px);
   font-weight: 900;
-  line-height: 1.02;
+  line-height: 1.05;
   letter-spacing: -2px;
   margin: 0 0 18px 0;
-  color: #ffffff;
-}
-
-.gas-hero-title span.glow-orange {
-  background: linear-gradient(180deg, #FFFFFF 20%, #71717A 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: none;
-  text-shadow: none;
+  color: #000000;
 }
 
 .gas-hero-subtitle {
   font-size: clamp(15px, 3.8vw, 19px);
   font-weight: 450;
-  color: #888888;
+  color: #6b7280;
   line-height: 1.55;
   margin: 0 0 28px 0;
   max-width: 520px;
@@ -263,30 +257,29 @@ html, body {
 }
 
 .gas-stat-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   padding: 10px 18px;
   border-radius: 14px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   transition: border-color 0.2s ease;
 }
 
 .gas-stat-card:hover {
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: #d1d5db;
 }
 
 .gas-stat-number {
   font-size: 16px;
   font-weight: 800;
-  color: #ffffff;
+  color: #000000;
 }
 
 .gas-stat-label {
   font-size: 11px;
-  color: #71717a;
+  color: #6b7280;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -349,19 +342,17 @@ html, body {
   }
 }
 
-/* Floating 3D Chips around the demo card */
+/* Floating Chips around demo card */
 .gas-float-chip {
   position: absolute;
   padding: 8px 16px;
   border-radius: 20px;
-  background: rgba(12, 12, 12, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
   font-size: 11.5px;
   font-weight: 700;
-  color: #f4f4f5;
+  color: #111827;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -372,18 +363,16 @@ html, body {
 .gas-float-chip-1 {
   top: -12px;
   left: -15px;
-  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .gas-float-chip-2 {
   bottom: -12px;
   right: -15px;
-  border-color: rgba(255, 255, 255, 0.12);
 }
 
 @media (max-width: 960px) {
   .gas-float-chip {
-    display: none; /* Hide floating chips on mobile to prevent overflow */
+    display: none;
   }
 }
 
@@ -398,29 +387,29 @@ html, body {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: var(--gas-dark-bg);
+  background: #f9fafb;
   position: relative;
   overflow: hidden;
 }
 
-/* Desktop: iPhone 15 Frame Preview */
+/* Desktop: App Frame Preview */
 .gas-app-container {
   width: 100%;
   max-width: 430px;
   height: 100svh;
   max-height: 920px;
-  background: #000000;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
   border-radius: 36px;
-  border: 1px solid #222222;
+  border: 1px solid #e5e7eb;
   z-index: 10;
 }
 
-/* Mobile Phones: 100% Native Edge-to-Edge App Lock */
+/* Mobile Phones: Edge-to-Edge */
 @media (max-width: 768px) {
   .gas-app-shell {
     position: fixed;
@@ -434,6 +423,7 @@ html, body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    background: #ffffff;
   }
 
   .gas-app-container {
@@ -458,31 +448,31 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #000000;
-  border-bottom: 1px solid #1a1a1a;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
   flex-shrink: 0;
   z-index: 20;
   box-sizing: border-box;
 }
 
 .gas-header-title {
-  font-size: 14.5px;
-  font-weight: 900;
-  letter-spacing: 0.5px;
-  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: #000000;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
 .gas-header-votes {
-  background: #141414;
-  border: 1px solid #222222;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
   padding: 4px 10px;
   border-radius: 16px;
   font-size: 12px;
   font-weight: 800;
-  color: #fbbf24;
+  color: #111827;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -493,15 +483,16 @@ html, body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  background: #ffffff;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   position: relative;
-  padding-bottom: calc(76px + env(safe-area-inset-bottom, 8px)); /* Clearance for bottom dock */
+  padding-bottom: calc(76px + env(safe-area-inset-bottom, 8px));
 }
 
 /* ==========================================================================
-   GAS VOTING FEED (FLAT MINIMALIST SURFACES)
+   FEED & POLL CARDS (INSTAGRAM STYLE LIGHT SURFACES)
    ========================================================================== */
 
 .gas-poll-wrapper {
@@ -510,16 +501,16 @@ html, body {
   flex-direction: column;
   padding: 12px 14px;
   position: relative;
-  background: transparent;
+  background: #ffffff;
 }
 
 .gas-grade-toggle {
   display: flex;
-  background: #111111;
+  background: #f3f4f6;
   border-radius: 14px;
   padding: 3px;
   margin-bottom: 12px;
-  border: 1px solid #222222;
+  border: 1px solid #e5e7eb;
 }
 
 .gas-grade-btn {
@@ -528,26 +519,26 @@ html, body {
   border-radius: 11px;
   border: none;
   font-size: 12.5px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
   background: transparent;
-  color: #888888;
+  color: #6b7280;
   transition: all 0.15s ease;
 }
 
 .gas-grade-btn.active {
-  background: #ffffff;
-  color: #000000;
+  background: #000000;
+  color: #ffffff;
   box-shadow: none;
 }
 
 /* Question Card */
 .gas-question-card {
   border-radius: 24px;
-  padding: 20px 14px;
-  background: #111111;
-  border: 1px solid #222222;
-  box-shadow: none;
+  padding: 20px 16px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   text-align: center;
   margin-bottom: 14px;
   min-height: 105px;
@@ -560,8 +551,8 @@ html, body {
 
 .gas-question-text {
   font-size: clamp(17px, 4.8vw, 22px);
-  font-weight: 900;
-  color: #fff;
+  font-weight: 800;
+  color: #000000;
   line-height: 1.35;
   margin: 0;
 }
@@ -576,38 +567,38 @@ html, body {
 
 /* Tactile Choice Button */
 .gas-choice-btn {
-  background: #141414;
-  border: 1px solid #222222;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 20px;
   padding: 14px 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: #000000;
   cursor: pointer;
   position: relative;
   outline: none;
-  box-shadow: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   user-select: none;
   min-height: 92px;
   box-sizing: border-box;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
 
 .gas-choice-btn:hover {
-  background: #1a1a1a;
-  border-color: #333333;
+  background: #f9fafb;
+  border-color: #d1d5db;
 }
 
 .gas-choice-btn:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
 }
 
 .gas-choice-name {
   font-size: clamp(12px, 3.2vw, 13.5px);
   font-weight: 800;
-  color: #fff;
+  color: #000000;
   margin-top: 5px;
   text-align: center;
   line-height: 1.2;
@@ -628,13 +619,13 @@ html, body {
 }
 
 .gas-action-pill-btn {
-  background: #181818;
-  border: 1px solid #262626;
-  color: #cbd5e1;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  color: #374151;
   padding: 9px 15px;
   border-radius: 16px;
   font-size: 12.5px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -643,12 +634,12 @@ html, body {
 }
 
 .gas-action-pill-btn:hover {
-  background: #222222;
-  color: #fff;
+  background: #e5e7eb;
+  color: #000000;
 }
 
 /* ==========================================================================
-   FLOATING BOTTOM NAVIGATION DOCK (MINIMALIST NATIVE APP FEEL)
+   FLOATING BOTTOM NAVIGATION DOCK
    ========================================================================== */
 
 .gas-bottom-dock {
@@ -660,26 +651,17 @@ html, body {
   max-width: 410px;
   height: 60px;
   border-radius: 26px;
-  background: rgba(15, 15, 15, 0.85);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid #262626;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid #e5e7eb;
   display: flex;
   align-items: center;
   justify-content: space-around;
   padding: 0 6px;
-  box-shadow: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   z-index: 50;
   box-sizing: border-box;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.42;
-  }
 }
 
 .gas-dock-item {
@@ -692,13 +674,13 @@ html, body {
   border-radius: 18px;
   cursor: pointer;
   position: relative;
-  color: #666666;
+  color: #9ca3af;
   transition: color 0.15s ease;
   padding: 4px 0;
 }
 
 .gas-dock-item.active {
-  color: #fff;
+  color: #000000;
 }
 
 .gas-dock-icon {
@@ -719,12 +701,12 @@ html, body {
   width: 12px;
   height: 3px;
   border-radius: 2px;
-  background: #ffffff;
+  background: #000000;
   box-shadow: none;
 }
 
 /* ==========================================================================
-   FLAME INBOX & REVEAL MODAL
+   INBOX & REVEAL MODAL
    ========================================================================== */
 
 .gas-inbox-wrapper {
@@ -732,12 +714,13 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  background: #ffffff;
 }
 
 .gas-inbox-card {
-  background: #111111;
-  border: 1px solid #222222;
-  border-left: 4px solid #262626;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid #111827;
   border-radius: 20px;
   padding: 14px 16px;
   display: flex;
@@ -745,27 +728,27 @@ html, body {
   justify-content: space-between;
   gap: 12px;
   cursor: pointer;
-  box-shadow: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   transition: border-color 0.15s ease, background 0.15s ease;
   box-sizing: border-box;
 }
 
 .gas-inbox-card:hover {
-  border-color: #333333;
-  background: #141414;
+  border-color: #d1d5db;
+  background: #f9fafb;
 }
 
 .gas-inbox-q {
   font-size: 14px;
   font-weight: 800;
-  color: #fff;
+  color: #000000;
   margin: 0 0 4px 0;
   line-height: 1.3;
 }
 
 .gas-inbox-voter {
   font-size: 12px;
-  color: #888888;
+  color: #6b7280;
   margin: 0;
   display: flex;
   align-items: center;
@@ -773,9 +756,9 @@ html, body {
 }
 
 .gas-reveal-pill {
-  background: #18181b;
-  border: 1px solid #27272a;
-  color: #fbbf24;
+  background: #000000;
+  border: 1px solid #000000;
+  color: #ffffff;
   padding: 6px 12px;
   border-radius: 16px;
   font-size: 11px;
@@ -792,7 +775,7 @@ html, body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -800,108 +783,70 @@ html, body {
 }
 
 .gas-modal-sheet {
-  background: #111111;
-  border: 1px solid #222222;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-top-left-radius: 28px;
   border-top-right-radius: 28px;
   padding: 24px 18px calc(24px + env(safe-area-inset-bottom, 12px)) 18px;
   width: 100%;
   max-width: 440px;
-  box-shadow: 0 -15px 40px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1);
   box-sizing: border-box;
+  color: #000000;
 }
 
 .gas-sheet-handle {
   width: 40px;
   height: 4px;
-  background: rgba(255, 255, 255, 0.25);
+  background: #d1d5db;
   border-radius: 2px;
   margin: 0 auto 18px auto;
 }
 
 /* ==========================================================================
-   LEADERBOARD & PODIUM (PHONE OPTIMIZED)
+   BUTTONS & FORMS
    ========================================================================== */
 
-.gas-podium-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 8px;
-  margin: 14px 0 22px 0;
-  width: 100%;
-}
-
-.gas-podium-item {
-  flex: 1;
-  max-width: 105px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.gas-podium-rank-badge {
-  font-size: 20px;
-  margin-bottom: 4px;
-}
-
-/* ==========================================================================
-   MAGIC BUTTON & UIVERSE COMPONENTS (PRESERVED)
-   ========================================================================== */
-
-/* Magic Button - Apple / Linear Minimalist Clean White Primary */
+/* Primary Button (Instagram Minimalist Black Pill) */
 .magic-btn {
   position: relative;
   padding: 14px 28px;
-  background: #ffffff;
+  background: #000000;
   font-size: 14px;
   font-weight: 800;
-  color: #000000;
-  border: 1px solid #ffffff;
+  color: #ffffff;
+  border: 1px solid #000000;
   border-radius: 9999px;
   box-shadow: none;
   cursor: pointer;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
   box-sizing: border-box;
 }
 
 .magic-btn:hover {
-  transform: translateY(-2px) scale(1.02);
-  background: #f4f4f5;
-  box-shadow: none;
+  background: #1f2937;
+  border-color: #1f2937;
 }
 
 .magic-btn:active {
-  transform: translateY(1px) scale(0.98);
+  transform: scale(0.98);
 }
 
-/* Star SVGs inside magic-btn */
-.magic-btn .star {
-  fill: #000000;
-}
-.magic-btn .star-1 { position: absolute; top: 15%; left: 15%; width: 14px; opacity: 0.3; }
-.magic-btn .star-2 { position: absolute; top: 50%; right: 12%; width: 10px; opacity: 0.2; }
-.magic-btn .star-3 { position: absolute; bottom: 15%; left: 30%; width: 8px; opacity: 0.25; }
-
-/* Metallic Secondary Button */
 .metallic-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  color: #111827;
   padding: 14px 26px;
   border-radius: 9999px;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
@@ -910,10 +855,8 @@ html, body {
 }
 
 .metallic-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.25);
-  transform: translateY(-2px);
-  color: #ffffff;
+  background: #e5e7eb;
+  color: #000000;
 }
 
 /* Support Dropdown */
@@ -923,8 +866,8 @@ html, body {
 }
 .nav-link { list-style: none; margin: 0; padding: 0; }
 .nav-link > .tooltip-tab {
-  color: #d4d4d8;
-  background: rgba(255, 255, 255, 0.04);
+  color: #374151;
+  background: #f3f4f6;
   padding: 6px 14px;
   letter-spacing: 0.4px;
   font-size: 11.5px;
@@ -933,16 +876,15 @@ html, body {
   align-items: center;
   column-gap: 6px;
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #e5e7eb;
   border-radius: 9999px;
   transition: 0.2s ease;
 }
 .nav-link > .tooltip-tab:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: #e5e7eb;
+  color: #000000;
 }
-.nav-link svg { fill: #fff; height: 13px; }
+.nav-link svg { fill: #000000; height: 13px; }
 .tooltip {
   position: absolute;
   top: 100%;
@@ -956,18 +898,18 @@ html, body {
 }
 .tooltip .tooltip-menu-with-icon {
   padding: 8px 0;
-  background-color: #0c0c0e;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 16px;
   list-style: none;
   margin: 0;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
 }
 .tooltip-link > a {
   display: flex;
   align-items: center;
   column-gap: 10px;
-  color: #a1a1aa;
+  color: #4b5563;
   padding: 9px 16px;
   font-size: 12.5px;
   text-decoration: none;
@@ -975,8 +917,8 @@ html, body {
   transition: color 0.15s ease, background-color 0.15s ease;
 }
 .tooltip-link > a:hover {
-  background-color: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
+  background-color: #f3f4f6;
+  color: #000000;
 }
 .nav-link:hover > .tooltip {
   transform: translate(0, 0);
@@ -987,20 +929,20 @@ html, body {
 /* Form Styles */
 .form {
   padding: 32px 24px;
-  background: #09090b;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 20px;
   border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   width: 100%;
   box-sizing: border-box;
 }
 
 .form > p {
-  color: #ffffff;
+  color: #000000;
   font-weight: 800;
   font-size: 22px;
   margin: 0;
@@ -1012,7 +954,7 @@ html, body {
 }
 
 .form > p > span {
-  color: #71717a;
+  color: #6b7280;
   font-weight: 500;
   font-size: 13px;
   margin-top: 6px;
@@ -1022,11 +964,11 @@ html, body {
   width: 100%;
   height: 48px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
   font-size: 14px;
   font-weight: 600;
-  color: #ffffff;
+  color: #000000;
   padding: 0 14px;
   outline: none;
   cursor: pointer;
@@ -1034,11 +976,11 @@ html, body {
   transition: border-color 0.2s ease;
 }
 .form select:focus {
-  border-color: rgba(255, 255, 255, 0.35);
+  border-color: #111827;
 }
 .form select option {
-  background: #09090b;
-  color: #ffffff;
+  background: #ffffff;
+  color: #000000;
 }
 
 .oauthButton {
@@ -1049,21 +991,19 @@ html, body {
   width: 100%;
   height: 48px;
   border-radius: 12px;
-  border: none;
-  background: #ffffff;
-  color: #000000;
+  border: 1px solid #e5e7eb;
+  background: #000000;
+  color: #ffffff;
   font-size: 14.5px;
   font-weight: 750;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 10px rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+  box-shadow: none;
   box-sizing: border-box;
 }
 
 .oauthButton:hover {
-  transform: translateY(-1px);
-  background: #f4f4f5;
-  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.25);
+  background: #1f2937;
 }
 
 .oauthButton .icon {
@@ -1071,11 +1011,14 @@ html, body {
   height: 18px;
 }
 
-/* Pricing section */
+/* ==========================================================================
+   PRICING PORTAL SECTION (RESTORED ₹99/WK & ₹149/MO)
+   ========================================================================== */
+
 .pricing-section {
   width: 100%;
   padding: 80px 20px 60px 20px;
-  background: transparent;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1086,21 +1029,19 @@ html, body {
 
 @media (max-width: 960px) {
   .gas-pricing-desktop-only {
-    display: none !important; /* On mobile, only show the unified tabbed pricing modal */
+    display: none !important;
   }
 }
 
 .pricing-modal {
   width: 100%;
   max-width: min(420px, 100%);
-  background: #1A1A1A;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: none;
+  background: #ffffff;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.06);
   border-radius: 24px;
-  border: 1px solid #262626;
+  border: 1px solid #e5e7eb;
   overflow: hidden;
-  color: #fff;
+  color: #000000;
   box-sizing: border-box;
 }
 
@@ -1108,7 +1049,7 @@ html, body {
   font-weight: 800;
   font-size: 22px;
   text-align: center;
-  color: #ffffff;
+  color: #000000;
   margin: 24px 0 6px 0;
   letter-spacing: -0.5px;
 }
@@ -1119,7 +1060,7 @@ html, body {
   font-weight: 500;
   font-size: 13px;
   text-align: center;
-  color: #71717a;
+  color: #6b7280;
 }
 
 .tab-container {
@@ -1127,77 +1068,66 @@ html, body {
   flex-direction: row;
   position: relative;
   padding: 3px;
-  background-color: #0F0F0F;
+  background-color: #f3f4f6;
   border-radius: 12px;
   margin: 20px 20px 0 20px;
-  border: 1px solid #262626;
+  border: 1px solid #e5e7eb;
 }
-
-.indicator {
-  width: 50%;
-  height: 32px;
-  background: #ffffff;
-  position: absolute;
-  top: 3px;
-  z-index: 9;
-  border-radius: 9px;
-  box-shadow: none;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.indicator[data-active="basic"] { left: 3px; }
-.indicator[data-active="weekly"] { left: calc(50% - 3px); }
 
 .tab {
-  width: 50%;
-  height: 32px;
+  flex: 1;
+  height: 34px;
   position: relative;
   z-index: 10;
   background-color: transparent;
   border: 0;
+  border-radius: 9px;
   outline: none;
   cursor: pointer;
   font-weight: 700;
   font-size: 12px;
-  color: #71717a;
-  transition: color 0.25s;
+  color: #6b7280;
+  transition: all 0.2s ease;
 }
-.tab[data-active="true"] { color: #000000; font-weight: 800; }
+.tab[data-active="true"] {
+  background: #000000;
+  color: #ffffff;
+  font-weight: 800;
+}
 
 .benefits { padding: 24px 20px; display: flex; flex-direction: column; gap: 14px; }
-.benefits > span { font-size: 11px; color: #71717a; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; }
+.benefits > span { font-size: 11px; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; }
 .benefits ul { display: flex; flex-direction: column; gap: 12px; padding: 0; margin: 0; list-style: none; }
 .benefits ul li { display: flex; align-items: center; justify-content: flex-start; gap: 10px; }
-.benefits ul li span { font-weight: 500; font-size: 13.5px; color: #d4d4d8; }
+.benefits ul li span { font-weight: 500; font-size: 13.5px; color: #1f2937; }
 
 .modal--footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px;
-  border-top: 1px solid #262626;
-  background: #141416;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
 }
-.price { position: relative; font-size: 28px; color: #fff; font-weight: 900; letter-spacing: -0.5px; }
-.price sup { font-size: 16px; top: -0.4em; color: #a1a1aa; }
-.price sub { font-size: 12px; color: #71717a; margin-left: 3px; font-weight: 500; }
+.price { position: relative; font-size: 28px; color: #000000; font-weight: 900; letter-spacing: -0.5px; }
+.price sup { font-size: 16px; top: -0.4em; color: #6b7280; }
+.price sub { font-size: 12px; color: #6b7280; margin-left: 3px; font-weight: 500; }
 
 .upgrade-btn {
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 10px 20px;
-  background: #ffffff;
-  border-radius: 10px;
+  background: #000000;
+  border-radius: 12px;
   border: 0;
-  color: #000000;
+  color: #ffffff;
   font-size: 13.5px;
   font-weight: 800;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
   box-shadow: none;
 }
 .upgrade-btn:hover {
-  transform: translateY(-2px);
-  background: #f4f4f5;
-  box-shadow: none;
+  background: #1f2937;
 }

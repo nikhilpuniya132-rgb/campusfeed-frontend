@@ -63,21 +63,21 @@ export default function HolographicCard({
           transformStyle: 'preserve-3d',
           borderRadius: '24px',
           padding: '28px 24px',
-          background: '#1A1A1A',
-          border: '1px solid #262626',
+          background: '#ffffff',
+          border: '1px solid #e5e7eb',
           boxShadow: 'none',
           position: 'relative',
           overflow: 'hidden',
-          color: '#ffffff',
+          color: '#000000',
         }}
       >
         <div style={{ position: 'relative', zIndex: 2, transform: 'translateZ(20px)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
             <span
               style={{
-                background: '#262626',
-                border: '1px solid #3f3f46',
-                color: '#ffffff',
+                background: '#f3f4f6',
+                border: '1px solid #e5e7eb',
+                color: '#111827',
                 padding: '4px 12px',
                 borderRadius: '20px',
                 fontSize: '11px',
@@ -90,7 +90,7 @@ export default function HolographicCard({
             >
               👑 {title}
             </span>
-            <span style={{ fontSize: '11px', color: '#71717a', fontWeight: 'bold' }}>BATHINDA EXCLUSIVE</span>
+            <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 'bold' }}>BATHINDA EXCLUSIVE</span>
           </div>
 
           <h3
@@ -98,27 +98,28 @@ export default function HolographicCard({
               fontSize: '24px',
               fontWeight: '900',
               margin: '0 0 6px 0',
-              color: '#ffffff',
+              color: '#000000',
             }}
           >
             {subtitle}
           </h3>
 
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', margin: '14px 0 20px 0' }}>
-            <span style={{ fontSize: '36px', fontWeight: '900', color: '#ffffff' }}>{price}</span>
-            <span style={{ fontSize: '13px', color: '#71717a', fontWeight: 'bold' }}>{period}</span>
+            <span style={{ fontSize: '36px', fontWeight: '900', color: '#000000' }}>{price}</span>
+            <span style={{ fontSize: '13px', color: '#6b7280', fontWeight: 'bold' }}>{period}</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
             {perks.map((perk, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#d4d4d8', fontWeight: '500' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#374151', fontWeight: '500' }}>
                 <span
                   style={{
                     width: '18px',
                     height: '18px',
                     borderRadius: '50%',
-                    background: '#262626',
-                    color: '#ffffff',
+                    background: '#f3f4f6',
+                    border: '1px solid #e5e7eb',
+                    color: '#111827',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -143,8 +144,8 @@ export default function HolographicCard({
               padding: '14px',
               borderRadius: '14px',
               border: 'none',
-              background: '#ffffff',
-              color: '#000000',
+              background: '#000000',
+              color: '#ffffff',
               fontSize: '14px',
               fontWeight: '800',
               cursor: 'pointer',

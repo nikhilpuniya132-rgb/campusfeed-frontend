@@ -1,5 +1,4 @@
 import React, { useState, useEffect, Suspense, lazy, useRef } from 'react';
-import confetti from 'canvas-confetti';
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'framer-motion';
 import { createClient } from '@supabase/supabase-js';
 import bgVideo from './assets/campus_promo.mp4';
@@ -35,10 +34,10 @@ const API = (window.location.hostname === 'localhost' || window.location.hostnam
 
 const AURA_RINGS = {
   none: { border: 'none', boxShadow: 'none' },
-  gold: { border: '4px solid #fbbf24', boxShadow: '0 0 20px rgba(251, 191, 36, 0.6), inset 0 0 10px rgba(251, 191, 36, 0.3)' },
-  neonPurple: { border: '4px solid #d946ef', boxShadow: '0 0 20px #d946ef, inset 0 0 10px #d946ef' },
-  blueEnergy: { border: '4px dashed #00f0ff', boxShadow: '0 0 20px rgba(0, 240, 255, 0.8), inset 0 0 10px rgba(0, 240, 255, 0.4)' },
-  crimsonFire: { border: '4px double #ef4444', boxShadow: '0 0 20px rgba(239, 68, 68, 0.8), inset 0 0 10px rgba(239, 68, 68, 0.4)' }
+  gold: { border: '2px solid #000000', boxShadow: 'none' },
+  neonPurple: { border: '2px solid #374151', boxShadow: 'none' },
+  blueEnergy: { border: '2px dashed #000000', boxShadow: 'none' },
+  crimsonFire: { border: '2px double #111827', boxShadow: 'none' }
 };
 
 // Dynamic taxonomy badge for city-wide coaching network
@@ -233,7 +232,6 @@ export default function App() {
         setPendingRequests(prev => prev.filter(req => req.friendshipId !== friendshipId));
         if (action === 'accept') {
           fetchAcceptedFriends();
-          confetti({ particleCount: 90, spread: 70, origin: { y: 0.4 } });
         }
       }
     } catch (err) {
@@ -919,7 +917,7 @@ export default function App() {
             </div>
 
             {user.is_pro && (
-              <span style={{ fontSize: '16px', filter: 'drop-shadow(0 0 6px #fbbf24)' }}>👑</span>
+              <span style={{ fontSize: '15px' }}>👑</span>
             )}
 
             <button
@@ -928,15 +926,15 @@ export default function App() {
                 navigate('/captains');
               }}
               style={{
-                background: view === 'captains' ? 'rgba(251, 191, 36, 0.2)' : 'rgba(255, 255, 255, 0.08)',
-                border: view === 'captains' ? '1px solid #fbbf24' : '1px solid rgba(255, 255, 255, 0.15)',
-                color: view === 'captains' ? '#fbbf24' : '#fff',
+                background: view === 'captains' ? '#000000' : '#f3f4f6',
+                border: view === 'captains' ? '1px solid #000000' : '1px solid #e5e7eb',
+                color: view === 'captains' ? '#ffffff' : '#374151',
                 borderRadius: '12px',
-                padding: '0 8px',
+                padding: '0 10px',
                 height: '36px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
+                gap: '5px',
                 cursor: 'pointer',
                 fontSize: '11.5px',
                 fontWeight: '800'
@@ -951,9 +949,9 @@ export default function App() {
               onClick={() => setShowNotifications(!showNotifications)}
               style={{
                 position: 'relative',
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#fff',
+                background: '#f3f4f6',
+                border: '1px solid #e5e7eb',
+                color: '#000000',
                 borderRadius: '12px',
                 width: '36px',
                 height: '36px',
@@ -967,16 +965,13 @@ export default function App() {
             >
               🔔
               {pendingRequests.length > 0 && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ repeat: Infinity, duration: 2 }}
+                <span
                   style={{
                     position: 'absolute',
                     top: '-4px',
                     right: '-4px',
-                    background: '#ff2e93',
-                    color: '#fff',
+                    background: '#000000',
+                    color: '#ffffff',
                     borderRadius: '50%',
                     width: '18px',
                     height: '18px',
@@ -985,11 +980,11 @@ export default function App() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 0 8px #ff2e93'
+                    boxShadow: 'none'
                   }}
                 >
                   {pendingRequests.length}
-                </motion.span>
+                </span>
               )}
             </button>
           </div>
@@ -1198,10 +1193,10 @@ export default function App() {
                 </div>
 
                 <div style={{ textAlign: 'center', marginBottom: '18px' }}>
-                  <p style={{ color: '#ff8800', fontSize: '12px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 6px 0' }}>
+                  <p style={{ color: '#111827', fontSize: '12px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 6px 0' }}>
                     🔥 Secret Flame
                   </p>
-                  <h3 style={{ fontSize: '18px', color: '#fff', margin: 0, padding: '0 8px', fontStyle: 'italic' }}>
+                  <h3 style={{ fontSize: '18px', color: '#000000', margin: 0, padding: '0 8px', fontStyle: 'italic' }}>
                     "{activeRevealPopup.text}"
                   </h3>
                 </div>
@@ -1220,33 +1215,32 @@ export default function App() {
                         width: '130px',
                         height: '90px',
                         margin: '0 auto 18px auto',
-                        background: 'linear-gradient(145deg, #1f202e, #13141f)',
-                        border: '2px solid rgba(255, 85, 0, 0.4)',
+                        background: '#f9fafb',
+                        border: '1px solid #e5e7eb',
                         borderRadius: '20px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        boxShadow: '0 16px 36px rgba(0,0,0,0.6), 0 0 30px rgba(255, 85, 0, 0.2)',
+                        boxShadow: 'none',
                       }}
                     >
                       <span style={{ fontSize: '46px' }}>✉️</span>
                       <motion.div
-                        animate={{ scale: [1, 1.15, 1] }}
-                        transition={{ duration: 1.8, repeat: Infinity }}
                         style={{
                           position: 'absolute',
                           bottom: '-10px',
                           right: '-10px',
-                          background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
-                          width: '36px',
-                          height: '36px',
+                          background: '#000000',
+                          color: '#ffffff',
+                          width: '34px',
+                          height: '34px',
                           borderRadius: '50%',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '18px',
-                          boxShadow: '0 0 16px rgba(239, 68, 68, 0.8)',
-                          border: '2px solid #fff',
+                          fontSize: '16px',
+                          boxShadow: 'none',
+                          border: '2px solid #ffffff',
                         }}
                       >
                         🔒
@@ -1260,24 +1254,24 @@ export default function App() {
                         gap: '6px',
                         padding: '4px 12px',
                         borderRadius: '12px',
-                        background: activeRevealPopup.vote.voterGender === 'girl' ? 'rgba(255, 46, 147, 0.18)' : 'rgba(0, 240, 255, 0.18)',
-                        border: activeRevealPopup.vote.voterGender === 'girl' ? '1px solid rgba(255, 46, 147, 0.4)' : '1px solid rgba(0, 240, 255, 0.4)',
-                        color: activeRevealPopup.vote.voterGender === 'girl' ? '#ff2e93' : '#00f0ff',
-                        fontWeight: '900',
+                        background: '#f3f4f6',
+                        border: '1px solid #e5e7eb',
+                        color: '#374151',
+                        fontWeight: '800',
                         fontSize: '12px',
                         marginBottom: '8px'
                       }}>
-                        <span>{activeRevealPopup.vote.voterGender === 'girl' ? '🌸🔥' : '💙🔥'}</span>
+                        <span>{activeRevealPopup.vote.voterGender === 'girl' ? '🌸' : '💙'}</span>
                         <span>{activeRevealPopup.vote.voterGender === 'girl' ? 'Sent by a Girl in your coaching hub' : 'Sent by a Boy in your coaching hub'}</span>
                       </div>
                     )}
 
-                    <h4 style={{ fontSize: '20px', fontWeight: '950', color: '#fff', margin: '0 0 6px 0' }}>
+                    <h4 style={{ fontSize: '20px', fontWeight: '900', color: '#000000', margin: '0 0 6px 0' }}>
                       Secret Voter Locked
                     </h4>
 
-                    <p style={{ color: '#a1a1aa', fontSize: '13.5px', lineHeight: '1.4', margin: '0 0 16px 0', padding: '0 8px' }}>
-                      Invite <strong style={{ color: '#ffffff', fontSize: '15px' }}>{revealData.remaining}</strong> more {revealData.remaining === 1 ? 'friend' : 'friends'} to unlock voter identities, or upgrade to God Mode.
+                    <p style={{ color: '#6b7280', fontSize: '13.5px', lineHeight: '1.4', margin: '0 0 16px 0', padding: '0 8px' }}>
+                      Invite <strong style={{ color: '#000000', fontSize: '15px' }}>{revealData.remaining}</strong> more {revealData.remaining === 1 ? 'friend' : 'friends'} to unlock voter identities, or upgrade to God Mode.
                     </p>
 
                     {/* Minimalist Share Icon Button */}
@@ -1292,9 +1286,9 @@ export default function App() {
                           width: '46px',
                           height: '46px',
                           borderRadius: '50%',
-                          border: '1px solid #262626',
-                          background: '#1A1A1A',
-                          color: '#ffffff',
+                          border: '1px solid #e5e7eb',
+                          background: '#f3f4f6',
+                          color: '#000000',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -1307,23 +1301,23 @@ export default function App() {
                           <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                         </svg>
                       </motion.button>
-                      <span style={{ fontSize: '11px', color: '#71717a' }}>Tap icon to share invite link</span>
+                      <span style={{ fontSize: '11px', color: '#6b7280' }}>Tap icon to share invite link</span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0', color: '#71717a', fontSize: '11px', fontWeight: 'bold' }}>
-                      <hr style={{ flex: 1, borderColor: '#262626' }} /> OR UNLOCK WITH GOD MODE <hr style={{ flex: 1, borderColor: '#262626' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0', color: '#6b7280', fontSize: '11px', fontWeight: 'bold' }}>
+                      <hr style={{ flex: 1, borderColor: '#e5e7eb' }} /> OR UNLOCK WITH GOD MODE <hr style={{ flex: 1, borderColor: '#e5e7eb' }} />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '8px', width: '100%' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', width: '100%' }}>
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         className="magic-btn"
                         style={{
                           width: '100%',
-                          background: '#27272a',
-                          color: '#ffffff',
-                          border: '1px solid #3f3f46',
+                          background: '#f3f4f6',
+                          color: '#000000',
+                          border: '1px solid #e5e7eb',
                           borderRadius: '14px',
                           margin: 0,
                           padding: '12px 6px',
@@ -1345,9 +1339,9 @@ export default function App() {
                         className="magic-btn"
                         style={{
                           width: '100%',
-                          background: '#fbbf24',
-                          color: '#000000',
-                          border: 'none',
+                          background: '#000000',
+                          color: '#ffffff',
+                          border: '1px solid #000000',
                           borderRadius: '14px',
                           margin: 0,
                           padding: '12px 6px',
@@ -1464,26 +1458,26 @@ export default function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '20px' }}>🔔</span>
-                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '950', color: '#fff' }}>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#000000' }}>
                       Friend Requests
                     </h3>
-                    <span style={{ fontSize: '12px', background: 'rgba(255, 46, 147, 0.2)', color: '#ff2e93', padding: '2px 8px', borderRadius: '12px', fontWeight: '900' }}>
+                    <span style={{ fontSize: '12px', background: '#f3f4f6', color: '#000000', padding: '2px 8px', borderRadius: '12px', fontWeight: '800' }}>
                       {pendingRequests.length}
                     </span>
                   </div>
                   <button
                     onClick={() => setShowNotifications(false)}
-                    style={{ background: 'rgba(255,255,255,0.08)', border: 'none', color: '#94a3b8', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}
+                    style={{ background: '#f3f4f6', border: 'none', color: '#6b7280', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}
                   >
                     ✕
                   </button>
                 </div>
 
                 {pendingRequests.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '32px 10px', color: '#94a3b8' }}>
+                  <div style={{ textAlign: 'center', padding: '32px 10px', color: '#6b7280' }}>
                     <div style={{ fontSize: '42px', marginBottom: '10px' }}>📬</div>
-                    <p style={{ margin: 0, fontWeight: '800', color: '#fff', fontSize: '15px' }}>No Pending Requests</p>
-                    <p style={{ fontSize: '12.5px', margin: '6px 0 0 0', color: '#94a3b8' }}>Share your invite link with classmates to connect!</p>
+                    <p style={{ margin: 0, fontWeight: '800', color: '#000000', fontSize: '15px' }}>No Pending Requests</p>
+                    <p style={{ fontSize: '12.5px', margin: '6px 0 0 0', color: '#6b7280' }}>Share your invite link with classmates to connect!</p>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '360px', overflowY: 'auto', paddingRight: '4px' }}>
@@ -1498,17 +1492,17 @@ export default function App() {
                           justifyContent: 'space-between',
                           padding: '12px 14px',
                           borderRadius: '18px',
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)'
+                          background: '#f9fafb',
+                          border: '1px solid #e5e7eb'
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           {renderProfilePic(req.requester?.profile_pic, req.requester?.avatar, req.requester?.is_pro, req.requester?.ring, 42)}
                           <div>
-                            <span style={{ fontWeight: '900', color: '#fff', fontSize: '14px', display: 'block' }}>
+                            <span style={{ fontWeight: '800', color: '#000000', fontSize: '14px', display: 'block' }}>
                               @{req.requester?.handle}
                             </span>
-                            <span style={{ color: '#ff8800', fontSize: '11px', fontWeight: '800' }}>
+                            <span style={{ color: '#6b7280', fontSize: '11px', fontWeight: '600' }}>
                               {req.requester?.stream || '11th Med'} • {req.requester?.institute || 'Bathinda'}
                             </span>
                           </div>
@@ -1521,13 +1515,13 @@ export default function App() {
                             style={{
                               padding: '8px 14px',
                               borderRadius: '12px',
-                              border: 'none',
-                              background: 'linear-gradient(135deg, #10b981, #059669)',
-                              color: '#fff',
+                              border: '1px solid #000000',
+                              background: '#000000',
+                              color: '#ffffff',
                               fontSize: '12.5px',
-                              fontWeight: '900',
+                              fontWeight: '800',
                               cursor: 'pointer',
-                              boxShadow: '0 0 12px rgba(16, 185, 129, 0.4)'
+                              boxShadow: 'none'
                             }}
                           >
                             Accept
@@ -1538,9 +1532,9 @@ export default function App() {
                             style={{
                               padding: '8px 12px',
                               borderRadius: '12px',
-                              border: '1px solid rgba(255,255,255,0.15)',
-                              background: 'rgba(255, 255, 255, 0.06)',
-                              color: '#94a3b8',
+                              border: '1px solid #e5e7eb',
+                              background: '#f3f4f6',
+                              color: '#6b7280',
                               fontSize: '12px',
                               fontWeight: '700',
                               cursor: 'pointer'

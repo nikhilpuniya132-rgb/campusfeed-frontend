@@ -19,7 +19,7 @@ export default function Inbox({
   const progressPercent = Math.min(100, Math.round((effectiveInvites / 3) * 100));
 
   return (
-    <div className="gas-inbox-wrapper" style={{ padding: '8px 12px 80px 12px' }}>
+    <div className="gas-inbox-wrapper" style={{ padding: '8px 12px 80px 12px', background: '#ffffff', minHeight: '100%' }}>
       {/* 1. Find & Add Classmates Collapsible Section */}
       <div style={{ marginBottom: '14px', width: '100%' }}>
         <motion.button
@@ -30,23 +30,23 @@ export default function Inbox({
             width: '100%',
             padding: '12px 16px',
             borderRadius: '16px',
-            border: '1px solid rgba(255, 255, 255, 0.14)',
-            background: showFriendSearch ? 'rgba(255, 85, 0, 0.18)' : 'rgba(255, 255, 255, 0.06)',
-            color: '#fff',
+            border: '1px solid #e5e7eb',
+            background: showFriendSearch ? '#f3f4f6' : '#ffffff',
+            color: '#000000',
             fontSize: '13.5px',
             fontWeight: '800',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             cursor: 'pointer',
-            boxShadow: showFriendSearch ? '0 0 15px rgba(255, 85, 0, 0.25)' : 'none',
+            boxShadow: 'none',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span>👥</span>
             <span>Find & Add Classmates</span>
           </div>
-          <span style={{ fontSize: '12px', color: '#ff8800' }}>
+          <span style={{ fontSize: '12px', color: '#6b7280' }}>
             {showFriendSearch ? '▲ Close' : '▼ Search'}
           </span>
         </motion.button>
@@ -72,10 +72,10 @@ export default function Inbox({
 
       {/* 2. Inbox Header Title */}
       <div style={{ textAlign: 'center', padding: '4px 0 12px 0' }}>
-        <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '950', color: user?.is_pro ? '#fbbf24' : '#fff' }}>
+        <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '950', color: '#000000' }}>
           {user?.is_pro ? '👑 Names Revealed Inbox' : '📬 Secret Flames Inbox'}
         </h3>
-        <p style={{ color: '#94a3b8', fontSize: '13px', margin: '4px 0 0 0' }}>
+        <p style={{ color: '#6b7280', fontSize: '13px', margin: '4px 0 0 0' }}>
           {user?.is_pro
             ? 'God mode active: All voter names are visible!'
             : 'Tap any flame card to reveal who secretly voted for you'}
@@ -88,40 +88,39 @@ export default function Inbox({
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           style={{
-            background: '#1A1A1A',
+            background: '#f9fafb',
             borderRadius: '20px',
             padding: '16px',
-            border: '1px solid #262626',
+            border: '1px solid #e5e7eb',
             boxShadow: 'none',
             marginBottom: '16px',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '12px', fontWeight: '800', color: '#ffffff', letterSpacing: '0.5px' }}>
+            <span style={{ fontSize: '12px', fontWeight: '800', color: '#000000', letterSpacing: '0.5px' }}>
               🎁 Unlock Voter Names
             </span>
-            <span style={{ fontSize: '12px', fontWeight: '700', color: '#a1a1aa' }}>
+            <span style={{ fontSize: '12px', fontWeight: '700', color: '#6b7280' }}>
               {effectiveInvites}/3 invites completed
             </span>
           </div>
 
           {/* Progress Bar Container */}
-          <div style={{ width: '100%', height: '6px', background: '#262626', borderRadius: '4px', overflow: 'hidden', marginBottom: '12px' }}>
+          <div style={{ width: '100%', height: '6px', background: '#e5e7eb', borderRadius: '4px', overflow: 'hidden', marginBottom: '12px' }}>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
               style={{
                 height: '100%',
-                background: '#ffffff',
-                boxShadow: 'none',
+                background: '#000000',
                 borderRadius: '4px',
               }}
             />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <p style={{ margin: 0, fontSize: '12px', color: '#a1a1aa', lineHeight: '1.3' }}>
+            <p style={{ margin: 0, fontSize: '12px', color: '#6b7280', lineHeight: '1.3' }}>
               {effectiveInvites >= 3
                 ? 'Reward unlocked! Tap any flame to unveil the secret voter.'
                 : `Invite ${remaining} more ${remaining === 1 ? 'friend' : 'friends'} to unlock voter identities.`}
@@ -138,8 +137,8 @@ export default function Inbox({
                 width: '38px',
                 height: '38px',
                 borderRadius: '50%',
-                border: '1px solid #262626',
-                background: '#262626',
+                border: '1px solid #e5e7eb',
+                background: '#000000',
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
@@ -158,11 +157,11 @@ export default function Inbox({
         </motion.div>
       )}
 
-      {/* 4. Messages List with Color-Coded Flames */}
+      {/* 4. Messages List */}
       {inbox.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6b7280' }}>
           <div style={{ fontSize: '48px', marginBottom: '12px' }}>📭</div>
-          <p style={{ fontWeight: '700', fontSize: '16px', color: '#fff', margin: '0 0 6px 0' }}>Your flame inbox is empty.</p>
+          <p style={{ fontWeight: '700', fontSize: '16px', color: '#000000', margin: '0 0 6px 0' }}>Your flame inbox is empty.</p>
           <p style={{ fontSize: '13px', margin: 0 }}>Answer polls in the feed to get your classmates to vote for you!</p>
         </div>
       ) : (
@@ -172,41 +171,19 @@ export default function Inbox({
             const isGirl = vote.voterGender === 'girl';
             const isBoy = vote.voterGender === 'boy';
 
-            // Gender styling: Muted dark mode palette without bright neons
             const flameTheme = isGirl
               ? {
-                  color: '#e4e4e7',
-                  accentGradient: '#262626',
-                  bgGradient: '#1A1A1A',
-                  border: '1px solid #262626',
-                  badgeBg: 'rgba(255, 255, 255, 0.05)',
-                  badgeBorder: '1px solid #262626',
                   icon: '🌸',
                   label: 'From a Girl in your Coaching Hub',
-                  glow: 'none',
                 }
               : isBoy
               ? {
-                  color: '#e4e4e7',
-                  accentGradient: '#262626',
-                  bgGradient: '#1A1A1A',
-                  border: '1px solid #262626',
-                  badgeBg: 'rgba(255, 255, 255, 0.05)',
-                  badgeBorder: '1px solid #262626',
                   icon: '💙',
                   label: 'From a Boy in your Coaching Hub',
-                  glow: 'none',
                 }
               : {
-                  color: '#e4e4e7',
-                  accentGradient: '#262626',
-                  bgGradient: '#1A1A1A',
-                  border: '1px solid #262626',
-                  badgeBg: 'rgba(255, 255, 255, 0.05)',
-                  badgeBorder: '1px solid #262626',
                   icon: '✨',
                   label: 'From a Batchmate in your Coaching Hub',
-                  glow: 'none',
                 };
 
             return (
@@ -221,16 +198,16 @@ export default function Inbox({
                   gap: '12px',
                   padding: '16px',
                   borderRadius: '22px',
-                  background: flameTheme.bgGradient,
-                  border: flameTheme.border,
-                  boxShadow: flameTheme.glow,
+                  background: '#ffffff',
+                  border: '1px solid #e5e7eb',
+                  boxShadow: 'none',
                   cursor: 'pointer',
                   textAlign: 'left',
                   position: 'relative',
                   overflow: 'hidden',
                 }}
               >
-                {/* Header: Gender-Coded Flame Pill & Reveal Status */}
+                {/* Header: Gender Flame Pill & Reveal Status */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div
                     style={{
@@ -239,12 +216,12 @@ export default function Inbox({
                       gap: '6px',
                       padding: '4px 10px',
                       borderRadius: '12px',
-                      background: flameTheme.badgeBg,
-                      border: flameTheme.badgeBorder,
+                      background: '#f3f4f6',
+                      border: '1px solid #e5e7eb',
                     }}
                   >
                     <span style={{ fontSize: '15px' }}>{flameTheme.icon}</span>
-                    <span style={{ fontSize: '11.5px', fontWeight: '900', color: flameTheme.color, letterSpacing: '0.3px' }}>
+                    <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#374151', letterSpacing: '0.3px' }}>
                       {flameTheme.label}
                     </span>
                   </div>
@@ -254,11 +231,11 @@ export default function Inbox({
                       style={{
                         fontSize: '11px',
                         fontWeight: '900',
-                        color: '#10b981',
-                        background: 'rgba(16, 185, 129, 0.15)',
+                        color: '#059669',
+                        background: '#f0fdf4',
                         padding: '4px 10px',
                         borderRadius: '12px',
-                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        border: '1px solid #bbf7d0',
                         whiteSpace: 'nowrap',
                       }}
                     >
@@ -269,11 +246,10 @@ export default function Inbox({
                       style={{
                         fontSize: '11px',
                         fontWeight: '950',
-                        color: '#fff',
-                        background: 'linear-gradient(135deg, #ff5500, #ff2e93)',
+                        color: '#ffffff',
+                        background: '#000000',
                         padding: '5px 12px',
                         borderRadius: '12px',
-                        boxShadow: '0 0 10px rgba(255, 85, 0, 0.5)',
                         whiteSpace: 'nowrap',
                       }}
                     >
@@ -289,7 +265,7 @@ export default function Inbox({
                       margin: '0 0 6px 0',
                       fontSize: '16px',
                       fontWeight: '900',
-                      color: '#fff',
+                      color: '#000000',
                       lineHeight: '1.4',
                     }}
                   >
@@ -299,11 +275,11 @@ export default function Inbox({
                   {/* Voter Info: STRICTLY HIDDEN UNLESS REVEALED */}
                   <div style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     {isRevealed ? (
-                      <span style={{ color: vote.isPro ? '#fbbf24' : flameTheme.color, fontWeight: '800' }}>
+                      <span style={{ color: '#000000', fontWeight: '800' }}>
                         Voted by: {vote.voterAvatar} {vote.voterName ? `${vote.voterName} (@${vote.voterHandle})` : `@${vote.voterHandle}`}
                       </span>
                     ) : (
-                      <span style={{ color: '#94a3b8', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: '#6b7280', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span>🔒</span>
                         <span>Secret Voter • Tap to reveal</span>
                       </span>
@@ -315,29 +291,29 @@ export default function Inbox({
                 {!isRevealed && !user?.is_pro && (
                   <div
                     style={{
-                      background: 'rgba(0, 0, 0, 0.4)',
+                      background: '#f9fafb',
                       borderRadius: '14px',
                       padding: '10px 12px',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      border: '1px solid #e5e7eb',
                       marginTop: '2px',
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: '800', color: '#cbd5e1' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '800', color: '#374151' }}>
                         🎯 {effectiveInvites}/3 invites completed
                       </span>
-                      <span style={{ fontSize: '11px', fontWeight: '800', color: flameTheme.color }}>
+                      <span style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280' }}>
                         {remaining === 0 ? 'Ready to reveal!' : `${remaining} more needed`}
                       </span>
                     </div>
 
                     {/* Mini Progress Bar on Card */}
-                    <div style={{ width: '100%', height: '5px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
+                    <div style={{ width: '100%', height: '5px', background: '#e5e7eb', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
                       <div
                         style={{
                           width: `${progressPercent}%`,
                           height: '100%',
-                          background: flameTheme.accentGradient,
+                          background: '#000000',
                           borderRadius: '3px',
                         }}
                       />
@@ -358,8 +334,8 @@ export default function Inbox({
                           width: '36px',
                           height: '36px',
                           borderRadius: '50%',
-                          border: '1px solid #262626',
-                          background: '#262626',
+                          border: '1px solid #e5e7eb',
+                          background: '#000000',
                           color: '#ffffff',
                           cursor: 'pointer',
                           display: 'flex',

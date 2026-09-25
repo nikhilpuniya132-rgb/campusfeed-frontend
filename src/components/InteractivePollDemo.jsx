@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import confetti from 'canvas-confetti';
 import TiltCard from './TiltCard';
 
 const SAMPLE_QUESTIONS = [
@@ -48,14 +47,6 @@ export default function InteractivePollDemo({ onCtaClick }) {
     setVotedName(opt.name);
     setFlameCount(prev => prev + 1);
 
-    // Fire Confetti
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#ff6200', '#ff2e93', '#fbbf24', '#00f0ff']
-    });
-
     setTimeout(() => {
       setVotedName(null);
       setQIndex(prev => prev + 1);
@@ -79,9 +70,8 @@ export default function InteractivePollDemo({ onCtaClick }) {
         width: '100%',
         maxWidth: 'min(380px, 100%)',
         borderRadius: '24px',
-        background: '#1A1A1A',
-        backdropFilter: 'blur(20px)',
-        border: '1px solid #262626',
+        background: '#ffffff',
+        border: '1px solid #e5e7eb',
         boxShadow: 'none',
         padding: 'clamp(16px, 4vw, 22px) clamp(14px, 3.5vw, 18px)',
         position: 'relative',
@@ -96,12 +86,12 @@ export default function InteractivePollDemo({ onCtaClick }) {
       {/* 3D Floating Tag */}
       <div className="overflow-visible" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', transform: 'translateZ(30px)', overflow: 'visible', touchAction: 'pan-y' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#ffffff', boxShadow: 'none' }} />
-          <span style={{ fontSize: '11px', fontWeight: '800', color: '#a1a1aa', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#000000', boxShadow: 'none' }} />
+          <span style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
             Interactive Demo
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid #262626', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '800', color: '#ffffff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f3f4f6', border: '1px solid #e5e7eb', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '800', color: '#111827' }}>
           <span>🔥</span> {flameCount.toLocaleString()} votes
         </div>
       </div>
@@ -122,7 +112,7 @@ export default function InteractivePollDemo({ onCtaClick }) {
               fontSize: '20px',
               fontWeight: '900',
               lineHeight: '1.35',
-              color: '#ffffff',
+              color: '#000000',
               margin: 0,
             }}
           >
@@ -144,11 +134,11 @@ export default function InteractivePollDemo({ onCtaClick }) {
               top: '55%',
               left: '50%',
               transform: 'translate(-50%, -50%) translateZ(60px)',
-              background: '#262626',
-              border: '1px solid #3f3f46',
+              background: '#000000',
+              border: '1px solid #374151',
               padding: '16px 24px',
               borderRadius: '20px',
-              color: '#fff',
+              color: '#ffffff',
               fontWeight: '900',
               fontSize: '16px',
               boxShadow: 'none',
@@ -188,18 +178,17 @@ export default function InteractivePollDemo({ onCtaClick }) {
             whileTap={{ scale: 0.94, y: 1 }}
             onClick={() => handleVote(opt)}
             style={{
-              background: '#141416',
-              border: '1px solid #262626',
+              background: '#f9fafb',
+              border: '1px solid #e5e7eb',
               borderRadius: '16px',
               padding: 'clamp(12px, 3vw, 16px) 6px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#ffffff',
+              color: '#000000',
               cursor: 'pointer',
               outline: 'none',
-              backdropFilter: 'blur(10px)',
               transition: 'background 0.2s, border-color 0.2s',
               boxShadow: 'none',
               height: 'auto',
@@ -216,13 +205,13 @@ export default function InteractivePollDemo({ onCtaClick }) {
                 width: 'clamp(40px, 9vw, 46px)',
                 height: 'clamp(40px, 9vw, 46px)',
                 borderRadius: '50%',
-                background: '#222226',
+                background: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 'clamp(20px, 5vw, 24px)',
                 marginBottom: '6px',
-                border: '1px solid #3f3f46',
+                border: '1px solid #e5e7eb',
                 boxShadow: 'none',
                 overflow: 'visible',
                 pointerEvents: 'none'
@@ -230,7 +219,7 @@ export default function InteractivePollDemo({ onCtaClick }) {
             >
               {opt.avatar}
             </div>
-            <span style={{ fontSize: 'clamp(12px, 3.2vw, 13px)', fontWeight: '800', textAlign: 'center', lineHeight: '1.2', pointerEvents: 'none' }}>
+            <span style={{ fontSize: 'clamp(12px, 3.2vw, 13px)', fontWeight: '800', textAlign: 'center', lineHeight: '1.2', color: '#000000', pointerEvents: 'none' }}>
               {opt.name}
             </span>
           </motion.button>
@@ -246,7 +235,7 @@ export default function InteractivePollDemo({ onCtaClick }) {
           style={{
             background: 'transparent',
             border: 'none',
-            color: '#a1a1aa',
+            color: '#6b7280',
             fontSize: '12px',
             fontWeight: '700',
             cursor: 'pointer',
@@ -266,9 +255,9 @@ export default function InteractivePollDemo({ onCtaClick }) {
           whileTap={{ scale: 0.95 }}
           onClick={onCtaClick}
           style={{
-            background: '#ffffff',
+            background: '#000000',
             border: 'none',
-            color: '#000000',
+            color: '#ffffff',
             fontSize: '12px',
             fontWeight: '800',
             cursor: 'pointer',

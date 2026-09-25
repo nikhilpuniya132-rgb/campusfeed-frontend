@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import confetti from 'canvas-confetti';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 import { handleShare } from '../utils/share';
 
 const AURA_OPTIONS = [
-  { id: 'none', label: 'None (Default)', color: '#52525b', desc: 'No special aura ring' },
-  { id: 'gold', label: 'Gold Ring', color: '#fbbf24', desc: 'Luminous 24k champion aura' },
-  { id: 'neon', label: 'Neon Blue Ring', color: '#38bdf8', desc: 'Electric cybernetic energy pulse' },
-  { id: 'ruby', label: 'Ruby Red Ring', color: '#f43f5e', desc: 'Fiery crimson flame intensity' },
-  { id: 'purple', label: 'Cosmic Purple Ring', color: '#a855f7', desc: 'Deep ultraviolet nebula glow' },
-  { id: 'emerald', label: 'Emerald Green Ring', color: '#10b981', desc: 'Radiant mystic jade aura' }
+  { id: 'none', label: 'None (Default)', color: '#9ca3af', desc: 'No special aura ring' },
+  { id: 'gold', label: 'Gold Ring', color: '#d97706', desc: 'Classic championship aura' },
+  { id: 'neon', label: 'Blue Ring', color: '#2563eb', desc: 'Electric energy pulse' },
+  { id: 'ruby', label: 'Ruby Red Ring', color: '#dc2626', desc: 'Crimson flame intensity' },
+  { id: 'purple', label: 'Cosmic Purple Ring', color: '#7c3aed', desc: 'Ultraviolet nebula ring' },
+  { id: 'emerald', label: 'Emerald Green Ring', color: '#059669', desc: 'Radiant mystic jade aura' }
 ];
 
 export default function Profile({
@@ -114,7 +113,6 @@ export default function Profile({
     reader.readAsDataURL(file);
   };
 
-  // Fixed & Resilient Ring Selection Handler
   const handleRingSelect = async (ringId) => {
     setSelectedRing(ringId);
     setIsSavingRing(true);
@@ -127,7 +125,6 @@ export default function Profile({
     setRingSavedToast(true);
     setTimeout(() => setRingSavedToast(false), 2200);
 
-    // 1. Direct Supabase Update (fixes client-side sync)
     if (supabase && user?.id) {
       try {
         await supabase
@@ -144,7 +141,6 @@ export default function Profile({
       }
     }
 
-    // 2. Backend API Endpoint update
     try {
       await fetch(`${API}/user/ring`, {
         method: 'POST',
@@ -180,7 +176,6 @@ export default function Profile({
 
       if (onUpdateUser) onUpdateUser(updatedUser);
 
-      // Update in Supabase
       if (supabase && user?.id) {
         await supabase
           .from('users')
@@ -200,7 +195,6 @@ export default function Profile({
           .eq('id', user.id);
       }
 
-      // Update via Backend
       await fetch(`${API}/profile/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -218,7 +212,6 @@ export default function Profile({
         })
       });
 
-      confetti({ particleCount: 70, spread: 60, origin: { y: 0.4 } });
       setIsEditing(false);
     } catch (err) {
       console.error('Save Profile Error:', err);
@@ -229,7 +222,7 @@ export default function Profile({
   };
 
   return (
-    <div style={{ padding: '12px 14px 75px 14px', maxWidth: '440px', margin: '0 auto', boxSizing: 'border-box', position: 'relative' }}>
+    <div style={{ padding: '12px 14px 75px 14px', maxWidth: '440px', margin: '0 auto', boxSizing: 'border-box', position: 'relative', background: '#ffffff', minHeight: '100%' }}>
       
       {/* Top Bar: Unified Share Button & Settings 3-Dots Menu */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', position: 'relative', marginBottom: '8px' }} ref={settingsMenuRef}>
@@ -239,8 +232,8 @@ export default function Profile({
           aria-label="Share Profile"
           title="Share Profile / Invite"
           style={{
-            background: '#18181b',
-            border: '1px solid #27272a',
+            background: '#f9fafb',
+            border: '1px solid #e5e7eb',
             borderRadius: '12px',
             width: '36px',
             height: '36px',
@@ -248,7 +241,7 @@ export default function Profile({
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            color: '#e4e4e7',
+            color: '#111827',
             transition: 'border-color 0.15s ease'
           }}
         >
@@ -263,8 +256,8 @@ export default function Profile({
           onClick={() => setShowSettingsMenu(!showSettingsMenu)}
           aria-label="Settings"
           style={{
-            background: '#18181b',
-            border: '1px solid #27272a',
+            background: '#f9fafb',
+            border: '1px solid #e5e7eb',
             borderRadius: '12px',
             width: '36px',
             height: '36px',
@@ -272,7 +265,7 @@ export default function Profile({
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            color: '#a1a1aa',
+            color: '#4b5563',
             fontSize: '18px',
             fontWeight: '900',
             lineHeight: 1
@@ -293,13 +286,13 @@ export default function Profile({
                 position: 'absolute',
                 top: '44px',
                 right: 0,
-                background: '#121214',
-                border: '1px solid #27272a',
+                background: '#ffffff',
+                border: '1px solid #e5e7eb',
                 borderRadius: '16px',
                 padding: '6px',
                 minWidth: '170px',
                 zIndex: 50,
-                boxShadow: '0 12px 30px rgba(0, 0, 0, 0.8)'
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
               }}
             >
               <button
@@ -313,7 +306,7 @@ export default function Profile({
                   borderRadius: '10px',
                   border: 'none',
                   background: 'transparent',
-                  color: '#ffffff',
+                  color: '#000000',
                   fontSize: '13px',
                   fontWeight: '700',
                   textAlign: 'left',
@@ -322,14 +315,14 @@ export default function Profile({
                   alignItems: 'center',
                   gap: '8px'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#18181b'}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >
                 <span>🚪</span>
                 <span>Sign Out</span>
               </button>
 
-              <div style={{ height: '1px', background: '#27272a', margin: '4px 6px' }} />
+              <div style={{ height: '1px', background: '#e5e7eb', margin: '4px 6px' }} />
 
               <button
                 onClick={() => {
@@ -351,7 +344,7 @@ export default function Profile({
                   alignItems: 'center',
                   gap: '8px'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >
                 <span>⚠️</span>
@@ -368,30 +361,30 @@ export default function Profile({
           {renderProfilePic
             ? renderProfilePic(editProfilePic || user.profile_pic, editAvatar || user.avatar, user.is_pro, selectedRing, 92)
             : (
-              <div style={{ fontSize: '50px', width: '92px', height: '92px', borderRadius: '50%', background: '#161616', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ fontSize: '50px', width: '92px', height: '92px', borderRadius: '50%', background: '#f3f4f6', border: '1px solid #e5e7eb', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                 {user.avatar || '😎'}
               </div>
             )}
         </div>
 
-        <h2 style={{ margin: '0 0 4px 0', fontSize: '22px', fontWeight: '900', color: user.is_pro ? '#fbbf24' : '#fff' }}>
+        <h2 style={{ margin: '0 0 4px 0', fontSize: '22px', fontWeight: '900', color: '#000000' }}>
           @{user.handle}
         </h2>
 
-        <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#888888', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
+        <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
           <span>{user.institute || user.school || 'Kapil Institute'}</span>
           <span>•</span>
-          <span style={{ color: '#d4d4d8', fontWeight: '700' }}>{user.stream || '11th Medical'}</span>
+          <span style={{ color: '#111827', fontWeight: '700' }}>{user.stream || '11th Medical'}</span>
           <span>•</span>
-          <span style={{ color: '#a1a1aa', fontWeight: '600' }}>📍 {user.coaching_hub || user.hub || 'Ajit Road Hub'}</span>
+          <span style={{ color: '#4b5563', fontWeight: '600' }}>📍 {user.coaching_hub || user.hub || 'Ajit Road Hub'}</span>
         </p>
 
         {/* Bio */}
-        <p style={{ color: '#a1a1aa', fontSize: '13.5px', margin: '0 0 10px 0', lineHeight: '1.4' }}>
+        <p style={{ color: '#4b5563', fontSize: '13.5px', margin: '0 0 10px 0', lineHeight: '1.4' }}>
           {user.bio || `${user.stream || '11th Medical'} student at ${user.institute || 'Kapil Institute'}`}
         </p>
 
-        {/* Small, Elegant "Edit Profile" Text Link Directly Under Bio */}
+        {/* Small "Edit Profile" Text Link Directly Under Bio */}
         {!isEditing && (
           <button
             onClick={() => {
@@ -408,7 +401,7 @@ export default function Profile({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#a1a1aa',
+              color: '#6b7280',
               fontSize: '12.5px',
               fontWeight: '700',
               cursor: 'pointer',
@@ -428,20 +421,20 @@ export default function Profile({
 
       {/* 2. Campus Social Stats Matrix */}
       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', margin: '0 0 20px 0', flexWrap: 'wrap' }}>
-        <div style={{ background: '#141414', border: '1px solid #222222', padding: '6px 14px', borderRadius: '16px', color: '#ffffff', fontWeight: '700', fontSize: '12.5px' }}>
+        <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', padding: '6px 14px', borderRadius: '16px', color: '#000000', fontWeight: '700', fontSize: '12.5px' }}>
           🔥 {user.total_votes || 0} Flames
         </div>
         
-        {/* Clickable Clean Friends Count Display */}
+        {/* Clickable Friends Count Display */}
         <motion.div
           whileTap={{ scale: 0.95 }}
           onClick={() => setShowFriendsModal(true)}
           style={{
-            background: '#141414',
-            border: '1px solid #222222',
+            background: '#f9fafb',
+            border: '1px solid #e5e7eb',
             padding: '6px 14px',
             borderRadius: '16px',
-            color: '#ffffff',
+            color: '#000000',
             fontWeight: '700',
             fontSize: '12.5px',
             cursor: 'pointer',
@@ -452,10 +445,10 @@ export default function Profile({
         >
           <span>👥</span>
           <span>{acceptedFriends.length} Friends</span>
-          <span style={{ fontSize: '10px', color: '#71717a' }}>▼</span>
+          <span style={{ fontSize: '10px', color: '#6b7280' }}>▼</span>
         </motion.div>
 
-        <div style={{ background: '#141414', border: '1px solid #222222', padding: '6px 14px', borderRadius: '16px', color: '#ffffff', fontWeight: '700', fontSize: '12.5px' }}>
+        <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', padding: '6px 14px', borderRadius: '16px', color: '#000000', fontWeight: '700', fontSize: '12.5px' }}>
           ⚡ {Math.round((user.total_votes || 0) * 12 + acceptedFriends.length * 25)} Aura
         </div>
       </div>
@@ -471,8 +464,8 @@ export default function Profile({
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0, 0, 0, 0.75)',
-              backdropFilter: 'blur(8px)',
+              background: 'rgba(0, 0, 0, 0.4)',
+              backdropFilter: 'blur(4px)',
               zIndex: 60,
               display: 'flex',
               alignItems: 'center',
@@ -486,35 +479,36 @@ export default function Profile({
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
               onClick={(e) => e.stopPropagation()}
               style={{
-                background: '#121214',
-                border: '1px solid #27272a',
+                background: '#ffffff',
+                border: '1px solid #e5e7eb',
                 borderRadius: '24px',
                 padding: '20px',
                 width: '100%',
                 maxWidth: '380px',
                 maxHeight: '75vh',
                 display: 'flex',
-                flexDirection: 'column'
+                flexDirection: 'column',
+                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#ffffff' }}>
+                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#000000' }}>
                     Friends
                   </h3>
-                  <span style={{ fontSize: '12px', color: '#71717a' }}>
+                  <span style={{ fontSize: '12px', color: '#6b7280' }}>
                     {acceptedFriends.length} {acceptedFriends.length === 1 ? 'Classmate' : 'Classmates'}
                   </span>
                 </div>
                 <button
                   onClick={() => setShowFriendsModal(false)}
                   style={{
-                    background: '#18181b',
-                    border: '1px solid #27272a',
+                    background: '#f3f4f6',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '50%',
                     width: '30px',
                     height: '30px',
-                    color: '#a1a1aa',
+                    color: '#4b5563',
                     cursor: 'pointer',
                     fontSize: '14px'
                   }}
@@ -524,11 +518,11 @@ export default function Profile({
               </div>
 
               {acceptedFriends.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px 10px', color: '#71717a' }}>
+                <div style={{ textAlign: 'center', padding: '30px 10px', color: '#6b7280' }}>
                   <p style={{ margin: '0 0 10px 0', fontSize: '13.5px' }}>
                     You haven't added any classmates yet.
                   </p>
-                  <span style={{ fontSize: '12px', color: '#a1a1aa' }}>
+                  <span style={{ fontSize: '12px', color: '#4b5563' }}>
                     Use the Explore tab to search & connect with friends!
                   </span>
                 </div>
@@ -547,8 +541,8 @@ export default function Profile({
                         justifyContent: 'space-between',
                         padding: '10px 12px',
                         borderRadius: '14px',
-                        background: '#18181b',
-                        border: '1px solid #27272a',
+                        background: '#f9fafb',
+                        border: '1px solid #e5e7eb',
                         cursor: 'pointer'
                       }}
                     >
@@ -556,21 +550,21 @@ export default function Profile({
                         {renderProfilePic
                           ? renderProfilePic(f.profile_pic, f.avatar, f.is_pro, f.selected_ring || f.ring, 40)
                           : (
-                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               {f.avatar || '😎'}
                             </div>
                           )}
                         <div>
-                          <span style={{ fontSize: '13px', fontWeight: '800', color: f.is_pro ? '#fbbf24' : '#ffffff', display: 'block' }}>
+                          <span style={{ fontSize: '13px', fontWeight: '800', color: '#000000', display: 'block' }}>
                             @{f.handle}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#71717a' }}>
+                          <span style={{ fontSize: '11px', color: '#6b7280' }}>
                             Class {f.grade || '11'}
                           </span>
                         </div>
                       </div>
 
-                      <span style={{ fontSize: '11px', color: '#ff8800', fontWeight: '800' }}>
+                      <span style={{ fontSize: '11px', color: '#000000', fontWeight: '800' }}>
                         {f.total_votes || 0} 🔥
                       </span>
                     </div>
@@ -582,12 +576,12 @@ export default function Profile({
         )}
       </AnimatePresence>
 
-      {/* 4. AURA RINGS (GATED STRICTLY TO GOD MODE SUBSCRIBERS + VERTICAL LIST) */}
+      {/* 4. AURA RINGS (Clean Minimalist Design for Pro Users) */}
       {user?.is_pro && (
         <div
           style={{
-            background: '#111111',
-            border: '1px solid rgba(251, 191, 36, 0.25)',
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
             borderRadius: '20px',
             padding: '16px',
             marginBottom: '20px',
@@ -598,16 +592,16 @@ export default function Profile({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ fontSize: '16px' }}>💍</span>
-                <span style={{ fontSize: '14px', fontWeight: '900', color: '#fbbf24' }}>
+                <span style={{ fontSize: '14px', fontWeight: '900', color: '#000000' }}>
                   Aura Ring Equipment
                 </span>
               </div>
-              <span style={{ fontSize: '11px', color: '#71717a', display: 'block', marginTop: '2px' }}>
+              <span style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginTop: '2px' }}>
                 God Mode VIP: Pick your halo ring for your profile & feed
               </span>
             </div>
             {ringSavedToast && (
-              <span style={{ fontSize: '11.5px', color: '#10b981', fontWeight: '800' }}>
+              <span style={{ fontSize: '11.5px', color: '#059669', fontWeight: '800' }}>
                 ✓ Equipped!
               </span>
             )}
@@ -630,21 +624,19 @@ export default function Profile({
                     justifyContent: 'space-between',
                     padding: '10px 14px',
                     borderRadius: '14px',
-                    border: isSelected ? `2px solid ${r.color}` : '1px solid #27272a',
-                    background: isSelected ? 'rgba(255, 255, 255, 0.06)' : '#161616',
-                    color: '#ffffff',
+                    border: isSelected ? '2px solid #000000' : '1px solid #e5e7eb',
+                    background: isSelected ? '#f3f4f6' : '#ffffff',
+                    color: '#000000',
                     cursor: 'pointer',
                     textAlign: 'left'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    {/* Visual Ring Indicator with Glow */}
                     <div style={{
-                      width: '24px',
-                      height: '24px',
+                      width: '22px',
+                      height: '22px',
                       borderRadius: '50%',
-                      border: `3px solid ${r.color}`,
-                      boxShadow: r.id !== 'none' ? `0 0 10px ${r.color}66` : 'none',
+                      border: `2.5px solid ${r.color}`,
                       background: 'transparent',
                       display: 'flex',
                       alignItems: 'center',
@@ -652,10 +644,10 @@ export default function Profile({
                     }} />
 
                     <div>
-                      <span style={{ fontSize: '13px', fontWeight: '800', color: isSelected ? '#ffffff' : '#e4e4e7', display: 'block' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '800', color: '#000000', display: 'block' }}>
                         {r.label}
                       </span>
-                      <span style={{ fontSize: '11px', color: '#71717a' }}>
+                      <span style={{ fontSize: '11px', color: '#6b7280' }}>
                         {r.desc}
                       </span>
                     </div>
@@ -663,10 +655,10 @@ export default function Profile({
 
                   {isSelected && (
                     <span style={{
-                      color: r.color,
+                      color: '#000000',
                       fontWeight: '900',
-                      fontSize: '13px',
-                      background: 'rgba(255, 255, 255, 0.08)',
+                      fontSize: '12px',
+                      background: '#e5e7eb',
                       padding: '2px 8px',
                       borderRadius: '8px'
                     }}>
@@ -683,10 +675,10 @@ export default function Profile({
       {/* 5. MINIMALIST INVITE PASS */}
       <div
         style={{
-          background: '#121214',
+          background: '#f9fafb',
           borderRadius: '18px',
           padding: '14px 16px',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          border: '1px solid #e5e7eb',
           marginBottom: '16px',
           textAlign: 'left'
         }}
@@ -694,16 +686,16 @@ export default function Profile({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontSize: '15px' }}>🎟️</span>
-            <span style={{ fontSize: '13px', fontWeight: '800', color: '#ffffff' }}>
+            <span style={{ fontSize: '13px', fontWeight: '800', color: '#000000' }}>
               Invite Pass
             </span>
           </div>
-          <span style={{ fontSize: '10.5px', background: 'rgba(255, 255, 255, 0.06)', color: '#a1a1aa', padding: '2px 8px', borderRadius: '6px', fontWeight: '600' }}>
+          <span style={{ fontSize: '10.5px', background: '#e5e7eb', color: '#374151', padding: '2px 8px', borderRadius: '6px', fontWeight: '600' }}>
             3 Invites = 1 Reveal
           </span>
         </div>
 
-        <p style={{ fontSize: '12px', color: '#71717a', margin: '0 0 10px 0', lineHeight: '1.4', fontWeight: '500' }}>
+        <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px 0', lineHeight: '1.4', fontWeight: '500' }}>
           Your code unlocks secret voter identities when friends join.
         </p>
 
@@ -712,16 +704,16 @@ export default function Profile({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: '#161618',
+          background: '#ffffff',
           padding: '8px 12px',
           borderRadius: '12px',
-          border: '1px solid rgba(255, 255, 255, 0.06)'
+          border: '1px solid #e5e7eb'
         }}>
           <div>
-            <span style={{ fontSize: '9px', color: '#71717a', fontWeight: '600', textTransform: 'uppercase', display: 'block', letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: '9px', color: '#6b7280', fontWeight: '600', textTransform: 'uppercase', display: 'block', letterSpacing: '0.04em' }}>
               Your Code
             </span>
-            <span style={{ fontSize: '15px', fontWeight: '800', color: '#ffffff', letterSpacing: '0.02em' }}>
+            <span style={{ fontSize: '15px', fontWeight: '800', color: '#000000', letterSpacing: '0.02em' }}>
               @{my_invite_code}
             </span>
           </div>
@@ -733,9 +725,9 @@ export default function Profile({
               style={{
                 padding: '6px 12px',
                 borderRadius: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                background: copySuccess ? 'rgba(16, 185, 129, 0.15)' : '#202024',
-                color: copySuccess ? '#34d399' : '#ffffff',
+                border: '1px solid #e5e7eb',
+                background: copySuccess ? '#f0fdf4' : '#000000',
+                color: copySuccess ? '#166534' : '#ffffff',
                 fontSize: '11.5px',
                 fontWeight: '700',
                 cursor: 'pointer'
@@ -751,32 +743,32 @@ export default function Profile({
       {isEditing && (
         <div
           style={{
-            background: '#111111',
+            background: '#ffffff',
             borderRadius: '20px',
             padding: '20px',
-            border: '1px solid #222222',
+            border: '1px solid #e5e7eb',
             textAlign: 'left',
             marginBottom: '20px'
           }}
         >
-          <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '900', color: '#fff' }}>Edit Profile</h3>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '900', color: '#000000' }}>Edit Profile</h3>
 
           {/* Profile Picture Upload */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '12px', color: '#888', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
+            <label style={{ fontSize: '12px', color: '#4b5563', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
               Profile Photo
             </label>
             <input
               type="file"
               accept="image/*"
               onChange={handleImageUpload}
-              style={{ fontSize: '12px', color: '#888' }}
+              style={{ fontSize: '12px', color: '#4b5563' }}
             />
           </div>
 
           {/* Bio Input */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '12px', color: '#888', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
+            <label style={{ fontSize: '12px', color: '#4b5563', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
               Bio
             </label>
             <input
@@ -788,9 +780,9 @@ export default function Profile({
                 width: '100%',
                 padding: '12px 14px',
                 borderRadius: '12px',
-                border: '1px solid #333',
-                background: '#181818',
-                color: '#fff',
+                border: '1px solid #e5e7eb',
+                background: '#f9fafb',
+                color: '#000000',
                 fontSize: '14px',
                 outline: 'none',
                 boxSizing: 'border-box'
@@ -800,7 +792,7 @@ export default function Profile({
 
           {/* Coaching Institute Picker */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '11px', color: '#888', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+            <label style={{ fontSize: '11px', color: '#4b5563', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
               Coaching Institute
             </label>
             <InstituteCombobox
@@ -811,14 +803,14 @@ export default function Profile({
               }}
               onSelectHub={(hub) => setEditHub(hub)}
             />
-            <div style={{ marginTop: '5px', fontSize: '11px', color: '#ff7700', fontWeight: '700' }}>
+            <div style={{ marginTop: '5px', fontSize: '11px', color: '#111827', fontWeight: '700' }}>
               📍 Hub: {editHub || findHubForInstitute(editInstitute)}
             </div>
           </div>
 
-          {/* Stream Selection Pills (11th Medical, 11th Non-Med, 12th Commerce, Dropper) */}
+          {/* Stream Selection Pills */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '11px', color: '#888', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+            <label style={{ fontSize: '11px', color: '#4b5563', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
               Batch / Stream
             </label>
             <div
@@ -849,9 +841,9 @@ export default function Profile({
                       flexShrink: 0,
                       padding: '8px 14px',
                       borderRadius: '10px',
-                      border: isSelected ? '1px solid #ffffff' : '1px solid #262626',
-                      background: isSelected ? '#262626' : '#141416',
-                      color: isSelected ? '#ffffff' : '#a1a1aa',
+                      border: isSelected ? '1px solid #000000' : '1px solid #e5e7eb',
+                      background: isSelected ? '#000000' : '#f3f4f6',
+                      color: isSelected ? '#ffffff' : '#4b5563',
                       fontWeight: '800',
                       fontSize: '12px',
                       cursor: 'pointer',
@@ -876,8 +868,8 @@ export default function Profile({
                 padding: '12px',
                 borderRadius: '12px',
                 border: 'none',
-                background: '#ffffff',
-                color: '#000000',
+                background: '#000000',
+                color: '#ffffff',
                 fontWeight: '900',
                 fontSize: '14px',
                 cursor: 'pointer'
@@ -891,9 +883,9 @@ export default function Profile({
               style={{
                 padding: '12px 18px',
                 borderRadius: '12px',
-                border: '1px solid #333',
-                background: '#181818',
-                color: '#fff',
+                border: '1px solid #e5e7eb',
+                background: '#f3f4f6',
+                color: '#111827',
                 fontWeight: '800',
                 fontSize: '14px',
                 cursor: 'pointer'

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import confetti from 'canvas-confetti';
 import SkeletonPollCard from './SkeletonPollCard';
 import CooldownScreen from './CooldownScreen';
 import SponsorBanner from './SponsorBanner';
@@ -27,10 +26,10 @@ export default function Feed({
   onShuffle,
   renderProfilePic,
   onUpgrade,
-  onSkipCooldown
+  onSkipCooldown,
+  onCooldownUnlocked
 }) {
   const [shuffleCount, setShuffleCount] = useState(0);
-  // Optimistic UI state for instant local transition
   const [optimisticVoted, setOptimisticVoted] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
 
@@ -59,7 +58,6 @@ export default function Feed({
     if (shuffleCount >= 3) return;
     setShuffleCount(prev => prev + 1);
 
-    // Haptic tick
     if (window.navigator?.vibrate) {
       window.navigator.vibrate(10);
     }
@@ -67,28 +65,16 @@ export default function Feed({
     if (onShuffle) onShuffle();
   };
 
-  // Optimistic vote handler: updates local state immediately before network resolution
   const handleVoteClick = (candidate) => {
     setShuffleCount(0);
     setSelectedCandidate(candidate);
     setOptimisticVoted(true);
 
-    // Instagram / FB level tactile haptic pulse
     if (window.navigator?.vibrate) {
-      window.navigator.vibrate([20, 35, 20]);
+      window.navigator.vibrate(15);
     }
 
-    // Instant micro-haptic confetti burst
-    try {
-      confetti({
-        particleCount: 85,
-        spread: 65,
-        origin: { y: 0.55 },
-        colors: ['#ff5500', '#ff2e93', '#fbbf24', '#00f0ff']
-      });
-    } catch (_) {}
-
-    // Dispatch vote in background asynchronously
+    // Dispatch vote asynchronously
     if (onCastVote) {
       onCastVote(candidate.id);
     }
@@ -97,21 +83,13 @@ export default function Feed({
   const handleNextClick = () => {
     setOptimisticVoted(false);
     setSelectedCandidate(null);
-
-    if (window.navigator?.vibrate) {
-      window.navigator.vibrate(10);
-    }
-
-    if (onLoadNextPoll) {
-      onLoadNextPoll(gradeFilter);
-    }
+    onLoadNextPoll(gradeFilter);
   };
 
   const handleSharePoll = async () => {
-    if (window.navigator?.vibrate) window.navigator.vibrate(8);
-    const questionText = currentPoll?.question || 'Who is most likely to crack NEET on the first attempt?';
-    const userHandle = (user?.invite_code || user?.handle || 'campus').replace(/^@/, '').trim();
-    const shareUrl = `${window.location.origin}/?ref=${encodeURIComponent(userHandle)}`;
+    const handle = (user?.invite_code || user?.handle || 'campus').replace(/^@/, '');
+    const questionText = currentPoll?.question || 'Who is most likely to crack NEET?';
+    const shareUrl = `${window.location.origin}/?ref=${encodeURIComponent(handle)}`;
     const shareText = `🔥 "${questionText}"\nVote anonymously on CenterInsider!`;
 
     await handleShare({
@@ -121,7 +99,7 @@ export default function Feed({
     });
   };
 
-  // 1. If in cooldown, show CooldownScreen
+  // If in cooldown, show CooldownScreen
   if (isCooldownActive) {
     return (
       <CooldownScreen
@@ -142,7 +120,7 @@ export default function Feed({
     );
   }
 
-  // Strictly limit candidate options to exactly 4 items for lightweight DOM rendering
+  // Exactly 4 items
   const displayOptions = (options || []).slice(0, 4);
   const isVoteFinished = optimisticVoted || hasVoted;
 
@@ -156,10 +134,11 @@ export default function Feed({
         maxWidth: '440px',
         margin: '0 auto',
         padding: '6px 14px 75px 14px',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        background: '#ffffff'
       }}
     >
-      {/* Category Pills: 11th Medical, 11th Non-Med, 12th Board, NEET Droppers, All Bathinda */}
+      {/* Category Pills */}
       <div
         style={{
           display: 'flex',
@@ -183,14 +162,14 @@ export default function Feed({
               style={{
                 padding: '7px 12px',
                 borderRadius: '12px',
-                border: isActive ? '1px solid #ff5500' : '1px solid rgba(255, 255, 255, 0.08)',
+                border: isActive ? '1px solid #000000' : '1px solid #e5e7eb',
                 fontSize: '11.5px',
-                fontWeight: '800',
+                fontWeight: '700',
                 cursor: 'pointer',
-                background: isActive ? '#ff5500' : '#161616',
-                color: isActive ? '#ffffff' : '#a1a1aa',
-                boxShadow: isActive ? '0 0 12px rgba(255, 85, 0, 0.25)' : 'none',
-                transition: 'background 0.15s ease, color 0.15s ease'
+                background: isActive ? '#000000' : '#f3f4f6',
+                color: isActive ? '#ffffff' : '#4b5563',
+                boxShadow: 'none',
+                transition: 'all 0.15s ease'
               }}
             >
               {pill.label}
@@ -204,9 +183,9 @@ export default function Feed({
       ) : isVoteFinished ? (
         /* Optimistic Success Screen */
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          initial={{ opacity: 0, scale: 0.98, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+          transition={{ duration: 0.2 }}
           style={{
             flex: 1,
             display: 'flex',
@@ -215,28 +194,28 @@ export default function Feed({
             justifyContent: 'center',
             textAlign: 'center',
             minHeight: '280px',
-            background: '#161616',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
             borderRadius: '24px',
             padding: '32px 20px',
-            boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6)'
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)'
           }}
         >
           <div style={{ fontSize: '46px', marginBottom: '8px' }}>🔥</div>
-          <h2 style={{ color: '#ffffff', fontSize: '22px', fontWeight: '900', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+          <h2 style={{ color: '#000000', fontSize: '22px', fontWeight: '900', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
             Flame Sent!
           </h2>
           
           {selectedCandidate && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#222222', padding: '6px 14px', borderRadius: '16px', margin: '6px 0 16px 0', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-              <span style={{ fontSize: '13px', color: '#a1a1aa' }}>To:</span>
-              <span style={{ fontSize: '13.5px', fontWeight: '900', color: '#ff7700' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#f3f4f6', padding: '6px 14px', borderRadius: '16px', margin: '6px 0 16px 0', border: '1px solid #e5e7eb' }}>
+              <span style={{ fontSize: '13px', color: '#6b7280' }}>To:</span>
+              <span style={{ fontSize: '13.5px', fontWeight: '800', color: '#000000' }}>
                 @{selectedCandidate.handle}
               </span>
             </div>
           )}
 
-          <p style={{ color: '#71717a', fontSize: '13px', maxWidth: '270px', margin: '0 0 24px 0', lineHeight: '1.4' }}>
+          <p style={{ color: '#6b7280', fontSize: '13px', maxWidth: '270px', margin: '0 0 24px 0', lineHeight: '1.4' }}>
             Delivered anonymously. They won't know it was you unless they unlock via 3 recruits or God Mode!
           </p>
 
@@ -246,13 +225,13 @@ export default function Feed({
             style={{
               padding: '14px 32px',
               borderRadius: '16px',
-              border: 'none',
-              background: 'linear-gradient(135deg, #ff5500 0%, #ff2e93 100%)',
+              border: '1px solid #000000',
+              background: '#000000',
               color: '#ffffff',
               fontSize: '14.5px',
-              fontWeight: '900',
+              fontWeight: '800',
               cursor: 'pointer',
-              boxShadow: '0 4px 18px rgba(255, 85, 0, 0.35)'
+              boxShadow: 'none'
             }}
           >
             Next Question ➔
@@ -260,14 +239,14 @@ export default function Feed({
         </motion.div>
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {/* Question Card (Premium Solid Surface with subtle gradient border & unified share icon) */}
+          {/* Question Card */}
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
             style={{
-              background: '#161616',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: '#ffffff',
+              border: '1px solid #e5e7eb',
               borderRadius: '24px',
               padding: '22px 18px',
               textAlign: 'center',
@@ -276,7 +255,7 @@ export default function Feed({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: 'none',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
               position: 'relative'
             }}
           >
@@ -289,8 +268,8 @@ export default function Feed({
                 position: 'absolute',
                 top: '12px',
                 right: '12px',
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid #262626',
+                background: '#f3f4f6',
+                border: '1px solid #e5e7eb',
                 borderRadius: '10px',
                 width: '30px',
                 height: '30px',
@@ -298,16 +277,8 @@ export default function Feed({
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                color: '#a1a1aa',
-                transition: 'color 0.15s ease, background 0.15s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#ffffff';
-                e.currentTarget.style.background = '#262626';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#a1a1aa';
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                color: '#6b7280',
+                transition: 'all 0.15s ease'
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -319,8 +290,8 @@ export default function Feed({
             <h3
               style={{
                 fontSize: 'clamp(16px, 4.2vw, 20px)',
-                fontWeight: '900',
-                color: '#ffffff',
+                fontWeight: '800',
+                color: '#000000',
                 lineHeight: '1.35',
                 margin: 0,
                 padding: '0 24px',
@@ -333,16 +304,16 @@ export default function Feed({
 
           {/* 4 Classmate Candidate Buttons */}
           {displayOptions.length === 0 ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#71717a', padding: '30px 0' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#6b7280', padding: '30px 0' }}>
               <p style={{ fontSize: '13.5px', margin: '0 0 12px 0' }}>Not enough classmates found in this stream.</p>
               <button
                 onClick={() => onLoadNextPoll('all')}
                 style={{
                   padding: '10px 18px',
                   borderRadius: '14px',
-                  background: '#18181b',
+                  background: '#000000',
                   color: '#ffffff',
-                  border: '1px solid #27272a',
+                  border: '1px solid #000000',
                   fontWeight: '800',
                   fontSize: '12.5px',
                   cursor: 'pointer',
@@ -356,40 +327,40 @@ export default function Feed({
               {displayOptions.map((opt) => (
                 <motion.button
                   key={opt.id}
-                  whileTap={{ scale: 0.93 }}
-                  transition={{ type: 'spring', stiffness: 450, damping: 20 }}
+                  whileTap={{ scale: 0.96 }}
+                  transition={{ duration: 0.1 }}
                   onClick={() => handleVoteClick(opt)}
                   style={{
-                    background: '#161616',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: '#ffffff',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '20px',
                     padding: '14px 8px',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#ffffff',
+                    color: '#000000',
                     cursor: 'pointer',
                     outline: 'none',
                     minHeight: '100px',
                     boxSizing: 'border-box',
                     userSelect: 'none',
-                    transition: 'border-color 0.15s ease, background 0.15s ease',
-                    boxShadow: 'none'
+                    transition: 'all 0.15s ease',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#3f3f46';
-                    e.currentTarget.style.background = '#222226';
+                    e.currentTarget.style.borderColor = '#d1d5db';
+                    e.currentTarget.style.background = '#f9fafb';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#262626';
-                    e.currentTarget.style.background = '#1A1A1A';
+                    e.currentTarget.style.borderColor = '#e5e7eb';
+                    e.currentTarget.style.background = '#ffffff';
                   }}
                 >
                   {renderProfilePic
                     ? renderProfilePic(opt.profile_pic, opt.avatar, opt.is_pro, opt.selected_ring || opt.ring, 48)
                     : (
-                      <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
                         {opt.avatar || '😎'}
                       </div>
                     )}
@@ -397,7 +368,7 @@ export default function Feed({
                     style={{
                       fontSize: '13px',
                       fontWeight: '800',
-                      color: '#ffffff',
+                      color: '#000000',
                       marginTop: '6px',
                       textAlign: 'center',
                       lineHeight: '1.2',
@@ -411,7 +382,7 @@ export default function Feed({
                     @{opt.handle}
                   </span>
                   {opt.stream && (
-                    <span style={{ fontSize: '9.5px', color: '#a1a1aa', fontWeight: '700', marginTop: '2px' }}>
+                    <span style={{ fontSize: '9.5px', color: '#6b7280', fontWeight: '600', marginTop: '2px' }}>
                       {opt.stream}
                     </span>
                   )}
@@ -420,20 +391,20 @@ export default function Feed({
             </div>
           )}
 
-          {/* Bottom Controls: Shuffle (with 3-count limit) & Skip */}
+          {/* Bottom Controls */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: '4px' }}>
             <motion.button
               whileTap={{ scale: 0.94 }}
               disabled={shuffleCount >= 3}
               onClick={handleShuffleClick}
               style={{
-                background: shuffleCount >= 3 ? '#121214' : '#18181b',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                color: shuffleCount >= 3 ? '#52525b' : '#a1a1aa',
+                background: shuffleCount >= 3 ? '#f3f4f6' : '#f9fafb',
+                border: '1px solid #e5e7eb',
+                color: shuffleCount >= 3 ? '#9ca3af' : '#374151',
                 padding: '10px 16px',
                 borderRadius: '16px',
                 fontSize: '12.5px',
-                fontWeight: '800',
+                fontWeight: '700',
                 cursor: shuffleCount >= 3 ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -455,13 +426,13 @@ export default function Feed({
                 onLoadNextPoll(gradeFilter);
               }}
               style={{
-                background: '#18181b',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                color: '#a1a1aa',
+                background: '#f9fafb',
+                border: '1px solid #e5e7eb',
+                color: '#374151',
                 padding: '10px 16px',
                 borderRadius: '16px',
                 fontSize: '12.5px',
-                fontWeight: '800',
+                fontWeight: '700',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -474,7 +445,7 @@ export default function Feed({
         </div>
       )}
 
-      {/* Dynamic City-Based Academic Sponsorship Banner (Directly Beneath Core Poll) */}
+      {/* Dynamic Academic Sponsorship Banner */}
       <SponsorBanner city="Bathinda" hub={user?.coaching_hub || user?.hub || 'Ajit Road Hub'} />
     </div>
   );

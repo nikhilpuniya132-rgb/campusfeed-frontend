@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import confetti from 'canvas-confetti';
 
 const AURA_RINGS = {
   none: { border: 'none', boxShadow: 'none' },
-  gold: { border: '3px solid #fbbf24', boxShadow: '0 0 15px rgba(251, 191, 36, 0.6)' },
-  neonPurple: { border: '3px solid #d946ef', boxShadow: '0 0 15px #d946ef' },
-  blueEnergy: { border: '3px dashed #00f0ff', boxShadow: '0 0 15px rgba(0, 240, 255, 0.7)' },
-  crimsonFire: { border: '3px double #ef4444', boxShadow: '0 0 15px rgba(239, 68, 68, 0.7)' }
+  gold: { border: '2px solid #d97706', boxShadow: 'none' },
+  neonPurple: { border: '2px solid #7c3aed', boxShadow: 'none' },
+  blueEnergy: { border: '2px dashed #2563eb', boxShadow: 'none' },
+  crimsonFire: { border: '2px solid #dc2626', boxShadow: 'none' }
 };
 
 export default function FriendSearch({ currentUser, API, supabase, onFriendAdded }) {
@@ -119,17 +118,9 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
         }
       }
 
-      confetti({
-        particleCount: 70,
-        spread: 60,
-        origin: { y: 0.7 },
-        colors: ['#00f0ff', '#3b82f6', '#10b981']
-      });
-
       if (onFriendAdded) onFriendAdded(targetUser);
     } catch (err) {
       console.error('Friend request error:', err);
-      // Still maintain optimistic pending if direct insert worked
       if (supabase) {
         try {
           await supabase.from('friendships').insert([
@@ -150,23 +141,22 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
   return (
     <div
       style={{
-        background: 'rgba(24, 25, 38, 0.85)',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
+        background: '#ffffff',
+        border: '1px solid #e5e7eb',
         borderRadius: '24px',
         padding: '20px 16px',
-        backdropFilter: 'blur(18px)',
         width: '100%',
         boxSizing: 'border-box',
-        boxShadow: '0 12px 35px rgba(0, 0, 0, 0.5)',
+        boxShadow: 'none',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
         <span style={{ fontSize: '22px' }}>👥</span>
         <div>
-          <h4 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#fff' }}>
+          <h4 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#000000' }}>
             Find Classmates
           </h4>
-          <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>
+          <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
             Search by handle to build your coaching hub friend circle
           </p>
         </div>
@@ -174,7 +164,7 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
 
       {/* Search Input Bar */}
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginBottom: '14px' }}>
-        <span style={{ position: 'absolute', left: '14px', fontSize: '15px', color: '#94a3b8' }}>
+        <span style={{ position: 'absolute', left: '14px', fontSize: '15px', color: '#6b7280' }}>
           🔍
         </span>
         <input
@@ -186,17 +176,17 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
             width: '100%',
             padding: '12px 38px 12px 40px',
             borderRadius: '16px',
-            border: '1.5px solid rgba(255, 255, 255, 0.12)',
-            background: 'rgba(0, 0, 0, 0.45)',
-            color: '#fff',
+            border: '1.5px solid #e5e7eb',
+            background: '#f9fafb',
+            color: '#000000',
             fontSize: '14px',
             fontWeight: '600',
             outline: 'none',
             boxSizing: 'border-box',
             transition: 'border-color 0.2s ease',
           }}
-          onFocus={(e) => (e.target.style.borderColor = '#ff5500')}
-          onBlur={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.12)')}
+          onFocus={(e) => (e.target.style.borderColor = '#000000')}
+          onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')}
         />
         {query && (
           <button
@@ -206,7 +196,7 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
               right: '12px',
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: '#6b7280',
               fontSize: '14px',
               cursor: 'pointer',
               fontWeight: 'bold',
@@ -218,14 +208,7 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
       </div>
 
       {isLoading && (
-        <div style={{ textAlign: 'center', padding: '16px 0', color: '#94a3b8', fontSize: '13px' }}>
-          <motion.span
-            animate={{ rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-            style={{ display: 'inline-block', marginRight: '6px' }}
-          >
-            ⚡
-          </motion.span>
+        <div style={{ textAlign: 'center', padding: '16px 0', color: '#6b7280', fontSize: '13px' }}>
           Searching campus directory...
         </div>
       )}
@@ -268,8 +251,8 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
                     justifyContent: 'space-between',
                     padding: '10px 12px',
                     borderRadius: '16px',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: '#f9fafb',
+                    border: '1px solid #e5e7eb',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -291,7 +274,7 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
                           width: '38px',
                           height: '38px',
                           borderRadius: '50%',
-                          background: 'rgba(255, 255, 255, 0.1)',
+                          background: '#e5e7eb',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -305,11 +288,11 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
 
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: '800', color: '#fff' }}>
+                        <span style={{ fontSize: '14px', fontWeight: '800', color: '#000000' }}>
                           @{classmate.handle}
                         </span>
                         {classmate.is_pro && (
-                          <span style={{ fontSize: '12px', filter: 'drop-shadow(0 0 4px #fbbf24)' }}>👑</span>
+                          <span style={{ fontSize: '12px' }}>👑</span>
                         )}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
@@ -319,14 +302,15 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
                             fontWeight: '800',
                             padding: '2px 6px',
                             borderRadius: '6px',
-                            background: 'rgba(255, 85, 0, 0.2)',
-                            color: '#ff8800',
+                            background: '#f3f4f6',
+                            color: '#374151',
+                            border: '1px solid #e5e7eb',
                           }}
                         >
                           Class {classmate.grade || '11'}
                         </span>
                         {classmate.name && (
-                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                          <span style={{ fontSize: '11px', color: '#6b7280' }}>
                             {classmate.name}
                           </span>
                         )}
@@ -341,11 +325,11 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
                         style={{
                           fontSize: '12px',
                           fontWeight: '800',
-                          color: '#10b981',
+                          color: '#059669',
                           padding: '6px 12px',
                           borderRadius: '12px',
-                          background: 'rgba(16, 185, 129, 0.15)',
-                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          background: '#f0fdf4',
+                          border: '1px solid #bbf7d0',
                         }}
                       >
                         Friends ✓
@@ -355,11 +339,11 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
                         style={{
                           fontSize: '12px',
                           fontWeight: '800',
-                          color: '#00f0ff',
+                          color: '#2563eb',
                           padding: '6px 12px',
                           borderRadius: '12px',
-                          background: 'rgba(0, 240, 255, 0.12)',
-                          border: '1px solid rgba(0, 240, 255, 0.3)',
+                          background: '#eff6ff',
+                          border: '1px solid #bfdbfe',
                         }}
                       >
                         Requested ⏳
@@ -372,8 +356,8 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
                           padding: '6px 12px',
                           borderRadius: '12px',
                           border: 'none',
-                          background: 'linear-gradient(135deg, #10b981, #059669)',
-                          color: '#fff',
+                          background: '#000000',
+                          color: '#ffffff',
                           fontSize: '12px',
                           fontWeight: '800',
                           cursor: 'pointer',
@@ -390,12 +374,11 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
                           padding: '7px 14px',
                           borderRadius: '12px',
                           border: 'none',
-                          background: 'linear-gradient(135deg, #ff5500, #ff8800)',
-                          color: '#fff',
+                          background: '#000000',
+                          color: '#ffffff',
                           fontSize: '12px',
-                          fontWeight: '900',
+                          fontWeight: '800',
                           cursor: 'pointer',
-                          boxShadow: '0 4px 12px rgba(255, 85, 0, 0.35)',
                         }}
                       >
                         + Add Friend
@@ -410,7 +393,7 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
       </AnimatePresence>
 
       {query.trim() && !isLoading && results.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '16px 0', color: '#94a3b8', fontSize: '13px' }}>
+        <div style={{ textAlign: 'center', padding: '16px 0', color: '#6b7280', fontSize: '13px' }}>
           No classmate found with "@{query.trim()}". Check spelling!
         </div>
       )}

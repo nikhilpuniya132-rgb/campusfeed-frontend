@@ -55,7 +55,7 @@ export default function Landing({
     }
   });
 
-  // Task 2: Capture ?ref= parameter on Landing page and persist in sessionStorage and localStorage
+  // Capture ?ref= parameter on Landing page and persist in sessionStorage and localStorage
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
@@ -127,37 +127,37 @@ export default function Landing({
   const loginY = useTransform(smoothLogin, [0, 0.75], [60, 0]);
 
   return (
-    <div className="gas-landing-wrapper" style={{ background: '#0F0F0F', color: '#ffffff' }}>
+    <div className="gas-landing-wrapper" style={{ background: '#ffffff', color: '#000000', minHeight: '100vh' }}>
       {/* 1. Top Navbar */}
-      <header className="gas-landing-nav" style={{ background: 'rgba(15, 15, 15, 0.9)', borderBottom: '1px solid #262626' }}>
+      <header className="gas-landing-nav" style={{ background: 'rgba(255, 255, 255, 0.95)', borderBottom: '1px solid #e5e7eb', backdropFilter: 'blur(12px)' }}>
         <div className="gas-logo">
           <span className="flame-icon">🔥</span>
-          <span style={{ color: '#ffffff' }}>CENTERINSIDER</span>
+          <span style={{ color: '#000000', fontWeight: '900', letterSpacing: '-0.5px' }}>CENTERINSIDER</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span className="gas-school-badge" style={{ border: '1px solid #262626', background: 'rgba(255, 255, 255, 0.04)', color: '#a1a1aa', fontWeight: '800', letterSpacing: '0.04em' }}>
+          <span className="gas-school-badge" style={{ border: '1px solid #e5e7eb', background: '#f3f4f6', color: '#4b5563', fontWeight: '800', letterSpacing: '0.04em' }}>
             🔥 BATHINDA COACHING NETWORK
           </span>
 
           <div className="tooltip-wrapper">
             <li className="nav-link" style={{ listStyle: 'none' }}>
-              <div className="tooltip-tab" style={{ color: '#a1a1aa', border: '1px solid #262626', background: '#1A1A1A' }}>
+              <div className="tooltip-tab" style={{ color: '#4b5563', border: '1px solid #e5e7eb', background: '#f9fafb' }}>
                 <span>Support</span>
                 <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', fill: 'currentColor' }}><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-11v6h2v-6h-2zm0-4v2h2V7h-2z" /></svg>
               </div>
-              <div className="tooltip" style={{ background: '#1A1A1A', border: '1px solid #262626', boxShadow: 'none' }}>
+              <div className="tooltip" style={{ background: '#ffffff', border: '1px solid #e5e7eb', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)' }}>
                 <ul className="tooltip-menu-with-icon" style={{ padding: 0, margin: 0, listStyle: 'none' }}>
-                  <div style={{ padding: '8px 12px', fontSize: '11px', color: '#71717a', borderBottom: '1px solid #262626', textAlign: 'center' }}>
+                  <div style={{ padding: '8px 12px', fontSize: '11px', color: '#6b7280', borderBottom: '1px solid #e5e7eb', textAlign: 'center' }}>
                     Available 3 PM - 6 PM
                   </div>
                   <li className="tooltip-link">
-                    <a href="https://instagram.com/_nikhilpuniyaai" target="_blank" rel="noreferrer" style={{ color: '#a1a1aa' }}>
+                    <a href="https://instagram.com/_nikhilpuniyaai" target="_blank" rel="noreferrer" style={{ color: '#111827' }}>
                       @_nikhilpuniyaai
                     </a>
                   </li>
                   <li className="tooltip-link">
-                    <a href="mailto:nikhilpuniya132@gmail.com" style={{ color: '#a1a1aa' }}>
+                    <a href="mailto:nikhilpuniya132@gmail.com" style={{ color: '#111827' }}>
                       nikhilpuniya132@gmail.com
                     </a>
                   </li>
@@ -168,41 +168,42 @@ export default function Landing({
         </div>
       </header>
 
-      {/* 2. Hero Section */}
+      {/* 2. Hero Section - Stripped nested overflows and ensured no mobile touch trap */}
       <section ref={heroRef} className="gas-hero-section overflow-visible" style={{ overflow: 'visible', touchAction: 'pan-y' }}>
         <motion.div
-          className="gas-hero-text"
+          className="gas-hero-text overflow-visible"
           style={{
             opacity: heroTextOpacity,
-            y: heroTextY
+            y: heroTextY,
+            overflow: 'visible'
           }}
         >
-          <div className="gas-pill-badge" style={{ border: '1px solid #262626', background: 'rgba(255, 255, 255, 0.04)', color: '#a1a1aa' }}>
+          <div className="gas-pill-badge" style={{ border: '1px solid #e5e7eb', background: '#f3f4f6', color: '#4b5563' }}>
             <span>✦</span> The Anonymous Loop for Bathinda Coaching Hubs
           </div>
 
-          <h1 className="gas-hero-title">
+          <h1 className="gas-hero-title" style={{ color: '#000000' }}>
             STOP GUESSING.<br />
-            <span style={{ color: '#ffffff' }}>START KNOWING.</span>
+            <span style={{ color: '#000000' }}>START KNOWING.</span>
           </h1>
 
-          <p className="gas-hero-subtitle" style={{ color: '#a1a1aa' }}>
+          <p className="gas-hero-subtitle" style={{ color: '#6b7280' }}>
             The 100% anonymous school voting network. Answer viral polls about your classmates, see who voted for you, and discover your secret admirers.
           </p>
 
           <div className="gas-desktop-only">
             <div className="gas-hero-stats">
-              <div className="gas-stat-card" style={{ background: '#1A1A1A', border: '1px solid #262626', boxShadow: 'none' }}>
-                <span className="gas-stat-number" style={{ color: '#ffffff' }}>12,480+</span>
-                <span className="gas-stat-label" style={{ color: '#71717a' }}>Votes Cast</span>
+              <div className="gas-stat-card" style={{ background: '#f9fafb', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
+                <span className="gas-stat-number" style={{ color: '#000000' }}>12,480+</span>
+                <span className="gas-stat-label" style={{ color: '#6b7280' }}>Votes Cast</span>
               </div>
-              <div className="gas-stat-card" style={{ background: '#1A1A1A', border: '1px solid #262626', boxShadow: 'none' }}>
-                <span className="gas-stat-number" style={{ color: '#ffffff' }}>100%</span>
-                <span className="gas-stat-label" style={{ color: '#71717a' }}>Anonymous</span>
+              <div className="gas-stat-card" style={{ background: '#f9fafb', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
+                <span className="gas-stat-number" style={{ color: '#000000' }}>100%</span>
+                <span className="gas-stat-label" style={{ color: '#6b7280' }}>Anonymous</span>
               </div>
-              <div className="gas-stat-card" style={{ background: '#1A1A1A', border: '1px solid #262626', boxShadow: 'none' }}>
-                <span className="gas-stat-number" style={{ color: '#ffffff', fontSize: '13px' }}>Class 11, 12 & Droppers</span>
-                <span className="gas-stat-label" style={{ color: '#71717a' }}>Bathinda Hubs</span>
+              <div className="gas-stat-card" style={{ background: '#f9fafb', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
+                <span className="gas-stat-number" style={{ color: '#000000', fontSize: '13px' }}>Class 11, 12 & Droppers</span>
+                <span className="gas-stat-label" style={{ color: '#6b7280' }}>Bathinda Hubs</span>
               </div>
             </div>
 
@@ -210,7 +211,7 @@ export default function Landing({
               <button
                 className="magic-btn"
                 onClick={() => document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' })}
-                style={{ background: '#ffffff', color: '#000000', border: 'none', boxShadow: 'none', fontWeight: '800' }}
+                style={{ background: '#000000', color: '#ffffff', border: 'none', boxShadow: 'none', fontWeight: '800' }}
               >
                 ENTER NETWORK ➔
               </button>
@@ -218,7 +219,7 @@ export default function Landing({
           </div>
         </motion.div>
 
-        {/* 3D Showcase Interactive Stage with Chips */}
+        {/* 3D Showcase Interactive Stage with Chips (overflow-visible, auto height, no touch trap) */}
         <motion.div
           className="gas-hero-3d-stage overflow-visible"
           style={{
@@ -231,49 +232,49 @@ export default function Landing({
             minHeight: 'auto'
           }}
         >
-          <div className="gas-float-chip gas-float-chip-1" style={{ background: '#1A1A1A', border: '1px solid #262626', color: '#e4e4e7', boxShadow: 'none' }}>
+          <div className="gas-float-chip gas-float-chip-1" style={{ background: '#ffffff', border: '1px solid #e5e7eb', color: '#111827', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
             <span>🔥</span> Someone secretly picked you
           </div>
-          <div className="gas-float-chip gas-float-chip-2" style={{ background: '#1A1A1A', border: '1px solid #262626', color: '#e4e4e7', boxShadow: 'none' }}>
+          <div className="gas-float-chip gas-float-chip-2" style={{ background: '#ffffff', border: '1px solid #e5e7eb', color: '#111827', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
             <span>👑</span> 100% Private & Anonymous
           </div>
 
           <Suspense fallback={<div className="overflow-visible" style={{ minHeight: 'auto', height: 'auto', overflow: 'visible' }} />}>
-            <InteractivePollDemo onVoteAction={() => document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' })} />
+            <InteractivePollDemo onCtaClick={() => document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' })} />
           </Suspense>
         </motion.div>
 
         {/* Mobile-Only CTA */}
-        <div className="gas-mobile-only" style={{ width: '100%', marginTop: '20px' }}>
+        <div className="gas-mobile-only overflow-visible" style={{ width: '100%', marginTop: '20px', overflow: 'visible' }}>
           <div className="gas-hero-cta-group">
             <button
               className="magic-btn"
               onClick={() => document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' })}
-              style={{ background: '#ffffff', color: '#000000', border: 'none', boxShadow: 'none', fontWeight: '800' }}
+              style={{ background: '#000000', color: '#ffffff', border: 'none', boxShadow: 'none', fontWeight: '800' }}
             >
               ENTER NETWORK ➔
             </button>
           </div>
 
           <div className="gas-hero-stats">
-            <div className="gas-stat-card" style={{ background: '#1A1A1A', border: '1px solid #262626', boxShadow: 'none' }}>
-              <span className="gas-stat-number" style={{ color: '#ffffff' }}>12,480+</span>
-              <span className="gas-stat-label" style={{ color: '#71717a' }}>Votes</span>
+            <div className="gas-stat-card" style={{ background: '#f9fafb', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
+              <span className="gas-stat-number" style={{ color: '#000000' }}>12,480+</span>
+              <span className="gas-stat-label" style={{ color: '#6b7280' }}>Votes</span>
             </div>
-            <div className="gas-stat-card" style={{ background: '#1A1A1A', border: '1px solid #262626', boxShadow: 'none' }}>
-              <span className="gas-stat-number" style={{ color: '#ffffff' }}>100%</span>
-              <span className="gas-stat-label" style={{ color: '#71717a' }}>Anonymous</span>
+            <div className="gas-stat-card" style={{ background: '#f9fafb', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
+              <span className="gas-stat-number" style={{ color: '#000000' }}>100%</span>
+              <span className="gas-stat-label" style={{ color: '#6b7280' }}>Anonymous</span>
             </div>
-            <div className="gas-stat-card" style={{ background: '#1A1A1A', border: '1px solid #262626', boxShadow: 'none' }}>
-              <span className="gas-stat-number" style={{ color: '#ffffff', fontSize: '13px' }}>Class 11, 12 & Droppers</span>
-              <span className="gas-stat-label" style={{ color: '#71717a' }}>Bathinda Hubs</span>
+            <div className="gas-stat-card" style={{ background: '#f9fafb', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
+              <span className="gas-stat-number" style={{ color: '#000000', fontSize: '13px' }}>Class 11, 12 & Droppers</span>
+              <span className="gas-stat-label" style={{ color: '#6b7280' }}>Bathinda Hubs</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3. Pricing Portal Section (Restored: ₹99/week and ₹149/month side-by-side) */}
-      <section id="pricing-portal" ref={pricingRef} className="pricing-section">
+      {/* 3. Pricing Section - Side-by-Side ₹99/week and ₹149/month plans */}
+      <section id="pricing-portal" ref={pricingRef} className="pricing-section" style={{ background: '#ffffff' }}>
         <motion.div
           style={{
             opacity: pricingOpacity,
@@ -285,13 +286,13 @@ export default function Landing({
           }}
         >
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <span className="gas-pill-badge" style={{ border: '1px solid #262626', background: 'rgba(255, 255, 255, 0.04)', color: '#a1a1aa' }}>
+            <span className="gas-pill-badge" style={{ border: '1px solid #e5e7eb', background: '#f3f4f6', color: '#4b5563' }}>
               👑 VIP Access
             </span>
-            <h2 style={{ fontSize: 'clamp(28px, 6vw, 42px)', fontWeight: 900, margin: '12px 0', color: '#ffffff', letterSpacing: '-1px' }}>
+            <h2 style={{ fontSize: 'clamp(28px, 6vw, 42px)', fontWeight: 900, margin: '12px 0', color: '#000000', letterSpacing: '-1px' }}>
               Unlock God Mode.
             </h2>
-            <p style={{ color: '#a1a1aa', maxWidth: '440px', margin: '0 auto', fontSize: '14px', lineHeight: 1.5 }}>
+            <p style={{ color: '#6b7280', maxWidth: '440px', margin: '0 auto', fontSize: '14px', lineHeight: 1.5 }}>
               Stop wondering who voted for you. Reveal real names, equip exclusive aura rings, and dominate the school leaderboard.
             </p>
           </div>
@@ -316,9 +317,9 @@ export default function Landing({
               </Suspense>
             </div>
 
-            <div className="pricing-modal" style={{ background: '#1A1A1A', border: '1px solid #262626', boxShadow: 'none' }}>
-              <h3 className="pricing-title" style={{ color: '#ffffff' }}>Choose Your Access</h3>
-              <p className="pricing-description" style={{ color: '#a1a1aa' }}>Instantly activates across all Bathinda Coaching Hub polls.</p>
+            <div className="pricing-modal" style={{ background: '#ffffff', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
+              <h3 className="pricing-title" style={{ color: '#000000' }}>Choose Your Access</h3>
+              <p className="pricing-description" style={{ color: '#6b7280' }}>Instantly activates across all Bathinda Coaching Hub polls.</p>
 
               {/* Side-by-Side Paid Tiers (₹99/week & ₹149/month) */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%', marginBottom: '14px' }}>
@@ -327,8 +328,8 @@ export default function Landing({
                   style={{
                     padding: '12px 10px',
                     borderRadius: '14px',
-                    border: activePlan === 'weekly' ? '2px solid #ffffff' : '1px solid #262626',
-                    background: activePlan === 'weekly' ? 'rgba(255, 255, 255, 0.08)' : '#121214',
+                    border: activePlan === 'weekly' ? '2px solid #000000' : '1px solid #e5e7eb',
+                    background: activePlan === 'weekly' ? '#f3f4f6' : '#ffffff',
                     cursor: 'pointer',
                     textAlign: 'center',
                     transition: 'all 0.15s ease',
@@ -337,14 +338,14 @@ export default function Landing({
                     justifyContent: 'space-between'
                   }}
                 >
-                  <div style={{ fontSize: '11px', fontWeight: '800', color: activePlan === 'weekly' ? '#ffffff' : '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '800', color: activePlan === 'weekly' ? '#000000' : '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     Weekly Pass
                   </div>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff', margin: '4px 0' }}>
+                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#000000', margin: '4px 0' }}>
                     ₹99
-                    <span style={{ fontSize: '11px', color: '#71717a', fontWeight: '600' }}>/wk</span>
+                    <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>/wk</span>
                   </div>
-                  <div style={{ fontSize: '10px', color: activePlan === 'weekly' ? '#e4e4e7' : '#71717a', fontWeight: '700' }}>
+                  <div style={{ fontSize: '10px', color: activePlan === 'weekly' ? '#111827' : '#6b7280', fontWeight: '700' }}>
                     ⚡ 7 Days Access
                   </div>
                 </div>
@@ -354,8 +355,8 @@ export default function Landing({
                   style={{
                     padding: '12px 10px',
                     borderRadius: '14px',
-                    border: activePlan === 'monthly' ? '2px solid #fbbf24' : '1px solid #262626',
-                    background: activePlan === 'monthly' ? 'rgba(251, 191, 36, 0.09)' : '#121214',
+                    border: activePlan === 'monthly' ? '2px solid #000000' : '1px solid #e5e7eb',
+                    background: activePlan === 'monthly' ? '#f3f4f6' : '#ffffff',
                     cursor: 'pointer',
                     textAlign: 'center',
                     transition: 'all 0.15s ease',
@@ -370,8 +371,8 @@ export default function Landing({
                     top: '-9px',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    background: '#fbbf24',
-                    color: '#000000',
+                    background: '#000000',
+                    color: '#ffffff',
                     fontSize: '8.5px',
                     fontWeight: '900',
                     padding: '2px 7px',
@@ -381,29 +382,30 @@ export default function Landing({
                   }}>
                     SAVE 62%
                   </div>
-                  <div style={{ fontSize: '11px', fontWeight: '800', color: activePlan === 'monthly' ? '#fbbf24' : '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '800', color: activePlan === 'monthly' ? '#000000' : '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     Monthly Pass
                   </div>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff', margin: '4px 0' }}>
+                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#000000', margin: '4px 0' }}>
                     ₹149
-                    <span style={{ fontSize: '11px', color: '#71717a', fontWeight: '600' }}>/mo</span>
+                    <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>/mo</span>
                   </div>
-                  <div style={{ fontSize: '10px', color: activePlan === 'monthly' ? '#fbbf24' : '#71717a', fontWeight: '700' }}>
+                  <div style={{ fontSize: '10px', color: activePlan === 'monthly' ? '#000000' : '#6b7280', fontWeight: '700' }}>
                     👑 Best Value (~₹37/wk)
                   </div>
                 </div>
               </div>
 
               {/* Pricing Tabs: Basic vs God Mode options */}
-              <div className="tab-container" style={{ background: '#0F0F0F', border: '1px solid #262626', marginBottom: '14px' }}>
+              <div className="tab-container" style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', marginBottom: '14px' }}>
                 <button
                   className="tab"
                   data-active={activePlan === 'basic'}
                   onClick={() => setActivePlan('basic')}
                   style={{
-                    background: activePlan === 'basic' ? '#262626' : 'transparent',
-                    color: activePlan === 'basic' ? '#ffffff' : '#71717a',
-                    fontWeight: '800'
+                    background: activePlan === 'basic' ? '#ffffff' : 'transparent',
+                    color: activePlan === 'basic' ? '#000000' : '#6b7280',
+                    fontWeight: '800',
+                    border: activePlan === 'basic' ? '1px solid #e5e7eb' : 'none'
                   }}
                 >
                   Basic (Free)
@@ -413,8 +415,8 @@ export default function Landing({
                   data-active={activePlan === 'weekly'}
                   onClick={() => setActivePlan('weekly')}
                   style={{
-                    background: activePlan === 'weekly' ? '#262626' : 'transparent',
-                    color: activePlan === 'weekly' ? '#ffffff' : '#71717a',
+                    background: activePlan === 'weekly' ? '#000000' : 'transparent',
+                    color: activePlan === 'weekly' ? '#ffffff' : '#6b7280',
                     fontWeight: '800'
                   }}
                 >
@@ -425,8 +427,8 @@ export default function Landing({
                   data-active={activePlan === 'monthly'}
                   onClick={() => setActivePlan('monthly')}
                   style={{
-                    background: activePlan === 'monthly' ? '#262626' : 'transparent',
-                    color: activePlan === 'monthly' ? '#ffffff' : '#71717a',
+                    background: activePlan === 'monthly' ? '#000000' : 'transparent',
+                    color: activePlan === 'monthly' ? '#ffffff' : '#6b7280',
                     fontWeight: '800'
                   }}
                 >
@@ -434,46 +436,46 @@ export default function Landing({
                 </button>
               </div>
 
-              <div className="benefits" style={{ borderTop: '1px solid #262626' }}>
-                <span style={{ color: '#71717a' }}>What's included</span>
+              <div className="benefits" style={{ borderTop: '1px solid #e5e7eb' }}>
+                <span style={{ color: '#6b7280' }}>What's included</span>
                 <ul style={{ padding: 0, margin: '8px 0 0 0', listStyle: 'none' }}>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#d4d4d8', fontSize: '13px', margin: '8px 0' }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#374151', fontSize: '13px', margin: '8px 0' }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     <span>Unlimited Poll Votes (No 30m Cooldowns)</span>
                   </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#d4d4d8', fontSize: '13px', margin: '8px 0' }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#374151', fontSize: '13px', margin: '8px 0' }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     <span>Instant Real Name Reveals (Bypass 3 Recruits)</span>
                   </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#d4d4d8', fontSize: '13px', margin: '8px 0' }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#374151', fontSize: '13px', margin: '8px 0' }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     <span>Exclusive Verified VIP Crown Badge</span>
                   </li>
                   {activePlan !== 'basic' && (
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#d4d4d8', fontSize: '13px', margin: '8px 0' }}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                      <span>Equip Animated God Mode Aura Rings</span>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#374151', fontSize: '13px', margin: '8px 0' }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      <span>Equip Clean Minimal God Mode Aura Rings</span>
                     </li>
                   )}
                   {activePlan === 'monthly' && (
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fbbf24', fontSize: '13px', margin: '8px 0' }}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#000000', fontSize: '13px', margin: '8px 0' }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                       <span style={{ fontWeight: '700' }}>Save 62% vs Weekly Pass (~₹37/week)</span>
                     </li>
                   )}
                 </ul>
               </div>
 
-              <div className="modal--footer" style={{ borderTop: '1px solid #262626', paddingTop: '16px' }}>
-                <div className="price" style={{ color: '#ffffff' }}>
-                  <sup style={{ color: '#71717a' }}>₹</sup>{activePlan === 'basic' ? '0' : activePlan === 'weekly' ? '99' : '149'}
-                  <sub style={{ color: '#71717a' }}>/{activePlan === 'basic' ? 'forever' : activePlan === 'weekly' ? 'week' : 'month'}</sub>
+              <div className="modal--footer" style={{ borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
+                <div className="price" style={{ color: '#000000' }}>
+                  <sup style={{ color: '#6b7280' }}>₹</sup>{activePlan === 'basic' ? '0' : activePlan === 'weekly' ? '99' : '149'}
+                  <sub style={{ color: '#6b7280' }}>/{activePlan === 'basic' ? 'forever' : activePlan === 'weekly' ? 'week' : 'month'}</sub>
                 </div>
 
                 {activePlan === 'basic' ? (
                   <button
                     className="upgrade-btn"
-                    style={{ background: '#262626', color: '#ffffff', border: '1px solid #3f3f46', borderRadius: '12px', padding: '12px 20px', fontWeight: '800', cursor: 'pointer' }}
+                    style={{ background: '#f3f4f6', color: '#000000', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '12px 20px', fontWeight: '800', cursor: 'pointer' }}
                     onClick={() => document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' })}
                   >
                     Start Free
@@ -482,8 +484,8 @@ export default function Landing({
                   <button
                     className="upgrade-btn"
                     style={{
-                      background: activePlan === 'monthly' ? '#fbbf24' : '#ffffff',
-                      color: '#000000',
+                      background: '#000000',
+                      color: '#ffffff',
                       border: 'none',
                       borderRadius: '12px',
                       padding: '12px 20px',
@@ -511,7 +513,8 @@ export default function Landing({
           alignItems: 'center',
           justifyContent: 'center',
           padding: '60px 20px 80px 20px',
-          position: 'relative'
+          position: 'relative',
+          background: '#ffffff'
         }}
       >
         <motion.div
@@ -527,8 +530,8 @@ export default function Landing({
           <div
             className="form"
             style={{
-              background: '#1A1A1A',
-              border: '1px solid #262626',
+              background: '#ffffff',
+              border: '1px solid #e5e7eb',
               borderRadius: '24px',
               padding: '24px 20px',
               boxShadow: 'none'
@@ -537,9 +540,9 @@ export default function Landing({
             <div style={{ textAlign: 'center', marginBottom: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
               <span
                 style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid #262626',
-                  color: '#a1a1aa',
+                  background: '#f3f4f6',
+                  border: '1px solid #e5e7eb',
+                  color: '#4b5563',
                   fontSize: '11px',
                   fontWeight: '800',
                   padding: '4px 12px',
@@ -552,9 +555,9 @@ export default function Landing({
               {referralCode && (
                 <span
                   style={{
-                    background: 'rgba(16, 185, 129, 0.1)',
-                    border: '1px solid rgba(16, 185, 129, 0.3)',
-                    color: '#34d399',
+                    background: '#f0fdf4',
+                    border: '1px solid #bbf7d0',
+                    color: '#166534',
                     fontSize: '11px',
                     fontWeight: '700',
                     padding: '3px 10px',
@@ -569,16 +572,16 @@ export default function Landing({
               )}
             </div>
 
-            <p style={{ marginTop: '8px', textAlign: 'center', fontSize: '14px', color: '#ffffff' }}>
+            <p style={{ marginTop: '8px', textAlign: 'center', fontSize: '14px', color: '#000000', fontWeight: '700' }}>
               Join the Loop.
-              <span style={{ color: '#a1a1aa', fontWeight: '600', display: 'block', marginTop: '2px', fontSize: '12.5px' }}>
+              <span style={{ color: '#6b7280', fontWeight: '500', display: 'block', marginTop: '2px', fontSize: '12.5px' }}>
                 Select your Coaching Hub to enter the loop.
               </span>
             </p>
 
             {/* Searchable Institute Combobox */}
             <div style={{ marginBottom: '14px', textAlign: 'left' }}>
-              <label style={{ fontSize: '11px', fontWeight: '800', color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
                 Coaching Institute
               </label>
               <InstituteCombobox
@@ -589,15 +592,15 @@ export default function Landing({
                 }}
                 onSelectHub={(hub) => setCoachingHub(hub)}
               />
-              <div style={{ marginTop: '6px', fontSize: '11.5px', color: '#a1a1aa', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ marginTop: '6px', fontSize: '11.5px', color: '#6b7280', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span>📍 Hub:</span>
-                <span style={{ color: '#ffffff' }}>{coachingHub || findHubForInstitute(institute)}</span>
+                <span style={{ color: '#000000' }}>{coachingHub || findHubForInstitute(institute)}</span>
               </div>
             </div>
 
-            {/* Stream Selection Pills (Single Horizontal Scrolling Row per Task 2) */}
+            {/* Stream Selection Pills (Active: bg-black text-white; Inactive: bg-gray-100 text-gray-600) */}
             <div style={{ marginBottom: '18px', textAlign: 'left' }}>
-              <label style={{ fontSize: '11px', fontWeight: '800', color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
                 Batch / Stream
               </label>
               <div
@@ -628,9 +631,9 @@ export default function Landing({
                         flexShrink: 0,
                         padding: '9px 14px',
                         borderRadius: '12px',
-                        border: isSelected ? '1px solid #ffffff' : '1px solid #262626',
-                        background: isSelected ? '#262626' : '#141416',
-                        color: isSelected ? '#ffffff' : '#71717a',
+                        border: isSelected ? '1px solid #000000' : '1px solid #e5e7eb',
+                        background: isSelected ? '#000000' : '#f3f4f6',
+                        color: isSelected ? '#ffffff' : '#4b5563',
                         fontWeight: '800',
                         fontSize: '12px',
                         cursor: 'pointer',
@@ -653,8 +656,8 @@ export default function Landing({
               type="button"
               style={{
                 width: '100%',
-                background: '#ffffff',
-                color: '#000000',
+                background: '#000000',
+                color: '#ffffff',
                 border: 'none',
                 borderRadius: '16px',
                 fontWeight: '900',
@@ -677,16 +680,16 @@ export default function Landing({
               </svg>
               <span>{isAuthenticating ? 'Connecting...' : 'One-Tap with Google'}</span>
             </motion.button>
-            <div style={{ textAlign: 'center', fontSize: '11px', color: '#71717a', marginTop: '8px' }}>
+            <div style={{ textAlign: 'center', fontSize: '11px', color: '#6b7280', marginTop: '8px' }}>
               Zero passwords • Instant student verification
             </div>
 
             {/* De-emphasized Manual / Test Accounts Accordion */}
-            <div style={{ width: '100%', borderTop: '1px solid #262626', paddingTop: '16px', marginTop: '16px', textAlign: 'center' }}>
+            <div style={{ width: '100%', borderTop: '1px solid #e5e7eb', paddingTop: '16px', marginTop: '16px', textAlign: 'center' }}>
               <button
                 type="button"
                 onClick={() => setShowManualLogin(!showManualLogin)}
-                style={{ background: 'transparent', border: 'none', color: '#71717a', fontSize: '11.5px', fontWeight: '700', cursor: 'pointer', transition: 'color 0.2s' }}
+                style={{ background: 'transparent', border: 'none', color: '#6b7280', fontSize: '11.5px', fontWeight: '700', cursor: 'pointer', transition: 'color 0.2s' }}
               >
                 {showManualLogin ? '▲ Hide Test Accounts' : '▼ Or use username & password (Seed Accounts)'}
               </button>
@@ -698,19 +701,19 @@ export default function Landing({
                     placeholder="Handle (e.g., gursharan)"
                     value={handle}
                     onChange={e => setHandle(e.target.value)}
-                    style={{ padding: '12px', borderRadius: '12px', border: '1px solid #262626', background: '#141416', color: '#fff', fontSize: '14px', outline: 'none' }}
+                    style={{ padding: '12px', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#f9fafb', color: '#000000', fontSize: '14px', outline: 'none' }}
                   />
                   <input
                     type="password"
                     placeholder="Password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    style={{ padding: '12px', borderRadius: '12px', border: '1px solid #262626', background: '#141416', color: '#fff', fontSize: '14px', outline: 'none' }}
+                    style={{ padding: '12px', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#f9fafb', color: '#000000', fontSize: '14px', outline: 'none' }}
                   />
                   <button
                     type="button"
                     onClick={doPasswordLogin}
-                    style={{ padding: '12px', borderRadius: '12px', border: 'none', background: '#262626', color: '#ffffff', fontWeight: '800', cursor: 'pointer', transition: 'background 0.2s' }}
+                    style={{ padding: '12px', borderRadius: '12px', border: 'none', background: '#000000', color: '#ffffff', fontWeight: '800', cursor: 'pointer', transition: 'background 0.2s' }}
                   >
                     Login with Password
                   </button>
@@ -724,14 +727,14 @@ export default function Landing({
             <AddToHomeScreenGuide installPrompt={installPrompt} />
           </div>
 
-          <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '12px', color: '#71717a' }}>
+          <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '12px', color: '#6b7280' }}>
             <p>
               By entering, you agree to our <br />
-              <span onClick={() => setLegalView('terms')} style={{ color: '#a1a1aa', textDecoration: 'underline', cursor: 'pointer' }}>
+              <span onClick={() => setLegalView('terms')} style={{ color: '#000000', textDecoration: 'underline', cursor: 'pointer', fontWeight: '600' }}>
                 Terms & Conditions
               </span>{' '}
               and{' '}
-              <span onClick={() => setLegalView('privacy')} style={{ color: '#a1a1aa', textDecoration: 'underline', cursor: 'pointer' }}>
+              <span onClick={() => setLegalView('privacy')} style={{ color: '#000000', textDecoration: 'underline', cursor: 'pointer', fontWeight: '600' }}>
                 Privacy Policy
               </span>
             </p>
@@ -751,7 +754,7 @@ export default function Landing({
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0, 0, 0, 0.85)',
+              background: 'rgba(0, 0, 0, 0.5)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -764,21 +767,21 @@ export default function Landing({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 20, opacity: 0 }}
               style={{
-                background: '#1A1A1A',
-                color: '#fff',
+                background: '#ffffff',
+                color: '#000000',
                 padding: '28px',
                 borderRadius: '24px',
                 maxWidth: '420px',
                 width: '100%',
-                border: '1px solid #262626',
-                boxShadow: 'none'
+                border: '1px solid #e5e7eb',
+                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)'
               }}
               onClick={e => e.stopPropagation()}
             >
-              <h2 style={{ color: '#ffffff', marginTop: 0, fontSize: '20px', fontWeight: 800 }}>
+              <h2 style={{ color: '#000000', marginTop: 0, fontSize: '20px', fontWeight: 800 }}>
                 {legalView === 'terms' ? 'Terms & Conditions' : 'Privacy Policy'}
               </h2>
-              <p style={{ color: '#a1a1aa', fontSize: '13px', lineHeight: '1.6' }}>
+              <p style={{ color: '#6b7280', fontSize: '13px', lineHeight: '1.6' }}>
                 CenterInsider is an anonymous positive voting platform built for coaching hubs & student communities. Compliments are moderated to promote positivity.
               </p>
               <button
@@ -786,8 +789,8 @@ export default function Landing({
                 style={{
                   width: '100%',
                   padding: '12px 20px',
-                  background: '#ffffff',
-                  color: '#000000',
+                  background: '#000000',
+                  color: '#ffffff',
                   border: 'none',
                   borderRadius: '12px',
                   fontWeight: '800',

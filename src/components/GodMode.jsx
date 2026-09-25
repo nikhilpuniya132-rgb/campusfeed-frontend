@@ -22,11 +22,12 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
       boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center'
+      alignItems: 'center',
+      background: '#ffffff'
     }}>
       {/* VIP Crown Header */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         style={{ textAlign: 'center', marginBottom: '20px', width: '100%' }}
       >
@@ -36,12 +37,12 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
           gap: '6px',
           padding: '4px 14px',
           borderRadius: '20px',
-          background: 'rgba(251, 191, 36, 0.1)',
-          border: '1px solid rgba(251, 191, 36, 0.3)',
-          color: '#fbbf24',
+          background: '#f3f4f6',
+          border: '1px solid #e5e7eb',
+          color: '#111827',
           fontSize: '11px',
           fontWeight: '800',
-          letterSpacing: '0.06em',
+          letterSpacing: '0.04em',
           marginBottom: '8px'
         }}>
           <span>👑</span> GOD MODE VIP
@@ -50,13 +51,13 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
           fontSize: '24px',
           fontWeight: '900',
           margin: '0 0 6px 0',
-          color: '#ffffff',
+          color: '#000000',
           letterSpacing: '-0.5px'
         }}>
           {isPro ? 'God Mode Active' : 'Unlock God Mode'}
         </h2>
         <p style={{
-          color: '#a1a1aa',
+          color: '#6b7280',
           fontSize: '13px',
           lineHeight: '1.45',
           margin: 0,
@@ -68,7 +69,7 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
         </p>
       </motion.div>
 
-      {/* Holographic 3D Preview Card */}
+      {/* 3D Preview Card */}
       <div style={{ width: '100%', marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
         <HolographicCard
           title={isPro ? 'GOD MODE ACTIVE' : 'GOD MODE VIP'}
@@ -82,7 +83,7 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
 
       {!isPro ? (
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {/* Side-by-Side Pricing Selection Cards */}
+          {/* Side-by-Side Pricing Selection Cards (Restored ₹99/wk & ₹149/mo) */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
@@ -94,34 +95,35 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
               whileTap={{ scale: 0.98 }}
               onClick={() => setSelectedPlan('weekly')}
               style={{
-                padding: '14px 12px',
-                borderRadius: '16px',
-                border: selectedPlan === 'weekly' ? '2px solid #ffffff' : '1px solid #27272a',
-                background: selectedPlan === 'weekly' ? 'rgba(255, 255, 255, 0.08)' : '#18181b',
+                padding: '16px 12px',
+                borderRadius: '18px',
+                border: selectedPlan === 'weekly' ? '2px solid #000000' : '1px solid #e5e7eb',
+                background: selectedPlan === 'weekly' ? '#f9fafb' : '#ffffff',
                 cursor: 'pointer',
                 textAlign: 'center',
                 transition: 'all 0.15s ease',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                position: 'relative'
+                position: 'relative',
+                boxShadow: selectedPlan === 'weekly' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none'
               }}
             >
               <div>
                 <span style={{
                   fontSize: '11px',
                   fontWeight: '800',
-                  color: selectedPlan === 'weekly' ? '#ffffff' : '#a1a1aa',
+                  color: selectedPlan === 'weekly' ? '#000000' : '#6b7280',
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em'
                 }}>
                   Weekly Pass
                 </span>
-                <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff', margin: '4px 0 2px 0' }}>
+                <div style={{ fontSize: '26px', fontWeight: '900', color: '#000000', margin: '6px 0 2px 0' }}>
                   ₹99
-                  <span style={{ fontSize: '12px', color: '#71717a', fontWeight: '600' }}>/wk</span>
+                  <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '600' }}>/wk</span>
                 </div>
-                <div style={{ fontSize: '11px', color: selectedPlan === 'weekly' ? '#e4e4e7' : '#71717a', fontWeight: '600' }}>
+                <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>
                   7 Days Access
                 </div>
               </div>
@@ -133,13 +135,13 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
                   handlePay('weekly');
                 }}
                 style={{
-                  marginTop: '12px',
+                  marginTop: '14px',
                   width: '100%',
                   padding: '9px 6px',
                   borderRadius: '10px',
-                  border: '1px solid #3f3f46',
-                  background: selectedPlan === 'weekly' ? '#ffffff' : '#27272a',
-                  color: selectedPlan === 'weekly' ? '#000000' : '#ffffff',
+                  border: '1px solid #000000',
+                  background: selectedPlan === 'weekly' ? '#000000' : '#f3f4f6',
+                  color: selectedPlan === 'weekly' ? '#ffffff' : '#000000',
                   fontSize: '11.5px',
                   fontWeight: '800',
                   cursor: 'pointer'
@@ -154,17 +156,18 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
               whileTap={{ scale: 0.98 }}
               onClick={() => setSelectedPlan('monthly')}
               style={{
-                padding: '14px 12px',
-                borderRadius: '16px',
-                border: selectedPlan === 'monthly' ? '2px solid #fbbf24' : '1px solid #27272a',
-                background: selectedPlan === 'monthly' ? 'rgba(251, 191, 36, 0.09)' : '#18181b',
+                padding: '16px 12px',
+                borderRadius: '18px',
+                border: selectedPlan === 'monthly' ? '2px solid #000000' : '1px solid #e5e7eb',
+                background: selectedPlan === 'monthly' ? '#f9fafb' : '#ffffff',
                 cursor: 'pointer',
                 textAlign: 'center',
                 transition: 'all 0.15s ease',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                position: 'relative'
+                position: 'relative',
+                boxShadow: selectedPlan === 'monthly' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none'
               }}
             >
               {/* Badge */}
@@ -173,15 +176,14 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
                 top: '-9px',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                background: '#fbbf24',
-                color: '#000000',
+                background: '#000000',
+                color: '#ffffff',
                 fontSize: '9px',
                 fontWeight: '900',
                 padding: '2px 8px',
                 borderRadius: '8px',
                 letterSpacing: '0.03em',
-                whiteSpace: 'nowrap',
-                boxShadow: '0 2px 8px rgba(251, 191, 36, 0.3)'
+                whiteSpace: 'nowrap'
               }}>
                 SAVE 62%
               </div>
@@ -190,17 +192,17 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
                 <span style={{
                   fontSize: '11px',
                   fontWeight: '800',
-                  color: selectedPlan === 'monthly' ? '#fbbf24' : '#a1a1aa',
+                  color: selectedPlan === 'monthly' ? '#000000' : '#6b7280',
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em'
                 }}>
                   Monthly Pass
                 </span>
-                <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff', margin: '4px 0 2px 0' }}>
+                <div style={{ fontSize: '26px', fontWeight: '900', color: '#000000', margin: '6px 0 2px 0' }}>
                   ₹149
-                  <span style={{ fontSize: '12px', color: '#71717a', fontWeight: '600' }}>/mo</span>
+                  <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '600' }}>/mo</span>
                 </div>
-                <div style={{ fontSize: '11px', color: selectedPlan === 'monthly' ? '#fbbf24' : '#71717a', fontWeight: '700' }}>
+                <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '700' }}>
                   👑 ~₹37 / week
                 </div>
               </div>
@@ -212,15 +214,15 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
                   handlePay('monthly');
                 }}
                 style={{
-                  marginTop: '12px',
+                  marginTop: '14px',
                   width: '100%',
                   padding: '9px 6px',
                   borderRadius: '10px',
-                  border: 'none',
-                  background: '#fbbf24',
-                  color: '#000000',
+                  border: '1px solid #000000',
+                  background: '#000000',
+                  color: '#ffffff',
                   fontSize: '11.5px',
-                  fontWeight: '900',
+                  fontWeight: '800',
                   cursor: 'pointer'
                 }}
               >
@@ -231,8 +233,8 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
 
           {/* Perks Feature Box */}
           <div style={{
-            background: '#18181b',
-            border: '1px solid #27272a',
+            background: '#f9fafb',
+            border: '1px solid #e5e7eb',
             borderRadius: '18px',
             padding: '16px 14px',
             width: '100%',
@@ -241,7 +243,7 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
             <span style={{
               fontSize: '11px',
               fontWeight: '800',
-              color: '#71717a',
+              color: '#6b7280',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               display: 'block',
@@ -250,24 +252,24 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
               God Mode Privileges
             </span>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12.5px', color: '#e4e4e7' }}>
-                <span style={{ color: '#10b981', fontWeight: '900' }}>✓</span>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12.5px', color: '#111827' }}>
+                <span style={{ color: '#000000', fontWeight: '900' }}>✓</span>
                 <span><strong>Instant Voter Reveals:</strong> View full names of who voted for you</span>
               </li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12.5px', color: '#e4e4e7' }}>
-                <span style={{ color: '#10b981', fontWeight: '900' }}>✓</span>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12.5px', color: '#111827' }}>
+                <span style={{ color: '#000000', fontWeight: '900' }}>✓</span>
                 <span><strong>Unlimited Poll Voting:</strong> No more 30-minute waiting cooldowns</span>
               </li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12.5px', color: '#e4e4e7' }}>
-                <span style={{ color: '#10b981', fontWeight: '900' }}>✓</span>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12.5px', color: '#111827' }}>
+                <span style={{ color: '#000000', fontWeight: '900' }}>✓</span>
                 <span><strong>Verified VIP Crown:</strong> Stand out across class feeds and leaderboards</span>
               </li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12.5px', color: '#e4e4e7' }}>
-                <span style={{ color: '#10b981', fontWeight: '900' }}>✓</span>
-                <span><strong>Animated Aura Rings:</strong> Equip Gold, Crimson, Neon & Blue halos</span>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12.5px', color: '#111827' }}>
+                <span style={{ color: '#000000', fontWeight: '900' }}>✓</span>
+                <span><strong>Minimalist Halos:</strong> Equip Gold, Crimson, Charcoal & Minimal rings</span>
               </li>
               {selectedPlan === 'monthly' && (
-                <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12.5px', color: '#fbbf24', fontWeight: '700' }}>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12.5px', color: '#111827', fontWeight: '700' }}>
                   <span>⭐</span>
                   <span><strong>Save 62%:</strong> Best value at just ~₹37 per week</span>
                 </li>
@@ -283,17 +285,17 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
               width: '100%',
               padding: '14px',
               borderRadius: '16px',
-              border: 'none',
-              background: selectedPlan === 'monthly' ? '#fbbf24' : '#ffffff',
-              color: '#000000',
+              border: '1px solid #000000',
+              background: '#000000',
+              color: '#ffffff',
               fontSize: '14px',
-              fontWeight: '900',
+              fontWeight: '800',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              boxShadow: selectedPlan === 'monthly' ? '0 4px 20px rgba(251, 191, 36, 0.25)' : 'none'
+              boxShadow: 'none'
             }}
           >
             <span>⚡</span>
@@ -306,19 +308,19 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
         /* Pro Active State */
         <div style={{
           width: '100%',
-          background: '#18181b',
-          border: '1px solid #27272a',
+          background: '#f9fafb',
+          border: '1px solid #e5e7eb',
           borderRadius: '18px',
           padding: '20px',
           textAlign: 'center',
           boxSizing: 'border-box'
         }}>
           <div style={{ fontSize: '32px', marginBottom: '8px' }}>👑</div>
-          <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: '800', color: '#ffffff' }}>
+          <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: '800', color: '#000000' }}>
             VIP Membership Active
           </h3>
-          <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#a1a1aa' }}>
-            Your account has full God Mode access. Enjoy uninhibited identity reveals and aura halo customizations.
+          <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#6b7280' }}>
+            Your account has full God Mode access. Enjoy uninhibited identity reveals and custom halos.
           </p>
           <button
             type="button"
@@ -326,9 +328,9 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
             style={{
               padding: '10px 18px',
               borderRadius: '12px',
-              background: '#27272a',
+              background: '#000000',
               color: '#ffffff',
-              border: '1px solid #3f3f46',
+              border: 'none',
               fontSize: '12.5px',
               fontWeight: '700',
               cursor: 'pointer'

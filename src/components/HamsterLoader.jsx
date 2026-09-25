@@ -46,9 +46,8 @@ export default function HamsterLoader({ message = 'Loading...' }) {
             marginTop: '20px',
             fontSize: '15px',
             fontWeight: '800',
-            color: '#cbd5e1',
+            color: '#000000',
             letterSpacing: '0.4px',
-            textShadow: '0 2px 10px rgba(0,0,0,0.5)',
           }}
         >
           {message}

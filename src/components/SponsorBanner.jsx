@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import confetti from 'canvas-confetti';
 
 const ACADEMIC_B2B_SPONSORS = [
   {
@@ -12,7 +11,6 @@ const ACADEMIC_B2B_SPONSORS = [
     deal: 'Book a Free 11th Medical Demo',
     subtext: 'Includes complimentary NEET Diagnostic Test & Rank Analysis.',
     code: 'AAKASH11MED',
-    gradient: 'linear-gradient(135deg, #0284c7, #2563eb)',
     tag: 'B2B EXCLUSIVE'
   },
   {
@@ -24,7 +22,6 @@ const ACADEMIC_B2B_SPONSORS = [
     deal: 'TALLENTEX: Up to 90% Scholarship',
     subtext: 'Free registration & previous year solved sample papers for Bathinda students.',
     code: 'ALLENBTI',
-    gradient: 'linear-gradient(135deg, #10b981, #0d9488)',
     tag: 'SCHOLARSHIP'
   },
   {
@@ -36,7 +33,6 @@ const ACADEMIC_B2B_SPONSORS = [
     deal: 'Flat ₹5,000 Off on 11th/12th Batches',
     subtext: 'Valid for JEE/NEET offline batches. Instant verification with CenterInsider.',
     code: 'PWBTI5K',
-    gradient: 'linear-gradient(135deg, #f97316, #dc2626)',
     tag: 'POPULAR'
   },
   {
@@ -48,7 +44,6 @@ const ACADEMIC_B2B_SPONSORS = [
     deal: 'Free 3-Day Crash Course Pass',
     subtext: 'Specialized faculty for Board + Competitive exam synergy.',
     code: 'KAPILAJIT',
-    gradient: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
     tag: 'HUB SPECIAL'
   }
 ];
@@ -70,15 +65,6 @@ export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub'
     if (window.navigator?.vibrate) {
       window.navigator.vibrate([15, 30, 15]);
     }
-
-    try {
-      confetti({
-        particleCount: 50,
-        spread: 50,
-        origin: { y: 0.7 },
-        colors: ['#fbbf24', '#ff5500', '#10b981']
-      });
-    } catch (_) {}
 
     setTimeout(() => setCopiedCode(null), 2500);
   };
@@ -110,7 +96,7 @@ export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '11px', fontWeight: '900', color: '#ff5500', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <span style={{ fontSize: '11px', fontWeight: '900', color: '#111827', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             🎓 Bathinda Coaching Perks
           </span>
           <span
@@ -118,9 +104,9 @@ export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub'
               fontSize: '9.5px',
               padding: '2px 7px',
               borderRadius: '10px',
-              background: 'rgba(255, 85, 0, 0.15)',
-              border: '1px solid rgba(255, 85, 0, 0.35)',
-              color: '#ff8800',
+              background: '#f3f4f6',
+              border: '1px solid #e5e7eb',
+              color: '#374151',
               fontWeight: '800'
             }}
           >
@@ -134,9 +120,9 @@ export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub'
             onClick={prevSponsor}
             aria-label="Previous Offer"
             style={{
-              background: '#18181b',
-              border: '1px solid #27272a',
-              color: '#a1a1aa',
+              background: '#f3f4f6',
+              border: '1px solid #e5e7eb',
+              color: '#374151',
               width: '22px',
               height: '22px',
               borderRadius: '50%',
@@ -150,16 +136,16 @@ export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub'
           >
             ‹
           </button>
-          <span style={{ fontSize: '10.5px', color: '#71717a', fontWeight: '700' }}>
+          <span style={{ fontSize: '10.5px', color: '#6b7280', fontWeight: '700' }}>
             {currentIndex + 1}/{ACADEMIC_B2B_SPONSORS.length}
           </span>
           <button
             onClick={nextSponsor}
             aria-label="Next Offer"
             style={{
-              background: '#18181b',
-              border: '1px solid #27272a',
-              color: '#a1a1aa',
+              background: '#f3f4f6',
+              border: '1px solid #e5e7eb',
+              color: '#374151',
               width: '22px',
               height: '22px',
               borderRadius: '50%',
@@ -187,26 +173,14 @@ export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub'
           style={{
             position: 'relative',
             borderRadius: '20px',
-            background: '#141416',
-            border: '1px solid #27272a',
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
             overflow: 'hidden',
             padding: '14px',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+            boxShadow: 'none',
             boxSizing: 'border-box'
           }}
         >
-          {/* Subtle Ambient Accent Top Bar */}
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: '3px',
-              background: currentSponsor.gradient
-            }}
-          />
-
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
             {/* Institute Identity */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -215,13 +189,13 @@ export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub'
                   width: '42px',
                   height: '42px',
                   borderRadius: '14px',
-                  background: currentSponsor.gradient,
+                  background: '#f3f4f6',
+                  border: '1px solid #e5e7eb',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '20px',
-                  flexShrink: 0,
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+                  flexShrink: 0
                 }}
               >
                 {currentSponsor.logo}
@@ -229,14 +203,15 @@ export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub'
 
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: '#ffffff' }}>
+                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: '#000000' }}>
                     {currentSponsor.name}
                   </h4>
                   <span
                     style={{
                       fontSize: '9px',
-                      background: 'rgba(56, 189, 248, 0.15)',
-                      color: '#38bdf8',
+                      background: '#f3f4f6',
+                      color: '#374151',
+                      border: '1px solid #e5e7eb',
                       padding: '1px 6px',
                       borderRadius: '6px',
                       fontWeight: '800'
@@ -245,7 +220,7 @@ export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub'
                     {currentSponsor.tag}
                   </span>
                 </div>
-                <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#71717a', fontWeight: '600' }}>
+                <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>
                   📍 {currentSponsor.location}
                 </p>
               </div>
@@ -255,9 +230,9 @@ export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub'
             <button
               onClick={(e) => handleCopyCode(currentSponsor.code, e)}
               style={{
-                background: copiedCode === currentSponsor.code ? '#10b981' : '#1e1e24',
-                border: copiedCode === currentSponsor.code ? '1px solid #10b981' : '1px solid #333338',
-                color: copiedCode === currentSponsor.code ? '#ffffff' : '#f4f4f5',
+                background: copiedCode === currentSponsor.code ? '#111827' : '#f3f4f6',
+                border: '1px solid #e5e7eb',
+                color: copiedCode === currentSponsor.code ? '#ffffff' : '#111827',
                 padding: '6px 12px',
                 borderRadius: '12px',
                 fontSize: '11.5px',
@@ -276,11 +251,11 @@ export default function SponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub'
           </div>
 
           {/* Deal Headline & Subtext */}
-          <div style={{ marginTop: '10px', padding: '10px 12px', background: '#0e0e10', borderRadius: '12px', border: '1px solid #1f1f23' }}>
-            <div style={{ fontSize: '13px', fontWeight: '800', color: '#fbbf24', marginBottom: '2px' }}>
+          <div style={{ marginTop: '10px', padding: '10px 12px', background: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+            <div style={{ fontSize: '13px', fontWeight: '800', color: '#000000', marginBottom: '2px' }}>
               ⚡ {currentSponsor.deal}
             </div>
-            <div style={{ fontSize: '11.5px', color: '#a1a1aa', lineHeight: '1.35' }}>
+            <div style={{ fontSize: '11.5px', color: '#6b7280', lineHeight: '1.35' }}>
               {currentSponsor.subtext}
             </div>
           </div>

@@ -20,15 +20,15 @@ export default function AddToHomeScreenGuide({ installPrompt, onInstallDirect })
         whileTap={{ scale: 0.98 }}
         onClick={() => setIsOpen(!isOpen)}
         style={{
-          background: 'linear-gradient(135deg, rgba(255, 85, 0, 0.12), rgba(251, 191, 36, 0.08))',
-          border: '1px solid rgba(255, 85, 0, 0.3)',
+          background: '#f9fafb',
+          border: '1px solid #e5e7eb',
           borderRadius: '16px',
           padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           cursor: 'pointer',
-          boxShadow: '0 4px 20px rgba(255, 85, 0, 0.08)',
+          boxShadow: 'none',
           userSelect: 'none'
         }}
       >
@@ -38,30 +38,30 @@ export default function AddToHomeScreenGuide({ installPrompt, onInstallDirect })
               width: '34px',
               height: '34px',
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, #ff5500, #ff2e93)',
+              background: '#ffffff',
+              border: '1px solid #e5e7eb',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '18px',
-              boxShadow: '0 0 12px rgba(255, 85, 0, 0.4)'
+              fontSize: '18px'
             }}
           >
             📲
           </div>
           <div style={{ textAlign: 'left' }}>
-            <div style={{ color: '#ffffff', fontWeight: '800', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ color: '#000000', fontWeight: '800', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span>Get the Full App Experience</span>
-              <span style={{ background: 'rgba(255,255,255,0.15)', fontSize: '10px', padding: '2px 6px', borderRadius: '6px', color: '#fbbf24' }}>
+              <span style={{ background: '#e5e7eb', fontSize: '10px', padding: '2px 6px', borderRadius: '6px', color: '#111827', fontWeight: '700' }}>
                 PWA
               </span>
             </div>
-            <div style={{ color: '#a1a1aa', fontSize: '11px', marginTop: '1px' }}>
+            <div style={{ color: '#6b7280', fontSize: '11px', marginTop: '1px' }}>
               Add to Home Screen (iOS & Android Guide)
             </div>
           </div>
         </div>
 
-        <span style={{ color: '#ff7700', fontSize: '14px', fontWeight: '900' }}>
+        <span style={{ color: '#000000', fontSize: '14px', fontWeight: '900' }}>
           {isOpen ? '▲' : '▼'}
         </span>
       </motion.div>
@@ -76,11 +76,11 @@ export default function AddToHomeScreenGuide({ installPrompt, onInstallDirect })
             transition={{ type: 'spring', damping: 25, stiffness: 280 }}
             style={{
               overflow: 'hidden',
-              background: '#121214',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: '#ffffff',
+              border: '1px solid #e5e7eb',
               borderRadius: '20px',
               padding: '18px 16px',
-              boxShadow: '0 12px 36px rgba(0,0,0,0.6)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
               textAlign: 'left'
             }}
           >
@@ -93,9 +93,9 @@ export default function AddToHomeScreenGuide({ installPrompt, onInstallDirect })
                   flex: 1,
                   padding: '9px 12px',
                   borderRadius: '12px',
-                  border: platform === 'ios' ? '1px solid #ff5500' : '1px solid #27272a',
-                  background: platform === 'ios' ? 'rgba(255, 85, 0, 0.18)' : '#18181b',
-                  color: platform === 'ios' ? '#ffffff' : '#71717a',
+                  border: platform === 'ios' ? '1px solid #000000' : '1px solid #e5e7eb',
+                  background: platform === 'ios' ? '#000000' : '#f3f4f6',
+                  color: platform === 'ios' ? '#ffffff' : '#4b5563',
                   fontWeight: '800',
                   fontSize: '12.5px',
                   cursor: 'pointer',
@@ -117,9 +117,9 @@ export default function AddToHomeScreenGuide({ installPrompt, onInstallDirect })
                   flex: 1,
                   padding: '9px 12px',
                   borderRadius: '12px',
-                  border: platform === 'android' ? '1px solid #ff5500' : '1px solid #27272a',
-                  background: platform === 'android' ? 'rgba(255, 85, 0, 0.18)' : '#18181b',
-                  color: platform === 'android' ? '#ffffff' : '#71717a',
+                  border: platform === 'android' ? '1px solid #000000' : '1px solid #e5e7eb',
+                  background: platform === 'android' ? '#000000' : '#f3f4f6',
+                  color: platform === 'android' ? '#ffffff' : '#4b5563',
                   fontWeight: '800',
                   fontSize: '12.5px',
                   cursor: 'pointer',
@@ -139,12 +139,12 @@ export default function AddToHomeScreenGuide({ installPrompt, onInstallDirect })
             {platform === 'ios' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                  <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#27272a', color: '#ff5500', fontWeight: '900', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#f3f4f6', color: '#000000', fontWeight: '900', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #e5e7eb' }}>
                     1
                   </div>
-                  <div style={{ fontSize: '12.5px', color: '#d4d4d8', lineHeight: '1.4' }}>
+                  <div style={{ fontSize: '12.5px', color: '#374151', lineHeight: '1.4' }}>
                     Open in <strong>Safari</strong> and tap the <strong>Share button</strong>{' '}
-                    <span style={{ display: 'inline-flex', padding: '2px 6px', background: '#27272a', borderRadius: '6px', color: '#38bdf8', fontWeight: '700' }}>
+                    <span style={{ display: 'inline-flex', padding: '2px 6px', background: '#f3f4f6', borderRadius: '6px', color: '#111827', fontWeight: '700' }}>
                       ⎋ (Box with arrow)
                     </span>{' '}
                     at the bottom of your screen.
@@ -152,24 +152,24 @@ export default function AddToHomeScreenGuide({ installPrompt, onInstallDirect })
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                  <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#27272a', color: '#ff5500', fontWeight: '900', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#f3f4f6', color: '#000000', fontWeight: '900', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #e5e7eb' }}>
                     2
                   </div>
-                  <div style={{ fontSize: '12.5px', color: '#d4d4d8', lineHeight: '1.4' }}>
+                  <div style={{ fontSize: '12.5px', color: '#374151', lineHeight: '1.4' }}>
                     Scroll down in the share sheet and tap{' '}
-                    <strong style={{ color: '#ffffff' }}>"Add to Home Screen"</strong>{' '}
-                    <span style={{ display: 'inline-flex', padding: '2px 6px', background: '#27272a', borderRadius: '6px', color: '#fbbf24', fontWeight: '900' }}>
+                    <strong style={{ color: '#000000' }}>"Add to Home Screen"</strong>{' '}
+                    <span style={{ display: 'inline-flex', padding: '2px 6px', background: '#f3f4f6', borderRadius: '6px', color: '#111827', fontWeight: '900' }}>
                       [+]
                     </span>.
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                  <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#27272a', color: '#ff5500', fontWeight: '900', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#f3f4f6', color: '#000000', fontWeight: '900', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #e5e7eb' }}>
                     3
                   </div>
-                  <div style={{ fontSize: '12.5px', color: '#d4d4d8', lineHeight: '1.4' }}>
-                    Tap <strong style={{ color: '#ffffff' }}>"Add"</strong> in the top right. Launch CenterInsider directly from your home screen with zero browser bars!
+                  <div style={{ fontSize: '12.5px', color: '#374151', lineHeight: '1.4' }}>
+                    Tap <strong style={{ color: '#000000' }}>"Add"</strong> in the top right. Launch CenterInsider directly from your home screen with zero browser bars!
                   </div>
                 </div>
               </div>
@@ -191,7 +191,7 @@ export default function AddToHomeScreenGuide({ installPrompt, onInstallDirect })
                       padding: '11px 16px',
                       borderRadius: '12px',
                       border: 'none',
-                      background: 'linear-gradient(135deg, #ff5500, #ff2e93)',
+                      background: '#000000',
                       color: '#ffffff',
                       fontWeight: '800',
                       fontSize: '13px',
@@ -200,7 +200,7 @@ export default function AddToHomeScreenGuide({ installPrompt, onInstallDirect })
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '8px',
-                      boxShadow: '0 4px 16px rgba(255, 85, 0, 0.3)',
+                      boxShadow: 'none',
                       marginBottom: '6px'
                     }}
                   >
@@ -210,12 +210,12 @@ export default function AddToHomeScreenGuide({ installPrompt, onInstallDirect })
                 )}
 
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                  <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#27272a', color: '#ff5500', fontWeight: '900', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#f3f4f6', color: '#000000', fontWeight: '900', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #e5e7eb' }}>
                     1
                   </div>
-                  <div style={{ fontSize: '12.5px', color: '#d4d4d8', lineHeight: '1.4' }}>
+                  <div style={{ fontSize: '12.5px', color: '#374151', lineHeight: '1.4' }}>
                     In <strong>Chrome</strong>, tap the <strong>three dots menu</strong>{' '}
-                    <span style={{ display: 'inline-flex', padding: '2px 6px', background: '#27272a', borderRadius: '6px', color: '#ffffff', fontWeight: '900' }}>
+                    <span style={{ display: 'inline-flex', padding: '2px 6px', background: '#f3f4f6', borderRadius: '6px', color: '#111827', fontWeight: '900' }}>
                       ⋮
                     </span>{' '}
                     in the top right.
@@ -223,21 +223,21 @@ export default function AddToHomeScreenGuide({ installPrompt, onInstallDirect })
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                  <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#27272a', color: '#ff5500', fontWeight: '900', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#f3f4f6', color: '#000000', fontWeight: '900', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #e5e7eb' }}>
                     2
                   </div>
-                  <div style={{ fontSize: '12.5px', color: '#d4d4d8', lineHeight: '1.4' }}>
-                    Tap <strong style={{ color: '#ffffff' }}>"Install app"</strong> or{' '}
-                    <strong style={{ color: '#ffffff' }}>"Add to Home screen"</strong>.
+                  <div style={{ fontSize: '12.5px', color: '#374151', lineHeight: '1.4' }}>
+                    Tap <strong style={{ color: '#000000' }}>"Install app"</strong> or{' '}
+                    <strong style={{ color: '#000000' }}>"Add to Home screen"</strong>.
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                  <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#27272a', color: '#ff5500', fontWeight: '900', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#f3f4f6', color: '#000000', fontWeight: '900', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #e5e7eb' }}>
                     3
                   </div>
-                  <div style={{ fontSize: '12.5px', color: '#d4d4d8', lineHeight: '1.4' }}>
-                    Confirm with <strong style={{ color: '#ffffff' }}>"Install"</strong>. CenterInsider will open full screen with native app performance!
+                  <div style={{ fontSize: '12.5px', color: '#374151', lineHeight: '1.4' }}>
+                    Confirm with <strong style={{ color: '#000000' }}>"Install"</strong>. CenterInsider will open full screen with native app performance!
                   </div>
                 </div>
               </div>
