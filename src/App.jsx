@@ -74,8 +74,10 @@ const pageVariants = {
 };
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [profileData, setProfileData] = useState(null);
+  const [user, setUser] = useState(null);
   const [handle, setHandle] = useState('');
   const [password, setPassword] = useState('');
   const [grade, setGrade] = useState('11');
@@ -123,7 +125,6 @@ export default function App() {
   const [inbox, setInbox] = useState([]);
   const [inviteStats, setInviteStats] = useState({ effectiveInvites: 0, remaining: 3, canReveal: false });
   const [leaderboard, setLeaderboard] = useState([]);
-  const [profileData, setProfileData] = useState(null);
   const [publicProfile, setPublicProfile] = useState(null);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -357,153 +358,114 @@ export default function App() {
   }, []);
 
   // =========================================================
-  // SMART POST-AUTH ROUTING (THE SORTER) & AUTH LISTENER
+  // AUTH STATE & ROUTING GUARD (FIX ONBOARDING LOOP)
   // =========================================================
-  const handleSmartPostAuthRouting = async (sessionUser) => {
-    if (!sessionUser?.id) {
+  const fetchProfile = async (currentSession) => {
+    if (!currentSession?.user?.id) {
       setIsProfileLoading(false);
       return;
     }
+
     setIsProfileLoading(true);
-    setIsCheckingSession(true);
-    setIsAuthLoading(true);
 
     try {
-      // 1. Immediately query the users (or profiles) table for the authenticated user's ID
-      let profile = null;
-      if (supabase) {
-        try {
-          const { data: userData, error: userErr } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', sessionUser.id)
-            .maybeSingle();
-          if (userData && !userErr) {
-            profile = userData;
-          }
-        } catch (e) {
-          console.warn('Direct users table query by id error:', e);
-        }
+      // The Database Query (Crucial):
+      let { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentSession.user.id)
+        .single();
 
-        // Also check by google_id
-        if (!profile && sessionUser.id) {
-          try {
-            const { data: byGid } = await supabase
-              .from('users')
-              .select('*')
-              .eq('google_id', sessionUser.id)
-              .maybeSingle();
-            if (byGid) profile = byGid;
-          } catch (_) {}
-        }
-
-        // Also check by email
-        if (!profile && sessionUser.email) {
-          try {
-            const { data: byEmail } = await supabase
-              .from('users')
-              .select('*')
-              .eq('email', sessionUser.email)
-              .maybeSingle();
-            if (byEmail) profile = byEmail;
-          } catch (_) {}
-        }
-
-        // Also check profiles table
-        if (!profile) {
-          try {
-            const { data: profileData, error: profErr } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', sessionUser.id)
-              .maybeSingle();
-            if (profileData && !profErr) {
-              profile = profileData;
-            }
-          } catch (_) {}
+      // Safe fallback if the table in Supabase is named 'users' or if profiles query returned empty
+      if (error || !data) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', currentSession.user.id)
+          .maybeSingle();
+        if (userData) {
+          data = userData;
+          error = null;
         }
       }
 
-      // If direct queries didn't yield a record, query backend API
-      if (!profile) {
-        try {
-          const selectedGrade = localStorage.getItem('campus_grade') || grade || '11';
-          const cleanRef = (sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
-          const res = await fetch(`${API}/auth/google`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              googleId: sessionUser.id,
-              email: sessionUser.email,
-              name: sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0],
-              avatar: sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '',
-              grade: selectedGrade,
-              refCode: cleanRef || undefined,
-              referred_by: cleanRef || undefined
-            })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.user) profile = data.user;
-          }
-        } catch (apiErr) {
-          console.warn('API sync fallback error:', apiErr);
-        }
+      if (!data) {
+        const { data: byGid } = await supabase
+          .from('users')
+          .select('*')
+          .eq('google_id', currentSession.user.id)
+          .maybeSingle();
+        if (byGid) data = byGid;
       }
 
-      // Crucial: Only evaluate institute status after profile fetch resolves, and set isProfileLoading to false
-      const hasInstitute = Boolean(profile?.institute && profile.institute.trim());
+      if (!data && currentSession.user.email) {
+        const { data: byEmail } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', currentSession.user.email)
+          .maybeSingle();
+        if (byEmail) data = byEmail;
+      }
 
-      if (hasInstitute) {
-        // Valid non-null institute -> instantly navigate('/feed')
-        const userRing = profile.selected_ring || profile.ring || localStorage.getItem('campus_user_ring') || 'gold';
+      // The Routing Decision:
+      // If data exists AND data.institute has a valid string: Set profileData, set isProfileLoading to false, and navigate('/feed').
+      // If data does NOT exist, OR data.institute is null/empty: Set isProfileLoading to false, and navigate('/onboarding').
+      const hasInstitute = Boolean(
+        data &&
+        typeof data.institute === 'string' &&
+        data.institute.trim() !== ''
+      );
+
+      if (data && hasInstitute) {
+        const userRing = data.selected_ring || data.ring || localStorage.getItem('campus_user_ring') || 'gold';
         localStorage.setItem('campus_user_ring', userRing);
-        const fullUser = { ...profile, ring: userRing, selected_ring: userRing };
+        const fullUser = { ...data, ring: userRing, selected_ring: userRing };
         localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
 
+        setProfileData(fullUser);
         setUser(fullUser);
         setIsOnboarding(false);
         setOnboardingGoogleUser(null);
         setView('poll');
+        setGradeFilter(fullUser.grade ? fullUser.grade.toString() : '11');
+
         setIsProfileLoading(false);
         navigate('/feed');
 
-        setGradeFilter(profile.grade ? profile.grade.toString() : '11');
-        loadNextPoll(profile.grade ? profile.grade.toString() : '11', profile.id);
-        fetchPendingRequests(profile.id);
-        fetchAcceptedFriends(profile.id);
-        fetchInbox(profile.id);
+        // Background non-blocking queries
+        loadNextPoll(fullUser.grade ? fullUser.grade.toString() : '11', fullUser.id);
+        fetchPendingRequests(fullUser.id);
+        fetchAcceptedFriends(fullUser.id);
+        fetchInbox(fullUser.id);
       } else {
-        // Lacks an institute (null or empty) -> instantly navigate('/onboarding')
         const cleanRef = (sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
-        const wizardUser = {
-          ...(profile || {}),
-          googleId: sessionUser.id,
-          email: sessionUser.email,
-          name: profile?.name || sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0] || '',
-          avatar: profile?.profile_pic || profile?.avatar || sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '',
+        setOnboardingGoogleUser({
+          ...(data || {}),
+          googleId: currentSession.user.id,
+          email: currentSession.user.email,
+          name: data?.name || currentSession.user.user_metadata?.full_name || currentSession.user.user_metadata?.name || currentSession.user.email?.split('@')[0] || '',
+          avatar: data?.profile_pic || data?.avatar || currentSession.user.user_metadata?.avatar_url || currentSession.user.user_metadata?.picture || '',
           refCode: cleanRef,
           referred_by: cleanRef
-        };
-        setUser(profile ? { ...profile } : null);
-        setOnboardingGoogleUser(wizardUser);
+        });
+        setProfileData(data || null);
+        setUser(data ? { ...data } : null);
         setIsOnboarding(true);
         setIsProfileLoading(false);
         navigate('/onboarding');
       }
     } catch (err) {
-      console.error('Smart post-auth routing exception:', err);
+      console.error('fetchProfile routing error:', err);
       setIsProfileLoading(false);
       navigate('/onboarding');
     } finally {
-      setIsProfileLoading(false);
       setIsCheckingSession(false);
       setIsAuthLoading(false);
       setIsAuthenticating(false);
     }
 
     // Keep server-side API sync active in background without blocking instant routing
-    syncWithBackend(sessionUser).catch(console.warn);
+    syncWithBackend(currentSession.user).catch(console.warn);
   };
 
   useEffect(() => {
@@ -513,7 +475,7 @@ export default function App() {
     let isProcessingCode = Boolean(code);
 
     const initAuth = async () => {
-      // 1. Manual Interception & Explicit Exchange
+      // 1. Manual Interception & Explicit Exchange if returning with ?code=
       if (code) {
         setIsProfileLoading(true);
         setIsCheckingSession(true);
@@ -524,7 +486,6 @@ export default function App() {
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           let activeSession = data?.session;
 
-          // If exchange failed (e.g. already consumed by detectSessionInUrl or React StrictMode), check existing session
           if (error) {
             console.warn('PKCE exchange error, checking existing session:', error.message);
             const { data: sessionData } = await supabase.auth.getSession();
@@ -534,11 +495,10 @@ export default function App() {
           }
 
           if (activeSession?.user) {
-            // Clean Up: Wipe ?code= from the URL so it doesn't trigger twice
             window.history.replaceState(null, '', window.location.pathname.replace(/[?&]code=[^&]+/, ''));
-
             if (isMounted) {
-              await handleSmartPostAuthRouting(activeSession.user);
+              setSession(activeSession);
+              await fetchProfile(activeSession);
             }
           } else {
             console.error('Failed to establish session after PKCE exchange');
@@ -558,42 +518,33 @@ export default function App() {
           }
         }
       } else {
-        // 2. Standard Persistent Auth Check: check for existing, unexpired Supabase session
+        // 2. Standard Session Check on initial application load
         try {
           setIsProfileLoading(true);
-          setIsCheckingSession(true);
-          setIsAuthLoading(true);
-          const { data: { session }, error } = await supabase.auth.getSession();
+          const { data: { session: initialSession }, error } = await supabase.auth.getSession();
           if (!isMounted) return;
 
           if (error) {
             console.warn('Supabase getSession error:', error.message);
           }
 
-          if (session?.user) {
-            const isExpired = session.expires_at ? (session.expires_at * 1000 <= Date.now()) : false;
-            if (!isExpired) {
-              await handleSmartPostAuthRouting(session.user);
-            } else {
-              // Try refreshing expired session
-              const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
-              if (refreshed?.session?.user && !refreshErr) {
-                await handleSmartPostAuthRouting(refreshed.session.user);
-              } else {
-                setUser(null);
-                setIsProfileLoading(false);
-                localStorage.removeItem('campus_cached_user');
-              }
-            }
+          if (initialSession?.user) {
+            setSession(initialSession);
+            await fetchProfile(initialSession);
           } else {
-            // No session present on load
+            setSession(null);
             setUser(null);
+            setProfileData(null);
             setIsProfileLoading(false);
           }
         } catch (err) {
           console.error('Session retrieval error:', err);
-          setUser(null);
-          setIsProfileLoading(false);
+          if (isMounted) {
+            setSession(null);
+            setUser(null);
+            setProfileData(null);
+            setIsProfileLoading(false);
+          }
         } finally {
           if (isMounted) {
             setIsCheckingSession(false);
@@ -604,25 +555,31 @@ export default function App() {
       }
     };
 
-    // 3. Setup onAuthStateChange with Smart Post-Auth Routing
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // 3. Session Listener: Use supabase.auth.onAuthStateChange. When a session is found, immediately set isProfileLoading to true.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!isMounted) return;
 
-      // Ghost-Logout Immunity: Strictly ignore SIGNED_OUT while PKCE code is processing
-      // Also ignore SIGNED_OUT generally because logout is explicitly handled by handleLogout
       if (event === 'SIGNED_OUT') {
         if (isProcessingCode) {
           console.warn('Ghost-logout suppressed during PKCE code exchange');
+          return;
         }
+        setSession(null);
+        setUser(null);
+        setProfileData(null);
+        setIsProfileLoading(false);
         return;
       }
 
-      // When SIGNED_IN occurs, immediately query profiles/users and smartly route
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        if (session?.user) {
-          setIsProfileLoading(true);
-          await handleSmartPostAuthRouting(session.user);
-        }
+      if (currentSession?.user) {
+        setIsProfileLoading(true);
+        setSession(currentSession);
+        await fetchProfile(currentSession);
+      } else if (!currentSession) {
+        setSession(null);
+        setUser(null);
+        setProfileData(null);
+        setIsProfileLoading(false);
       }
     });
 
@@ -1170,18 +1127,24 @@ export default function App() {
     );
   };
 
-  if (isProfileLoading || isCheckingSession || isAuthLoading || (isAuthenticating && !user)) {
+  if (isProfileLoading) {
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100svh',
-        background: '#ffffff',
-        color: '#000000',
-        width: '100%'
-      }}>
-        <HamsterLoader message="Entering Bathinda Coaching Loop..." />
+      <div
+        className="flex h-screen items-center justify-center bg-white text-black text-xl font-bold"
+        style={{
+          display: 'flex',
+          height: '100vh',
+          minHeight: '100svh',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#ffffff',
+          color: '#000000',
+          fontSize: '1.25rem',
+          fontWeight: '700',
+          width: '100%'
+        }}
+      >
+        Loading...
       </div>
     );
   }
