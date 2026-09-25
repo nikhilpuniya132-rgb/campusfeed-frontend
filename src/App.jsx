@@ -136,11 +136,10 @@ export default function App() {
 
   const syncWithBackend = async (sessionUser, targetGrade = grade) => {
     if (!sessionUser) return;
-    setIsAuthenticating(true);
     try {
       const selectedGrade = localStorage.getItem('campus_grade') || targetGrade || grade || '11';
       const cleanRef = (sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
-      const res = await fetch(`${API}/auth/google`, {
+      await fetch(`${API}/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -153,125 +152,8 @@ export default function App() {
           referred_by: cleanRef || undefined
         })
       });
-      const data = await res.json();
-      const backendInstitute = (data.user?.school || data.user?.institute || '').trim();
-      const alreadyHasInstitute = Boolean(userRef.current?.institute || userRef.current?.school);
-
-      if ((data.isNewUser || !data.user?.handle || !backendInstitute) && !alreadyHasInstitute) {
-        setOnboardingGoogleUser({
-          ...(data.googleUser || {}),
-          googleId: sessionUser.id,
-          email: sessionUser.email,
-          name: data.user?.name || sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0],
-          avatar: data.user?.profile_pic || data.user?.avatar || sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '',
-          refCode: cleanRef,
-          referred_by: cleanRef
-        });
-        setIsOnboarding(true);
-        window.history.replaceState(null, '', '/onboarding');
-      } else if (data.user || alreadyHasInstitute) {
-        const resolvedInstitute = backendInstitute || userRef.current?.institute || userRef.current?.school || 'Kapil Institute';
-        const userRing = data.user?.selected_ring || data.user?.ring || localStorage.getItem('campus_user_ring') || 'gold';
-        localStorage.setItem('campus_user_ring', userRing);
-        const fullUser = {
-          ...(data.user || {}),
-          institute: resolvedInstitute,
-          school: resolvedInstitute,
-          ring: userRing,
-          selected_ring: userRing
-        };
-        localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
-        setUser(fullUser);
-        setIsOnboarding(false);
-        setOnboardingGoogleUser(null);
-
-        // Persistent Auth Routing: If valid session exists and user has completed profile,
-        // automatically redirect away from base URL (/ or landing page) directly to /feed
-        const currentPath = window.location.pathname.replace(/^\//, '');
-        if (!currentPath || currentPath === 'landing') {
-          window.history.replaceState(null, '', '/feed');
-          setView('poll');
-        } else if (currentPath === 'feed' || currentPath === 'poll') {
-          setView('poll');
-        }
-
-        if (data.user?.grade) {
-          setGradeFilter(data.user.grade.toString());
-        }
-        if (data.user?.id) {
-          loadNextPoll(data.user.grade ? data.user.grade.toString() : '11', data.user.id);
-          fetchPendingRequests(data.user.id);
-          fetchAcceptedFriends(data.user.id);
-          fetchInbox(data.user.id);
-        }
-      }
     } catch (err) {
-      console.error('Google Auth Sync Error:', err);
-      // Fallback: check Supabase users table directly
-      let dbUser = null;
-      if (supabase && sessionUser?.id) {
-        try {
-          let { data } = await supabase.from('users').select('*').eq('id', sessionUser.id).maybeSingle();
-          if (!data) {
-            const { data: byGid } = await supabase.from('users').select('*').eq('google_id', sessionUser.id).maybeSingle();
-            data = byGid;
-          }
-          if (!data && sessionUser.email) {
-            const { data: byEmail } = await supabase.from('users').select('*').eq('email', sessionUser.email).maybeSingle();
-            data = byEmail;
-          }
-          dbUser = data;
-        } catch (_) {}
-      }
-
-      const dbInstitute = (dbUser?.school || dbUser?.institute || userRef.current?.institute || userRef.current?.school || '').trim();
-      if (dbInstitute) {
-        const userRing = dbUser?.selected_ring || dbUser?.ring || localStorage.getItem('campus_user_ring') || 'gold';
-        localStorage.setItem('campus_user_ring', userRing);
-        const fullUser = {
-          ...(dbUser || {}),
-          institute: dbInstitute,
-          school: dbInstitute,
-          ring: userRing,
-          selected_ring: userRing
-        };
-        localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
-        setUser(fullUser);
-        setIsOnboarding(false);
-        setOnboardingGoogleUser(null);
-
-        const currentPath = window.location.pathname.replace(/^\//, '');
-        if (!currentPath || currentPath === 'landing') {
-          window.history.replaceState(null, '', '/feed');
-          setView('poll');
-        } else if (currentPath === 'feed' || currentPath === 'poll') {
-          setView('poll');
-        }
-
-        if (dbUser?.grade) {
-          setGradeFilter(dbUser.grade.toString());
-        }
-        if (dbUser?.id) {
-          loadNextPoll(dbUser.grade ? dbUser.grade.toString() : '11', dbUser.id);
-        }
-      } else if (!userRef.current?.institute && !userRef.current?.school) {
-        // User has auth session but institute is null/empty -> Lock route and force redirect to /onboarding
-        setOnboardingGoogleUser({
-          googleId: sessionUser.id,
-          email: sessionUser.email,
-          name: sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0],
-          avatar: sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '',
-          refCode: cleanRef,
-          referred_by: cleanRef
-        });
-        setIsOnboarding(true);
-        window.history.replaceState(null, '', '/onboarding');
-      }
-    } finally {
-      setIsAuthenticating(false);
-      setIsCheckingSession(false);
-      setIsAuthLoading(false);
-      setIsProfileLoading(false);
+      console.warn('Backend sync non-critical warning:', err);
     }
   };
 
@@ -443,15 +325,18 @@ export default function App() {
       }
 
       // The Routing Decision:
-      // In Supabase users table, the institute is saved in the 'school' column
+      // In Supabase users table, handle/username and school/institute define a completed profile
+      const handleVal = (data?.handle || data?.username || '').trim();
       const userInstitute = (data?.school || data?.institute || '').trim();
-      const hasInstitute = Boolean(userInstitute !== '');
+      const hasCompletedProfile = Boolean(data && handleVal !== '' && userInstitute !== '');
 
-      if (data && hasInstitute) {
+      if (hasCompletedProfile) {
         const userRing = data.selected_ring || data.ring || localStorage.getItem('campus_user_ring') || 'gold';
         localStorage.setItem('campus_user_ring', userRing);
         const fullUser = {
           ...data,
+          handle: handleVal,
+          username: handleVal,
           institute: userInstitute,
           school: userInstitute,
           ring: userRing,
@@ -477,6 +362,7 @@ export default function App() {
         fetchAcceptedFriends(fullUser.id);
         fetchInbox(fullUser.id);
       } else {
+        // If username or institute is null/missing, strictly route to /onboarding
         const cleanRef = (sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
         setOnboardingGoogleUser({
           ...(data || {}),
@@ -488,7 +374,7 @@ export default function App() {
           referred_by: cleanRef
         });
         setProfileData(data || null);
-        setUser(data ? { ...data, institute: userInstitute, school: userInstitute } : null);
+        setUser(data ? { ...data, handle: handleVal, institute: userInstitute, school: userInstitute } : null);
         setIsOnboarding(true);
         setIsProfileLoading(false);
         setIsAuthLoading(false);
@@ -528,18 +414,33 @@ export default function App() {
 
     const initAuth = async () => {
       try {
-        // Clean URL if ?code= is present (Supabase PKCE handles it automatically with detectSessionInUrl)
-        if (window.location.search.includes('code=')) {
-          window.history.replaceState(null, '', window.location.pathname.replace(/[?&]code=[^&]+/, ''));
+        const urlParams = new URLSearchParams(window.location.search);
+        const authCode = urlParams.get('code');
+        let initialSession = null;
+
+        if (authCode) {
+          try {
+            const { data: exchangeData } = await supabase.auth.exchangeCodeForSession(authCode);
+            if (exchangeData?.session) {
+              initialSession = exchangeData.session;
+            }
+          } catch (e) {
+            console.warn('exchangeCodeForSession warning:', e);
+          }
+          if (window.history.replaceState) {
+            window.history.replaceState(null, '', window.location.pathname);
+          }
         }
 
-        // On initial mount, you MUST immediately call supabase.auth.getSession()
-        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+        if (!initialSession) {
+          const { data: { session: fetchedSession }, error: sessionError } = await supabase.auth.getSession();
+          if (sessionError) {
+            console.error('supabase.auth.getSession() error on mount:', sessionError);
+          }
+          initialSession = fetchedSession;
+        }
+
         if (!isMounted) return;
-
-        if (sessionError) {
-          console.error('supabase.auth.getSession() error on mount:', sessionError);
-        }
 
         if (initialSession?.user) {
           setSession(initialSession);
@@ -936,45 +837,44 @@ export default function App() {
   };
 
   const deleteAccount = async () => {
-    const pass = prompt('Warning: This action is permanent and cannot be undone.\nEnter your account password to confirm deletion:');
-    if (!pass || !pass.trim()) {
-      alert('Password is required. Account deletion cancelled.');
-      return;
-    }
-    const enteredPassword = pass.trim();
+    const confirmed = window.confirm(
+      "Warning: Are you sure you want to delete your account? This action is permanent, wipes all your profile data and votes, and cannot be undone."
+    );
+    if (!confirmed) return;
 
     try {
-      // 1. Validate entered password against stored profile
-      if (supabase && user?.id) {
-        const { data: dbUser } = await supabase
-          .from('users')
-          .select('password')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (dbUser && dbUser.password && dbUser.password !== enteredPassword) {
-          alert('Incorrect password. Account deletion aborted.');
-          return;
+      // 1. Delete user row in Supabase users table (by user.id, google_id, or email)
+      if (supabase && user) {
+        if (user.id) {
+          try {
+            await supabase.from('users').delete().eq('id', user.id);
+          } catch (_) {}
+        }
+        if (user.google_id) {
+          try {
+            await supabase.from('users').delete().eq('google_id', user.google_id);
+          } catch (_) {}
+        }
+        if (user.email) {
+          try {
+            await supabase.from('users').delete().eq('email', user.email);
+          } catch (_) {}
         }
       }
 
-      // 2. Execute deletion API on backend
-      const res = await fetch(`${API}/profile/${user.id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: enteredPassword })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || 'Incorrect password. Account deletion aborted.');
-        return;
+      // 2. Best-effort backend deletion if handle exists
+      if (user?.handle) {
+        try {
+          await fetch(`${API}/profile/${user.id || user.handle}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isOAuth: true, handle: user.handle })
+          });
+        } catch (_) {}
       }
 
-      // 3. Delete Supabase Auth session & local profile row
-      if (supabase && user?.id) {
-        try {
-          await supabase.from('users').delete().eq('id', user.id);
-        } catch (_) {}
+      // 3. Delete Supabase Auth session
+      if (supabase) {
         try {
           await supabase.auth.signOut();
         } catch (_) {}

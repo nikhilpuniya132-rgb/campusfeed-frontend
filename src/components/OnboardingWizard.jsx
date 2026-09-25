@@ -154,39 +154,15 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       const cleanRef = (refCode || googleUser?.refCode || sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
       const finalAvatar = gender === 'girl' ? (avatarEmoji === '😎' ? '🌸' : avatarEmoji) : avatarEmoji;
 
-      const res = await fetch(`${API}/user/complete-onboarding`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          googleId: googleUser?.googleId,
-          email: googleUser?.email,
-          name: name.trim(),
-          handle: handle.trim().replace(/^@/, '').toLowerCase(),
-          password: password.trim(),
-          gender,
-          school: institute.trim(),
-          institute: institute.trim(),
-          coaching_hub: coachingHub || findHubForInstitute(institute),
-          stream: stream,
-          district: 'Bathinda',
-          grade: stream.includes('12') ? 12 : stream.includes('drop') ? 'dropper' : 11,
-          avatar: finalAvatar,
-          profilePic: profilePic || '',
-          refCode: cleanRef,
-          referred_by: cleanRef
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to complete profile');
-
-      // Sync directly to Supabase users table using explicit authenticated session user ID
-      let authenticatedUserId = googleUser?.googleId || googleUser?.id || data.user?.id;
+      // 1. Direct Supabase save (Primary database of truth)
+      let authenticatedUserId = googleUser?.googleId || googleUser?.id;
+      let sessionEmail = googleUser?.email;
       if (supabase) {
         try {
           const { data: sessionData } = await supabase.auth.getSession();
           if (sessionData?.session?.user?.id) {
             authenticatedUserId = sessionData.session.user.id;
+            sessionEmail = sessionData.session.user.email || sessionEmail;
           }
         } catch (_) {}
 
@@ -194,7 +170,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
           const supabasePayload = {
             id: authenticatedUserId,
             google_id: googleUser?.googleId || authenticatedUserId,
-            email: googleUser?.email || data.user?.email || null,
+            email: sessionEmail || null,
             name: name.trim(),
             handle: handle.trim().replace(/^@/, '').toLowerCase(),
             school: institute.trim(),
@@ -203,15 +179,43 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             avatar: finalAvatar,
             profile_pic: profilePic || '',
             bio: `${institute.trim()} • ${stream}`,
-            grade: stream.includes('12') ? 12 : stream.includes('drop') ? 'dropper' : 11
+            grade: stream.includes('12') ? '12' : stream.includes('drop') ? 'dropper' : '11'
           };
 
           const { error } = await supabase.from('users').upsert(supabasePayload);
-          console.log("Onboarding Save Error:", error);
+          console.log("Onboarding Save Result:", { error });
           if (error) {
             console.error("Supabase upsert into users table failed:", error);
           }
         }
+      }
+
+      // 2. Best-effort backend sync
+      try {
+        await fetch(`${API}/user/complete-onboarding`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            googleId: authenticatedUserId,
+            email: sessionEmail,
+            name: name.trim(),
+            handle: handle.trim().replace(/^@/, '').toLowerCase(),
+            password: password.trim(),
+            gender,
+            school: institute.trim(),
+            institute: institute.trim(),
+            coaching_hub: coachingHub || findHubForInstitute(institute),
+            stream: stream,
+            district: 'Bathinda',
+            grade: stream.includes('12') ? 12 : stream.includes('drop') ? 'dropper' : 11,
+            avatar: finalAvatar,
+            profilePic: profilePic || '',
+            refCode: cleanRef,
+            referred_by: cleanRef
+          })
+        });
+      } catch (beErr) {
+        console.warn('Backend sync warning:', beErr);
       }
 
       // Clear referral code from storage
