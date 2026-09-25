@@ -8,6 +8,10 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
   const [loading, setLoading] = useState(true);
   const [gradeFilter, setGradeFilter] = useState('all');
   const [copyToast, setCopyToast] = useState(false);
+  const [applyToast, setApplyToast] = useState(false);
+  const [hasApplied, setHasApplied] = useState(() => {
+    return localStorage.getItem('applied_batch_captain') === 'true';
+  });
 
   useEffect(() => {
     fetchCaptains();
@@ -113,6 +117,38 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
         <div style={{ width: '60px' }}></div>
       </div>
 
+      {/* Toast Notification for Batch Captain Application Requirement */}
+      <AnimatePresence>
+        {applyToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -16, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: -16, x: '-50%' }}
+            style={{
+              position: 'fixed',
+              top: '20px',
+              left: '50%',
+              zIndex: 9999,
+              background: '#000000',
+              color: '#ffffff',
+              padding: '12px 20px',
+              borderRadius: '14px',
+              fontSize: '13px',
+              fontWeight: '800',
+              boxShadow: '0 12px 30px rgba(0,0,0,0.22)',
+              maxWidth: '90%',
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <span>👑</span>
+            <span>You must invite 25 friends to become a Batch Captain.</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* User's Captain Status Widget */}
       <div
         style={{
@@ -124,147 +160,196 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
           boxShadow: 'none'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <div>
+        {!hasApplied && !isEliteCaptain && userInvites < 25 ? (
+          /* Initial State: Hide progress bar and tracking details. Display single clear Apply button */
+          <div style={{ textAlign: 'center', padding: '6px 2px' }}>
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}>👑</div>
             <div style={{ fontSize: '11px', fontWeight: '800', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Your Captain Status
+              Batch Captain Program
             </div>
-            <div style={{ fontSize: '20px', fontWeight: '900', color: '#000000', marginTop: '2px' }}>
-              Rank #{userRank}{' '}
-              <span style={{ fontSize: '13px', color: '#6b7280', fontWeight: '700' }}>
-                ({userInvites} verified)
-              </span>
+            <div style={{ fontSize: '18px', fontWeight: '900', color: '#000000', margin: '4px 0 6px 0' }}>
+              Lead Your Coaching Batch
             </div>
-          </div>
+            <p style={{ fontSize: '12.5px', color: '#6b7280', margin: '0 0 16px 0', lineHeight: '1.45' }}>
+              Become an official Batch Captain for your coaching institute, unlock moderator privileges, and earn exclusive recognition in Legends.
+            </p>
 
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '5px 10px', borderRadius: '12px', color: '#1d4ed8', fontWeight: '900', fontSize: '13px' }}>
-              <span>💧</span>
-              <span>{userDrops} Drops</span>
-            </div>
-            <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px' }}>
-              +50 per verified recruit
-            </div>
-          </div>
-        </div>
-
-        {/* Grand Status Progress Bar */}
-        <div
-          style={{
-            background: '#ffffff',
-            border: '1px solid #e5e7eb',
-            borderRadius: '16px',
-            padding: '12px 14px',
-            marginBottom: '12px',
-            boxShadow: 'none'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '12px', fontWeight: '800', color: '#000000', letterSpacing: '-0.01em' }}>
-              {isEliteCaptain
-                ? '👑 Elite Status: UNLOCKED (Batch Captain / Moderator)'
-                : `Elite Status: ${userInvites} / 25 Active Recruits to unlock Batch Captain.`}
-            </span>
-            <span style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280' }}>
-              {progressPercent}%
-            </span>
-          </div>
-
-          {/* Grand Progress Bar Track */}
-          <div
-            style={{
-              width: '100%',
-              height: '8px',
-              background: '#e5e7eb',
-              borderRadius: '999px',
-              overflow: 'hidden',
-              position: 'relative'
-            }}
-          >
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${progressPercent}%` }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
-              style={{
-                height: '100%',
-                background: '#000000',
-                borderRadius: '999px'
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={() => {
+                setApplyToast(true);
+                setHasApplied(true);
+                localStorage.setItem('applied_batch_captain', 'true');
+                setTimeout(() => setApplyToast(false), 4000);
               }}
-            />
+              style={{
+                width: '100%',
+                padding: '14px',
+                borderRadius: '14px',
+                border: '1px solid #000000',
+                background: '#000000',
+                color: '#ffffff',
+                fontSize: '13.5px',
+                fontWeight: '800',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: 'none'
+              }}
+            >
+              <span>👑</span>
+              <span>Apply for Batch Captain</span>
+            </motion.button>
           </div>
+        ) : (
+          /* Post-Click State: Revealed 0/25 Progress Tracker & Share UI */
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: '800', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Your Captain Status
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: '900', color: '#000000', marginTop: '2px' }}>
+                  Rank #{userRank}{' '}
+                  <span style={{ fontSize: '13px', color: '#6b7280', fontWeight: '700' }}>
+                    ({userInvites} verified)
+                  </span>
+                </div>
+              </div>
 
-          {/* Explanatory Anti-Cheat & Admin Override Subtext */}
-          <div style={{ marginTop: '8px', fontSize: '10.5px', color: '#6b7280', lineHeight: '1.4' }}>
-            {isAdminOverride ? (
-              <span style={{ color: '#000000', fontWeight: '800' }}>
-                ⚡ Admin Override Granted: Full Moderator privileges enabled.
-              </span>
-            ) : isEliteCaptain ? (
-              <span style={{ color: '#059669', fontWeight: '700' }}>
-                ✓ Official Batch Captain & Moderator unlocked with 25 verified active recruits!
-              </span>
-            ) : (
-              <span>
-                🛡️ Active recruits must complete Google Auth and vote in 3+ polls to qualify.
-              </span>
-            )}
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '5px 10px', borderRadius: '12px', color: '#1d4ed8', fontWeight: '900', fontSize: '13px' }}>
+                  <span>💧</span>
+                  <span>{userDrops} Drops</span>
+                </div>
+                <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '3px' }}>
+                  +50 per verified recruit
+                </div>
+              </div>
+            </div>
+
+            {/* Grand Status Progress Bar */}
+            <div
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e5e7eb',
+                borderRadius: '16px',
+                padding: '12px 14px',
+                marginBottom: '12px',
+                boxShadow: 'none'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontSize: '12px', fontWeight: '800', color: '#000000', letterSpacing: '-0.01em' }}>
+                  {isEliteCaptain
+                    ? '👑 Elite Status: UNLOCKED (Batch Captain / Moderator)'
+                    : `Elite Status: ${userInvites} / 25 Active Recruits to unlock Batch Captain.`}
+                </span>
+                <span style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280' }}>
+                  {progressPercent}%
+                </span>
+              </div>
+
+              {/* Grand Progress Bar Track */}
+              <div
+                style={{
+                  width: '100%',
+                  height: '8px',
+                  background: '#e5e7eb',
+                  borderRadius: '999px',
+                  overflow: 'hidden',
+                  position: 'relative'
+                }}
+              >
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPercent}%` }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                  style={{
+                    height: '100%',
+                    background: '#000000',
+                    borderRadius: '999px'
+                  }}
+                />
+              </div>
+
+              {/* Explanatory Anti-Cheat & Admin Override Subtext */}
+              <div style={{ marginTop: '8px', fontSize: '10.5px', color: '#6b7280', lineHeight: '1.4' }}>
+                {isAdminOverride ? (
+                  <span style={{ color: '#000000', fontWeight: '800' }}>
+                    ⚡ Admin Override Granted: Full Moderator privileges enabled.
+                  </span>
+                ) : isEliteCaptain ? (
+                  <span style={{ color: '#059669', fontWeight: '700' }}>
+                    ✓ Official Batch Captain & Moderator unlocked with 25 verified active recruits!
+                  </span>
+                ) : (
+                  <span>
+                    🛡️ Active recruits must complete Google Auth and vote in 3+ polls to qualify.
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleWhatsAppShare}
+                type="button"
+                aria-label="Share Link"
+                title="Share Invite Link"
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  background: '#000000',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: 'none',
+                  flexShrink: 0
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleCopy}
+                type="button"
+                style={{
+                  flex: 1,
+                  padding: '11px 14px',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  background: copyToast ? '#f0fdf4' : '#000000',
+                  color: copyToast ? '#166534' : '#ffffff',
+                  fontSize: '12.5px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'background 0.2s',
+                  boxShadow: 'none'
+                }}
+              >
+                <span>{copyToast ? '✓ Copied' : '🔗 Copy Link'}</span>
+              </motion.button>
+            </div>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={handleWhatsAppShare}
-            type="button"
-            aria-label="Share Link"
-            title="Share Invite Link"
-            style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
-              border: '1px solid #e5e7eb',
-              background: '#000000',
-              color: '#ffffff',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: 'none',
-              flexShrink: 0
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={handleCopy}
-            type="button"
-            style={{
-              flex: 1,
-              padding: '11px 14px',
-              borderRadius: '12px',
-              border: '1px solid #e5e7eb',
-              background: copyToast ? '#f0fdf4' : '#000000',
-              color: copyToast ? '#166534' : '#ffffff',
-              fontSize: '12.5px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              transition: 'background 0.2s',
-              boxShadow: 'none'
-            }}
-          >
-            <span>{copyToast ? '✓ Copied' : '🔗 Copy Link'}</span>
-          </motion.button>
-        </div>
+        )}
       </div>
 
       {/* Category Switcher Tabs (active: bg-black text-white; inactive: bg-gray-100 text-gray-600) */}

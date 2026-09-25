@@ -1,16 +1,98 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import HolographicCard from './HolographicCard';
 
-export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () => {} }) {
-  const [selectedPlan, setSelectedPlan] = useState('monthly'); // default to high-value tier
+const AURA_RING_OPTIONS = [
+  { id: 'gold', label: 'Gold Ring', color: '#d97706', desc: 'Championship gold halo' },
+  { id: 'neon', label: 'Electric Blue', color: '#2563eb', desc: 'High-voltage energy pulse' },
+  { id: 'ruby', label: 'Ruby Red', color: '#dc2626', desc: 'Crimson flame intensity' },
+  { id: 'purple', label: 'Cosmic Purple', color: '#7c3aed', desc: 'Ultraviolet nebula aura' },
+  { id: 'emerald', label: 'Emerald Green', color: '#059669', desc: 'Radiant mystic jade glow' },
+  { id: 'none', label: 'Minimal / None', color: '#9ca3af', desc: 'Clean standard border' }
+];
 
-  const isPro = !!user?.is_pro;
+export default function GodMode({
+  user,
+  onUpgrade = () => {},
+  onNavigate = () => {},
+  supabase,
+  API,
+  onUpdateUser,
+  renderProfilePic
+}) {
+  const [selectedPlan, setSelectedPlan] = useState('monthly'); // default to high-value tier
+  const isPro = Boolean(user?.is_pro);
+
+  const [selectedRing, setSelectedRing] = useState(
+    user?.selected_ring || user?.ring || localStorage.getItem('campus_user_ring') || 'gold'
+  );
+  const [isSavingRing, setIsSavingRing] = useState(false);
+  const [ringToast, setRingToast] = useState('');
+
+  useEffect(() => {
+    if (user?.selected_ring || user?.ring) {
+      setSelectedRing(user.selected_ring || user.ring);
+    }
+  }, [user?.selected_ring, user?.ring]);
 
   const handlePay = (tier) => {
     const planToPay = tier || selectedPlan;
     const amount = planToPay === 'weekly' ? 99 : 149;
     onUpgrade(amount);
+  };
+
+  const handleRingSelect = async (ringId) => {
+    setSelectedRing(ringId);
+    setIsSavingRing(true);
+    setRingToast('Saving ring to profile...');
+
+    const updatedUser = { ...user, ring: ringId, selected_ring: ringId };
+
+    // 1. Immediately update local React state
+    if (onUpdateUser) {
+      onUpdateUser(updatedUser);
+    }
+
+    // 2. Persist locally across browser refreshes
+    localStorage.setItem('campus_user_ring', ringId);
+    localStorage.setItem('selected_ring', ringId);
+
+    // 3. Execute Supabase UPDATE query on users table
+    if (supabase && user?.id) {
+      try {
+        const { error } = await supabase
+          .from('users')
+          .update({ selected_ring: ringId, ring: ringId })
+          .eq('id', user.id);
+
+        if (error) {
+          // Fallback if column is named ring in Supabase schema
+          await supabase
+            .from('users')
+            .update({ ring: ringId })
+            .eq('id', user.id);
+        }
+      } catch (err) {
+        console.warn('Supabase ring update error:', err);
+      }
+    }
+
+    // 4. API endpoint update for full redundancy
+    try {
+      if (API && user?.id) {
+        await fetch(`${API}/user/ring`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, selected_ring: ringId })
+        });
+      }
+    } catch (err) {
+      console.warn('API ring update error:', err);
+    } finally {
+      setIsSavingRing(false);
+      setRingToast('Aura Ring saved & equipped! ✨');
+      setTimeout(() => setRingToast(''), 2500);
+    }
   };
 
   return (
@@ -64,7 +146,7 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
           padding: '0 8px'
         }}>
           {isPro
-            ? 'You have VIP status. All voter names are revealed and 30m cooldowns bypassed.'
+            ? 'You have VIP status. All voter names are revealed, cooldowns bypassed, and aura rings unlocked.'
             : 'Stop wondering who voted for you. Reveal real names, equip exclusive aura rings, and dominate the coaching loop.'}
         </p>
       </motion.div>
@@ -77,13 +159,163 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
           price={isPro ? 'ACTIVE' : (selectedPlan === 'weekly' ? '₹99' : '₹149')}
           period={isPro ? '' : (selectedPlan === 'weekly' ? '/week' : '/month')}
           onAction={() => handlePay(selectedPlan)}
-          actionText={isPro ? '✓ Active Membership' : (selectedPlan === 'weekly' ? 'Get Weekly Pass - ₹99 ⚡' : 'Get Monthly Pass - ₹149 👑')}
+          actionText={isPro ? '✓ Active VIP Membership' : (selectedPlan === 'weekly' ? 'Get Weekly Pass - ₹99 ⚡' : 'Get Monthly Pass - ₹149 👑')}
         />
+      </div>
+
+      {/* Toast Notification for Ring Updates */}
+      <AnimatePresence>
+        {ringToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            style={{
+              position: 'fixed',
+              top: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 9999,
+              background: '#000000',
+              color: '#ffffff',
+              padding: '10px 18px',
+              borderRadius: '12px',
+              fontSize: '12.5px',
+              fontWeight: '800',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>✓</span>
+            <span>{ringToast}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* AURA RING EQUIPMENT (Interactive for Pro Users, Preview for Non-Pro) */}
+      <div style={{
+        width: '100%',
+        background: '#f9fafb',
+        border: '1px solid #e5e7eb',
+        borderRadius: '18px',
+        padding: '18px 16px',
+        marginBottom: '16px',
+        boxSizing: 'border-box'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '16px' }}>💍</span>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#000000' }}>
+                Profile Ring Equipment
+              </h3>
+            </div>
+            <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: '#6b7280' }}>
+              {isPro
+                ? 'Select an aura ring to instantly equip and save to your profile.'
+                : 'Exclusive halo rings for God Mode VIP members.'}
+            </p>
+          </div>
+          {isPro && (
+            <span style={{
+              background: '#000000',
+              color: '#ffffff',
+              fontSize: '9.5px',
+              fontWeight: '900',
+              padding: '2px 8px',
+              borderRadius: '6px'
+            }}>
+              VIP UNLOCKED
+            </span>
+          )}
+        </div>
+
+        {/* Ring Options Grid */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {AURA_RING_OPTIONS.map((ring) => {
+            const isEquipped = selectedRing === ring.id;
+            return (
+              <motion.button
+                key={ring.id}
+                whileTap={{ scale: 0.99 }}
+                type="button"
+                disabled={isSavingRing || !isPro}
+                onClick={() => handleRingSelect(ring.id)}
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  borderRadius: '14px',
+                  border: isEquipped ? '2px solid #000000' : '1px solid #e5e7eb',
+                  background: isEquipped ? '#ffffff' : '#f9fafb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: isPro ? 'pointer' : 'default',
+                  opacity: isPro ? 1 : 0.65,
+                  transition: 'all 0.15s ease',
+                  boxShadow: isEquipped ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+                  textAlign: 'left'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {/* Aura Dot Indicator */}
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    border: `3px solid ${ring.color}`,
+                    background: ring.id === 'none' ? 'transparent' : `${ring.color}22`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }} />
+
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: '800', color: '#000000' }}>
+                      {ring.label}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                      {ring.desc}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  {isEquipped ? (
+                    <span style={{
+                      background: '#000000',
+                      color: '#ffffff',
+                      fontSize: '10.5px',
+                      fontWeight: '800',
+                      padding: '4px 10px',
+                      borderRadius: '8px'
+                    }}>
+                      Equipped ✓
+                    </span>
+                  ) : isPro ? (
+                    <span style={{
+                      color: '#6b7280',
+                      fontSize: '11px',
+                      fontWeight: '700'
+                    }}>
+                      Equip
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '12px' }}>🔒</span>
+                  )}
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
       </div>
 
       {!isPro ? (
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {/* Side-by-Side Pricing Selection Cards (Restored ₹99/wk & ₹149/mo) */}
+          {/* Side-by-Side Pricing Selection Cards (₹99/wk & ₹149/mo) */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
@@ -266,7 +498,7 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12.5px', color: '#111827' }}>
                 <span style={{ color: '#000000', fontWeight: '900' }}>✓</span>
-                <span><strong>Minimalist Halos:</strong> Equip Gold, Crimson, Charcoal & Minimal rings</span>
+                <span><strong>Aura Rings:</strong> Equip Gold, Crimson, Cosmic, Blue & Emerald rings</span>
               </li>
               {selectedPlan === 'monthly' && (
                 <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12.5px', color: '#111827', fontWeight: '700' }}>
@@ -305,26 +537,22 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
           </motion.button>
         </div>
       ) : (
-        /* Pro Active State */
+        /* Pro Active Footer Info */
         <div style={{
           width: '100%',
           background: '#f9fafb',
           border: '1px solid #e5e7eb',
           borderRadius: '18px',
-          padding: '20px',
+          padding: '16px',
           textAlign: 'center',
           boxSizing: 'border-box'
         }}>
-          <div style={{ fontSize: '32px', marginBottom: '8px' }}>👑</div>
-          <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: '800', color: '#000000' }}>
-            VIP Membership Active
-          </h3>
-          <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#6b7280' }}>
-            Your account has full God Mode access. Enjoy uninhibited identity reveals and custom halos.
+          <p style={{ margin: '0 0 10px 0', fontSize: '12.5px', color: '#6b7280' }}>
+            VIP membership active. All voter reveals unlocked and 30m cooldowns bypassed.
           </p>
           <button
             type="button"
-            onClick={() => onNavigate('profile')}
+            onClick={() => onNavigate('poll')}
             style={{
               padding: '10px 18px',
               borderRadius: '12px',
@@ -336,7 +564,7 @@ export default function GodMode({ user, onUpgrade = () => {}, onNavigate = () =>
               cursor: 'pointer'
             }}
           >
-            Customize Halo Rings in Profile ➔
+            Return to Feed ➔
           </button>
         </div>
       )}

@@ -34,10 +34,14 @@ const API = (window.location.hostname === 'localhost' || window.location.hostnam
 
 const AURA_RINGS = {
   none: { border: 'none', boxShadow: 'none' },
-  gold: { border: '2px solid #000000', boxShadow: 'none' },
-  neonPurple: { border: '2px solid #374151', boxShadow: 'none' },
-  blueEnergy: { border: '2px dashed #000000', boxShadow: 'none' },
-  crimsonFire: { border: '2px double #111827', boxShadow: 'none' }
+  gold: { border: '3px solid #d97706', boxShadow: '0 0 10px rgba(217, 119, 6, 0.45)' },
+  neon: { border: '3px solid #2563eb', boxShadow: '0 0 10px rgba(37, 99, 235, 0.45)' },
+  blueEnergy: { border: '3px solid #2563eb', boxShadow: '0 0 10px rgba(37, 99, 235, 0.45)' },
+  ruby: { border: '3px solid #dc2626', boxShadow: '0 0 10px rgba(220, 38, 38, 0.45)' },
+  crimsonFire: { border: '3px solid #dc2626', boxShadow: '0 0 10px rgba(220, 38, 38, 0.45)' },
+  purple: { border: '3px solid #7c3aed', boxShadow: '0 0 10px rgba(124, 58, 237, 0.45)' },
+  neonPurple: { border: '3px solid #7c3aed', boxShadow: '0 0 10px rgba(124, 58, 237, 0.45)' },
+  emerald: { border: '3px solid #059669', boxShadow: '0 0 10px rgba(5, 150, 105, 0.45)' }
 };
 
 // Dynamic taxonomy badge for city-wide coaching network
@@ -152,8 +156,9 @@ export default function App() {
       if (data.isNewUser) {
         setOnboardingGoogleUser({ ...(data.googleUser || {}), refCode: cleanRef, referred_by: cleanRef });
         setIsOnboarding(true);
-      } else if (data.user) {
-        setUser(prev => ({ ...(prev || {}), ...data.user }));
+        const userRing = data.user?.selected_ring || data.user?.ring || localStorage.getItem('campus_user_ring') || 'gold';
+        localStorage.setItem('campus_user_ring', userRing);
+        setUser(prev => ({ ...(prev || {}), ...data.user, ring: userRing, selected_ring: userRing }));
         setIsOnboarding(false);
         setOnboardingGoogleUser(null);
         setView('poll');
@@ -1037,6 +1042,13 @@ export default function App() {
                     user={user}
                     onUpgrade={handleUpgrade}
                     onNavigate={handleNav}
+                    supabase={supabase}
+                    API={API}
+                    onUpdateUser={(updatedUser) => {
+                      setUser(prev => ({ ...prev, ...updatedUser }));
+                      setProfileData(prev => prev ? ({ ...prev, user: { ...prev.user, ...updatedUser } }) : null);
+                    }}
+                    renderProfilePic={renderProfilePic}
                   />
                 </motion.div>
               )}

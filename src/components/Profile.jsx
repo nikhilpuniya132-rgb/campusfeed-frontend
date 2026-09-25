@@ -122,6 +122,9 @@ export default function Profile({
       onUpdateUser(updatedUser);
     }
 
+    localStorage.setItem('campus_user_ring', ringId);
+    localStorage.setItem('selected_ring', ringId);
+
     setRingSavedToast(true);
     setTimeout(() => setRingSavedToast(false), 2200);
 
