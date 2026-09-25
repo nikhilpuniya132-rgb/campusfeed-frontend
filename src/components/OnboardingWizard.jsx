@@ -182,8 +182,13 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             grade: stream.includes('12') ? '12' : stream.includes('drop') ? 'dropper' : '11'
           };
 
-          const { error } = await supabase.from('users').upsert(supabasePayload);
-          console.log("Onboarding Save Result:", { error });
+          const { data: upsertData, error } = await supabase
+            .from('users')
+            .upsert(supabasePayload)
+            .select()
+            .maybeSingle();
+
+          console.log("Onboarding Save Result:", { upsertData, error });
           if (error) {
             console.error("Supabase upsert into users table failed:", error);
           }
@@ -226,8 +231,8 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
 
       // Task 3: Ensure Immediate State Update and redirect to /feed
       const completedUser = {
-        ...(data.user || {}),
         id: authenticatedUserId,
+        email: sessionEmail || '',
         name: name.trim(),
         handle: handle.trim().replace(/^@/, '').toLowerCase(),
         username: handle.trim().replace(/^@/, '').toLowerCase(),
@@ -239,6 +244,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
         gender,
         avatar: finalAvatar,
         profile_pic: profilePic || '',
+        bio: `${institute.trim()} • ${stream}`,
         grade: stream.includes('12') ? 12 : stream.includes('drop') ? 'dropper' : 11
       };
 
