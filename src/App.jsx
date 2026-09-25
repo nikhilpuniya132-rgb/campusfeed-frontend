@@ -467,65 +467,20 @@ export default function App() {
   };
 
   // Task 1: Fix Initial Session Mount
-  // Run supabase.auth.getSession() inside a useEffect on the very first component mount
+  // Task 2: Fix Initial Session Load (The Re-Login Bug)
+  // On initial mount, immediately call supabase.auth.getSession() and block UI rendering
   useEffect(() => {
     let isMounted = true;
-    const searchParams = new URLSearchParams(window.location.search);
-    const code = searchParams.get('code');
-    let isProcessingCode = Boolean(code);
+    setIsProfileLoading(true);
 
     const initAuth = async () => {
-      // 1. Initial Session Mount Check: Run supabase.auth.getSession() immediately
       try {
-        setIsProfileLoading(true);
-
-        // If returning with OAuth PKCE callback code (?code=)
-        if (code) {
-          setIsCheckingSession(true);
-          setIsAuthLoading(true);
-          setIsAuthenticating(true);
-
-          try {
-            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-            let activeSession = data?.session;
-
-            if (error) {
-              console.warn('PKCE exchange error, checking existing session:', error.message);
-              const { data: sessionData } = await supabase.auth.getSession();
-              if (sessionData?.session) {
-                activeSession = sessionData.session;
-              }
-            }
-
-            if (activeSession?.user) {
-              window.history.replaceState(null, '', window.location.pathname.replace(/[?&]code=[^&]+/, ''));
-              if (isMounted) {
-                setSession(activeSession);
-                await fetchProfile(activeSession);
-              }
-              return;
-            } else {
-              console.error('Failed to establish session after PKCE exchange');
-              setIsProfileLoading(false);
-              navigate('/');
-              return;
-            }
-          } catch (err) {
-            console.error('PKCE exchange exception:', err);
-            setIsProfileLoading(false);
-            navigate('/');
-            return;
-          } finally {
-            isProcessingCode = false;
-            if (isMounted) {
-              setIsCheckingSession(false);
-              setIsAuthLoading(false);
-              setIsAuthenticating(false);
-            }
-          }
+        // Clean URL if ?code= is present (Supabase PKCE handles it automatically with detectSessionInUrl)
+        if (window.location.search.includes('code=')) {
+          window.history.replaceState(null, '', window.location.pathname.replace(/[?&]code=[^&]+/, ''));
         }
 
-        // Standard direct initial mount check with getSession()
+        // On initial mount, you MUST immediately call supabase.auth.getSession()
         const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
         if (!isMounted) return;
 
@@ -550,44 +505,35 @@ export default function App() {
           setProfileData(null);
           setIsProfileLoading(false);
         }
-      } finally {
-        if (isMounted) {
-          setIsCheckingSession(false);
-          setIsAuthLoading(false);
-          setIsAuthenticating(false);
-        }
       }
     };
 
-    // 2. Auth State Change Listener for subsequent auth events
+    initAuth();
+
+    // Task 3: Synchronize Session State
+    // Listen for SIGNED_IN and SIGNED_OUT events and reliably update React state
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!isMounted) return;
 
+      console.log("Supabase Auth Event:", event, currentSession?.user?.id);
+
       if (event === 'SIGNED_OUT') {
-        if (isProcessingCode) {
-          console.warn('Ghost-logout suppressed during PKCE code exchange');
-          return;
-        }
         setSession(null);
         setUser(null);
         setProfileData(null);
         setIsProfileLoading(false);
+        navigate('/');
         return;
       }
 
-      if (currentSession?.user) {
-        setIsProfileLoading(true);
-        setSession(currentSession);
-        await fetchProfile(currentSession);
-      } else if (!currentSession && event !== 'INITIAL_SESSION') {
-        setSession(null);
-        setUser(null);
-        setProfileData(null);
-        setIsProfileLoading(false);
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        if (currentSession?.user) {
+          setIsProfileLoading(true);
+          setSession(currentSession);
+          await fetchProfile(currentSession);
+        }
       }
     });
-
-    initAuth();
 
     return () => {
       isMounted = false;
@@ -633,6 +579,16 @@ export default function App() {
 
   const loginWithGoogle = async () => {
     setIsAuthenticating(true);
+
+    // Task 1: Mandatory: Before calling signInWithOAuth, aggressively clear hanging local sessions
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Pre-login signOut error:", e);
+    }
+    localStorage.removeItem('campus_cached_user');
+    sessionStorage.clear();
+
     localStorage.setItem('campus_grade', grade);
     localStorage.setItem('campus_stream', stream);
     localStorage.setItem('campus_institute', institute);
@@ -1151,7 +1107,7 @@ export default function App() {
           width: '100%'
         }}
       >
-        Loading...
+        Loading CenterInsider...
       </div>
     );
   }
