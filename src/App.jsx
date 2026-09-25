@@ -360,8 +360,8 @@ export default function App() {
   // =========================================================
   // AUTH STATE & ROUTING GUARD (FIX ONBOARDING LOOP)
   // =========================================================
-  const fetchProfile = async (currentSession) => {
-    if (!currentSession?.user?.id) {
+  const fetchProfile = async (session) => {
+    if (!session?.user?.id) {
       setIsProfileLoading(false);
       return;
     }
@@ -373,36 +373,61 @@ export default function App() {
       let { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', currentSession.user.id)
+        .eq('id', session.user.id)
         .single();
 
-      // Safe fallback if the table in Supabase is named 'users' or if profiles query returned empty
-      if (error || !data) {
-        const { data: userData } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', currentSession.user.id)
-          .maybeSingle();
-        if (userData) {
-          data = userData;
-          error = null;
+      // Task 2: Exact Console Diagnostics immediately after Supabase query
+      console.log("Auth Guard - Session ID:", session?.user?.id, "Profile Data:", data, "Supabase Error:", error);
+
+      // Task 3: Graceful Error Handling
+      // If the Supabase error object is populated (e.g., an RLS policy violation), do not blindly redirect to onboarding.
+      // Alert the error to the screen or log it heavily so the developer knows the database query was rejected.
+      if (error) {
+        console.error("🚨 SUPABASE REJECTED PROFILE QUERY! Error details:", {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+          sessionUserId: session?.user?.id
+        });
+
+        // Fallback: check if the table in this project is actually 'users'
+        try {
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          if (userData && !userError && userData.institute) {
+            console.log("Found profile in fallback 'users' table:", userData);
+            data = userData;
+            error = null;
+          }
+        } catch (_) {}
+
+        if (error) {
+          alert(`⚠️ Supabase Database Query Error!\nCode: ${error.code || 'UNKNOWN'}\nMessage: ${error.message}\nCheck RLS policies on 'profiles'.`);
+          setIsProfileLoading(false);
+          // Do NOT blindly redirect to onboarding when database query was rejected!
+          return;
         }
       }
 
+      // Safe fallback if data was not found by direct id
       if (!data) {
         const { data: byGid } = await supabase
           .from('users')
           .select('*')
-          .eq('google_id', currentSession.user.id)
+          .eq('google_id', session.user.id)
           .maybeSingle();
         if (byGid) data = byGid;
       }
 
-      if (!data && currentSession.user.email) {
+      if (!data && session.user.email) {
         const { data: byEmail } = await supabase
           .from('users')
           .select('*')
-          .eq('email', currentSession.user.email)
+          .eq('email', session.user.email)
           .maybeSingle();
         if (byEmail) data = byEmail;
       }
@@ -441,10 +466,10 @@ export default function App() {
         const cleanRef = (sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
         setOnboardingGoogleUser({
           ...(data || {}),
-          googleId: currentSession.user.id,
-          email: currentSession.user.email,
-          name: data?.name || currentSession.user.user_metadata?.full_name || currentSession.user.user_metadata?.name || currentSession.user.email?.split('@')[0] || '',
-          avatar: data?.profile_pic || data?.avatar || currentSession.user.user_metadata?.avatar_url || currentSession.user.user_metadata?.picture || '',
+          googleId: session.user.id,
+          email: session.user.email,
+          name: data?.name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+          avatar: data?.profile_pic || data?.avatar || session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
           refCode: cleanRef,
           referred_by: cleanRef
         });
@@ -465,9 +490,11 @@ export default function App() {
     }
 
     // Keep server-side API sync active in background without blocking instant routing
-    syncWithBackend(currentSession.user).catch(console.warn);
+    syncWithBackend(session.user).catch(console.warn);
   };
 
+  // Task 1: Fix Initial Session Mount
+  // Run supabase.auth.getSession() inside a useEffect on the very first component mount
   useEffect(() => {
     let isMounted = true;
     const searchParams = new URLSearchParams(window.location.search);
@@ -475,87 +502,91 @@ export default function App() {
     let isProcessingCode = Boolean(code);
 
     const initAuth = async () => {
-      // 1. Manual Interception & Explicit Exchange if returning with ?code=
-      if (code) {
+      // 1. Initial Session Mount Check: Run supabase.auth.getSession() immediately
+      try {
         setIsProfileLoading(true);
-        setIsCheckingSession(true);
-        setIsAuthLoading(true);
-        setIsAuthenticating(true);
 
-        try {
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-          let activeSession = data?.session;
+        // If returning with OAuth PKCE callback code (?code=)
+        if (code) {
+          setIsCheckingSession(true);
+          setIsAuthLoading(true);
+          setIsAuthenticating(true);
 
-          if (error) {
-            console.warn('PKCE exchange error, checking existing session:', error.message);
-            const { data: sessionData } = await supabase.auth.getSession();
-            if (sessionData?.session) {
-              activeSession = sessionData.session;
+          try {
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+            let activeSession = data?.session;
+
+            if (error) {
+              console.warn('PKCE exchange error, checking existing session:', error.message);
+              const { data: sessionData } = await supabase.auth.getSession();
+              if (sessionData?.session) {
+                activeSession = sessionData.session;
+              }
             }
-          }
 
-          if (activeSession?.user) {
-            window.history.replaceState(null, '', window.location.pathname.replace(/[?&]code=[^&]+/, ''));
-            if (isMounted) {
-              setSession(activeSession);
-              await fetchProfile(activeSession);
+            if (activeSession?.user) {
+              window.history.replaceState(null, '', window.location.pathname.replace(/[?&]code=[^&]+/, ''));
+              if (isMounted) {
+                setSession(activeSession);
+                await fetchProfile(activeSession);
+              }
+              return;
+            } else {
+              console.error('Failed to establish session after PKCE exchange');
+              setIsProfileLoading(false);
+              navigate('/');
+              return;
             }
-          } else {
-            console.error('Failed to establish session after PKCE exchange');
+          } catch (err) {
+            console.error('PKCE exchange exception:', err);
             setIsProfileLoading(false);
             navigate('/');
-          }
-        } catch (err) {
-          console.error('PKCE exchange exception:', err);
-          setIsProfileLoading(false);
-          navigate('/');
-        } finally {
-          isProcessingCode = false;
-          if (isMounted) {
-            setIsCheckingSession(false);
-            setIsAuthLoading(false);
-            setIsAuthenticating(false);
+            return;
+          } finally {
+            isProcessingCode = false;
+            if (isMounted) {
+              setIsCheckingSession(false);
+              setIsAuthLoading(false);
+              setIsAuthenticating(false);
+            }
           }
         }
-      } else {
-        // 2. Standard Session Check on initial application load
-        try {
-          setIsProfileLoading(true);
-          const { data: { session: initialSession }, error } = await supabase.auth.getSession();
-          if (!isMounted) return;
 
-          if (error) {
-            console.warn('Supabase getSession error:', error.message);
-          }
+        // Standard direct initial mount check with getSession()
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+        if (!isMounted) return;
 
-          if (initialSession?.user) {
-            setSession(initialSession);
-            await fetchProfile(initialSession);
-          } else {
-            setSession(null);
-            setUser(null);
-            setProfileData(null);
-            setIsProfileLoading(false);
-          }
-        } catch (err) {
-          console.error('Session retrieval error:', err);
-          if (isMounted) {
-            setSession(null);
-            setUser(null);
-            setProfileData(null);
-            setIsProfileLoading(false);
-          }
-        } finally {
-          if (isMounted) {
-            setIsCheckingSession(false);
-            setIsAuthLoading(false);
-            setIsAuthenticating(false);
-          }
+        if (sessionError) {
+          console.error('supabase.auth.getSession() error on mount:', sessionError);
+        }
+
+        if (initialSession?.user) {
+          setSession(initialSession);
+          await fetchProfile(initialSession);
+        } else {
+          setSession(null);
+          setUser(null);
+          setProfileData(null);
+          setIsProfileLoading(false);
+        }
+      } catch (err) {
+        console.error('Initial session mount error:', err);
+        if (isMounted) {
+          setSession(null);
+          setUser(null);
+          setProfileData(null);
+          setIsProfileLoading(false);
+        }
+      } finally {
+        if (isMounted) {
+          setIsCheckingSession(false);
+          setIsAuthLoading(false);
+          setIsAuthenticating(false);
         }
       }
     };
 
-    // 3. Session Listener: Use supabase.auth.onAuthStateChange. When a session is found, immediately set isProfileLoading to true.
+    // 2. Auth State Change Listener for subsequent auth events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!isMounted) return;
 
@@ -575,7 +606,7 @@ export default function App() {
         setIsProfileLoading(true);
         setSession(currentSession);
         await fetchProfile(currentSession);
-      } else if (!currentSession) {
+      } else if (!currentSession && event !== 'INITIAL_SESSION') {
         setSession(null);
         setUser(null);
         setProfileData(null);
