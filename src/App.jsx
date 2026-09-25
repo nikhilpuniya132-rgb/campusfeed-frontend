@@ -340,9 +340,15 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   useEffect(() => {
     const handleNavEvent = (e) => {
-      if (user && (!user.institute || !user.institute.trim())) {
+      const currentUser = userRef.current;
+      if (currentUser && (!currentUser.institute || !currentUser.institute.trim())) {
         setIsOnboarding(true);
         window.history.replaceState(null, '', '/onboarding');
         return;
@@ -361,8 +367,95 @@ export default function App() {
   }, []);
 
   // =========================================================
-  // BULLETPROOF PKCE AUTH LISTENER & GHOST-LOGOUT IMMUNITY
+  // SMART POST-AUTH ROUTING (THE SORTER) & AUTH LISTENER
   // =========================================================
+  const handleSmartPostAuthRouting = async (sessionUser) => {
+    if (!sessionUser?.id) return;
+    setIsCheckingSession(true);
+    setIsAuthLoading(true);
+
+    try {
+      // 1. Immediately query the users (or profiles) table for the authenticated user's ID
+      let profile = null;
+      if (supabase) {
+        try {
+          const { data: userData, error: userErr } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', sessionUser.id)
+            .maybeSingle();
+          if (userData && !userErr) {
+            profile = userData;
+          }
+        } catch (e) {
+          console.warn('Direct users table query error:', e);
+        }
+
+        if (!profile) {
+          try {
+            const { data: profileData, error: profErr } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', sessionUser.id)
+              .maybeSingle();
+            if (profileData && !profErr) {
+              profile = profileData;
+            }
+          } catch (_) {}
+        }
+      }
+
+      // Check if user's profile has a valid, non-null institute value
+      const hasInstitute = Boolean(profile?.institute && profile.institute.trim());
+
+      if (hasInstitute) {
+        // Routing Logic: Valid non-null institute -> instantly navigate('/feed')
+        const userRing = profile.selected_ring || profile.ring || localStorage.getItem('campus_user_ring') || 'gold';
+        localStorage.setItem('campus_user_ring', userRing);
+        const fullUser = { ...profile, ring: userRing, selected_ring: userRing };
+        localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
+
+        setUser(fullUser);
+        setIsOnboarding(false);
+        setOnboardingGoogleUser(null);
+        setView('poll');
+        navigate('/feed');
+
+        setGradeFilter(profile.grade ? profile.grade.toString() : '11');
+        loadNextPoll(profile.grade ? profile.grade.toString() : '11', profile.id);
+        fetchPendingRequests(profile.id);
+        fetchAcceptedFriends(profile.id);
+        fetchInbox(profile.id);
+      } else {
+        // Routing Logic: Profile lacks an institute (null or empty) -> instantly navigate('/onboarding')
+        const cleanRef = (sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
+        const wizardUser = {
+          ...(profile || {}),
+          googleId: sessionUser.id,
+          email: sessionUser.email,
+          name: profile?.name || sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0] || '',
+          avatar: profile?.profile_pic || profile?.avatar || sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '',
+          refCode: cleanRef,
+          referred_by: cleanRef
+        };
+        setOnboardingGoogleUser(wizardUser);
+        setIsOnboarding(true);
+        navigate('/onboarding');
+      }
+    } catch (err) {
+      console.error('Smart post-auth routing exception:', err);
+      // Fallback: Never leave user stranded on root landing page if authenticated
+      navigate('/onboarding');
+    } finally {
+      setIsCheckingSession(false);
+      setIsAuthLoading(false);
+      setIsAuthenticating(false);
+    }
+
+    // Keep server-side API sync active in background without blocking instant routing
+    syncWithBackend(sessionUser).catch(console.warn);
+  };
+
   useEffect(() => {
     let isMounted = true;
     const searchParams = new URLSearchParams(window.location.search);
@@ -390,19 +483,19 @@ export default function App() {
           }
 
           if (activeSession?.user) {
-            // 3. Clean Up: Wipe ?code= from the URL so it doesn't trigger twice
-            window.history.replaceState(null, '', '/feed');
+            // Clean Up: Wipe ?code= from the URL so it doesn't trigger twice
+            window.history.replaceState(null, '', window.location.pathname.replace(/[?&]code=[^&]+/, ''));
 
             if (isMounted) {
-              await syncWithBackend(activeSession.user);
+              await handleSmartPostAuthRouting(activeSession.user);
             }
           } else {
             console.error('Failed to establish session after PKCE exchange');
-            window.history.replaceState(null, '', '/feed');
+            navigate('/');
           }
         } catch (err) {
           console.error('PKCE exchange exception:', err);
-          window.history.replaceState(null, '', '/feed');
+          navigate('/');
         } finally {
           isProcessingCode = false;
           if (isMounted) {
@@ -412,7 +505,7 @@ export default function App() {
           }
         }
       } else {
-        // 4. Persistent Auth Check: check for existing, unexpired Supabase session
+        // 2. Standard Persistent Auth Check: check for existing, unexpired Supabase session
         try {
           setIsCheckingSession(true);
           setIsAuthLoading(true);
@@ -426,12 +519,12 @@ export default function App() {
           if (session?.user) {
             const isExpired = session.expires_at ? (session.expires_at * 1000 <= Date.now()) : false;
             if (!isExpired) {
-              await syncWithBackend(session.user);
+              await handleSmartPostAuthRouting(session.user);
             } else {
               // Try refreshing expired session
               const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
               if (refreshed?.session?.user && !refreshErr) {
-                await syncWithBackend(refreshed.session.user);
+                await handleSmartPostAuthRouting(refreshed.session.user);
               } else {
                 setUser(null);
                 localStorage.removeItem('campus_cached_user');
@@ -445,11 +538,7 @@ export default function App() {
                 const parsed = JSON.parse(cached);
                 if (parsed?.id && parsed?.institute && parsed.institute.trim()) {
                   setUser(parsed);
-                  const currentPath = window.location.pathname.replace(/^\//, '');
-                  if (!currentPath || currentPath === 'landing') {
-                    window.history.replaceState(null, '', '/feed');
-                    setView('poll');
-                  }
+                  navigate('/feed');
                   setGradeFilter(parsed.grade ? parsed.grade.toString() : '11');
                   loadNextPoll(parsed.grade ? parsed.grade.toString() : '11', parsed.id);
                   fetchPendingRequests(parsed.id);
@@ -480,7 +569,7 @@ export default function App() {
       }
     };
 
-    // 5. Setup onAuthStateChange with Ghost-Logout Immunity
+    // 3. Setup onAuthStateChange with Smart Post-Auth Routing
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
 
@@ -493,9 +582,10 @@ export default function App() {
         return;
       }
 
+      // When SIGNED_IN occurs, immediately query profiles/users and smartly route
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (session?.user) {
-          await syncWithBackend(session.user).catch(console.warn);
+          await handleSmartPostAuthRouting(session.user);
         }
       }
     });
