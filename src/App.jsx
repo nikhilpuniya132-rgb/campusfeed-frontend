@@ -369,67 +369,40 @@ export default function App() {
     setIsProfileLoading(true);
 
     try {
-      // The Database Query (Crucial): Query the 'users' table
+      // The Database Query: Query the 'users' table using maybeSingle()
       let { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle();
 
-      // Task 2: Exact Console Diagnostics immediately after Supabase query
       console.log("Auth Guard - Session ID:", session?.user?.id, "Profile Data:", data, "Supabase Error:", error);
 
-      // Task 3: Graceful Error Handling
-      // If the Supabase error object is populated (e.g., an RLS policy violation), do not blindly redirect to onboarding.
-      // Alert the error to the screen or log it heavily so the developer knows the database query was rejected.
       if (error) {
-        console.error("🚨 SUPABASE REJECTED USER QUERY! Error details:", {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
-          sessionUserId: session?.user?.id
-        });
+        console.error("Supabase user query error in Auth Guard:", error);
+      }
 
-        // Fallback: check if row is keyed by google_id instead of id
+      // Safe fallback if data was not found by direct id: check by google_id or email
+      if (!data) {
         try {
-          const { data: byGid, error: gidError } = await supabase
+          const { data: byGid } = await supabase
             .from('users')
             .select('*')
             .eq('google_id', session.user.id)
             .maybeSingle();
-          if (byGid && !gidError && byGid.institute) {
-            console.log("Found profile in users table by google_id:", byGid);
-            data = byGid;
-            error = null;
-          }
+          if (byGid) data = byGid;
         } catch (_) {}
-
-        if (error) {
-          alert(`⚠️ Supabase Database Query Error!\nCode: ${error.code || 'UNKNOWN'}\nMessage: ${error.message}\nCheck RLS policies on 'users' table.`);
-          setIsProfileLoading(false);
-          // Do NOT blindly redirect to onboarding when database query was rejected!
-          return;
-        }
-      }
-
-      // Safe fallback if data was not found by direct id
-      if (!data) {
-        const { data: byGid } = await supabase
-          .from('users')
-          .select('*')
-          .eq('google_id', session.user.id)
-          .maybeSingle();
-        if (byGid) data = byGid;
       }
 
       if (!data && session.user.email) {
-        const { data: byEmail } = await supabase
-          .from('users')
-          .select('*')
-          .eq('email', session.user.email)
-          .maybeSingle();
-        if (byEmail) data = byEmail;
+        try {
+          const { data: byEmail } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', session.user.email)
+            .maybeSingle();
+          if (byEmail) data = byEmail;
+        } catch (_) {}
       }
 
       // The Routing Decision:
@@ -952,7 +925,7 @@ export default function App() {
           .from('users')
           .select('password')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
         if (dbUser && dbUser.password && dbUser.password !== enteredPassword) {
           alert('Incorrect password. Account deletion aborted.');
