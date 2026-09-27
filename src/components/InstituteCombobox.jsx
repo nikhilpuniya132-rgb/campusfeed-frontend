@@ -1,52 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+export const BATHINDA_INSTITUTES = [
+  "Aakash Educational Services", "ALLEN Career Institute", "Physics Wallah (Vidyapeeth)", "Lakshya Institute", "Kapil Institute", "Genesis Classes", "Bansal Classes", "Edusquare", "Prof. J.S. Brar Institute", "Arjun Physics Classes", "UNCRAM", "Real Institute of Maths", "Tanya Commerce Institute", "Mahak Science Classes", "O.P. Gupta Classes", "Mastermind Classes", "Target Classes", "S.S. Classes", "Touchstone Educationalists", "Grey Matters", "Career Launcher", "TIME (Triumphant Institute)", "Kautilya Academy", "Brainmakers", "St. Joseph's Convent School", "St. Kabir Convent Senior Secondary", "Delhi Public School (DPS)", "Silver Oaks School", "RB DAV Senior Secondary Public", "Police Public School", "Baba Farid Public School", "The Millennium School", "Mount Litera Zee School", "Lord Rama Public School", "Saint Paul's High School", "M.S.D. Senior Secondary Public", "Guru Nanak Dev Public School", "Kendriya Vidyalaya No. 1", "Kendriya Vidyalaya No. 2", "Kendriya Vidyalaya No. 3", "Kendriya Vidyalaya No. 4", "Sanawar School", "Bathinda Public School", "Dasmesh Public School", "Des Raj Memorial Public School", "St. Xavier's School", "Sri Guru Harkrishan Public School", "SSD Senior Secondary School", "Rose Mary Public School", "M.H.R. Senior Secondary School", "Universal Public School", "Goodwill Public School", "Little Flower Public School", "East Point School", "Malwa Public School", "Millennium World School", "Bachpan Play School (Senior Branch)"
+];
+
+// Retain legacy export for backward compatibility
 export const BATHINDA_COACHING_DATA = [
   {
-    category: "Ajit Road Hub",
-    names: [
-      "Kapil Institute", "UNCRAM", "Udaan Institute", "Prof J.S Brar Institute", 
-      "Arora Classes", "Vikas Bansal Academy", "REAL INSTITUTE OF MATHS", 
-      "Tanya Commerce Institute", "Arjun Physics Classes", "Sumit Bansal Academy for Civil Services", 
-      "Apex Institute Bathinda", "Mahak Science Classes", "Dhillon Classes", 
-      "TET BUZZER Academy", "Maths Shaalaa", "RANA'S MATHEMATICAL CLASSES", 
-      "Brar Institute", "Brills Institute"
-    ]
-  },
-  {
-    category: "100 Feet Road Hub",
-    names: [
-      "TOP RANKERSS", "Reva Brain Makers", "Aakash Institute", "MASTERMIND CLASSES", 
-      "SMCA CA Classes", "IITIAN CLASSES", "The Commerce World", "Competition Zone"
-    ]
-  },
-  {
-    category: "Other Bathinda Locations",
-    names: [
-      "Physics Wallah", "Rehmat Commerce Classes", "Vinayak Institute", "Apex Academy", 
-      "VCC Punjab", "School of English Achievers", "Magnum Opuss", "ALLEN Career Institute", 
-      "MANGLA COACHING CENTRE", "Potencia Academy", "Project Alfa Academy", 
-      "White Hawk Academy", "Jindal Classes", "BANSAL COACHING CENTRE", "iiebti"
-    ]
+    category: "Bathinda Institutes",
+    names: BATHINDA_INSTITUTES
   }
 ];
 
 // Helper to determine coaching hub from institute name
 export function findHubForInstitute(instituteName) {
-  if (!instituteName) return "Ajit Road Hub";
-  for (const hub of BATHINDA_COACHING_DATA) {
-    if (hub.names.some(n => n.toLowerCase() === instituteName.toLowerCase())) {
-      return hub.category;
-    }
-  }
-  return "Ajit Road Hub";
+  return "Bathinda Hub";
 }
 
 export default function InstituteCombobox({
   value,
   onChange,
   onSelectHub,
-  placeholder = "Search or select your coaching institute..."
+  placeholder = "Search or select your school/institute..."
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(value || '');
@@ -73,19 +49,13 @@ export default function InstituteCombobox({
 
   // Filter institutes based on query
   const query = searchQuery.trim().toLowerCase();
-  const filteredData = BATHINDA_COACHING_DATA.map(group => {
-    const matchingNames = group.names.filter(name =>
-      name.toLowerCase().includes(query)
-    );
-    return {
-      category: group.category,
-      names: matchingNames
-    };
-  }).filter(group => group.names.length > 0);
+  const filteredInstitutes = BATHINDA_INSTITUTES.filter(name =>
+    name.toLowerCase().includes(query)
+  );
 
-  const totalResults = filteredData.reduce((acc, g) => acc + g.names.length, 0);
+  const totalResults = filteredInstitutes.length;
 
-  const handleSelect = (institute, hubCategory) => {
+  const handleSelect = (institute, hubCategory = "Bathinda Hub") => {
     setSearchQuery(institute);
     setIsOpen(false);
     if (onChange) onChange(institute);
@@ -210,7 +180,7 @@ export default function InstituteCombobox({
                 <p style={{ margin: '0 0 6px 0', fontWeight: '700', color: '#000000' }}>No exact institute found.</p>
                 <button
                   type="button"
-                  onClick={() => handleSelect(searchQuery, "Other Bathinda Locations")}
+                  onClick={() => handleSelect(searchQuery, "Bathinda Hub")}
                   style={{
                     padding: '8px 14px',
                     borderRadius: '10px',
@@ -226,64 +196,58 @@ export default function InstituteCombobox({
                 </button>
               </div>
             ) : (
-              filteredData.map((group) => (
-                <div key={group.category} style={{ marginBottom: '8px' }}>
-                  {/* Category Header */}
-                  <div
-                    style={{
-                      padding: '6px 10px',
-                      fontSize: '10.5px',
-                      fontWeight: '800',
-                      color: '#6b7280',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.06em',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <span>📍</span>
-                    <span>{group.category}</span>
-                    <span style={{ marginLeft: 'auto', color: '#9ca3af', fontSize: '10px' }}>
-                      {group.names.length}
-                    </span>
-                  </div>
-
-                  {/* Institute List */}
-                  {group.names.map((name) => {
-                    const isSelected = value?.toLowerCase() === name.toLowerCase();
-                    return (
-                      <div
-                        key={name}
-                        onClick={() => handleSelect(name, group.category)}
-                        style={{
-                          padding: '9px 12px',
-                          borderRadius: '10px',
-                          fontSize: '13.5px',
-                          fontWeight: isSelected ? '800' : '600',
-                          color: isSelected ? '#000000' : '#374151',
-                          background: isSelected ? '#f3f4f6' : 'transparent',
-                          border: isSelected ? '1px solid #e5e7eb' : '1px solid transparent',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          transition: 'background 0.12s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isSelected) e.currentTarget.style.background = '#f9fafb';
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isSelected) e.currentTarget.style.background = 'transparent';
-                        }}
-                      >
-                        <span>{name}</span>
-                        {isSelected && <span style={{ color: '#000000', fontSize: '12px', fontWeight: '900' }}>✓</span>}
-                      </div>
-                    );
-                  })}
+              <div>
+                <div
+                  style={{
+                    padding: '6px 10px',
+                    fontSize: '10.5px',
+                    fontWeight: '800',
+                    color: '#6b7280',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderBottom: '1px solid #f3f4f6',
+                    marginBottom: '4px'
+                  }}
+                >
+                  <span>🏫 Bathinda Institutes</span>
+                  <span>{filteredInstitutes.length}</span>
                 </div>
-              ))
+                {filteredInstitutes.map((name) => {
+                  const isSelected = value?.toLowerCase() === name.toLowerCase();
+                  return (
+                    <div
+                      key={name}
+                      onClick={() => handleSelect(name, "Bathinda Hub")}
+                      style={{
+                        padding: '9px 12px',
+                        borderRadius: '10px',
+                        fontSize: '13.5px',
+                        fontWeight: isSelected ? '800' : '600',
+                        color: isSelected ? '#000000' : '#374151',
+                        background: isSelected ? '#f3f4f6' : 'transparent',
+                        border: isSelected ? '1px solid #e5e7eb' : '1px solid transparent',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        transition: 'background 0.12s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) e.currentTarget.style.background = '#f9fafb';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      <span>{name}</span>
+                      {isSelected && <span style={{ color: '#000000', fontSize: '12px', fontWeight: '900' }}>✓</span>}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </motion.div>
         )}

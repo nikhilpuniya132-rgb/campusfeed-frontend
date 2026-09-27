@@ -60,7 +60,7 @@ export default function App() {
   const [handle, setHandle] = useState('');
   const [password, setPassword] = useState('');
   const [grade, setGrade] = useState('11');
-  const [stream, setStream] = useState('11th Medical');
+  const [stream, setStream] = useState('11-Med');
   const [institute, setInstitute] = useState('Kapil Institute');
   const [coachingHub, setCoachingHub] = useState('Ajit Road Hub');
   const [avatar, setAvatar] = useState('😎');

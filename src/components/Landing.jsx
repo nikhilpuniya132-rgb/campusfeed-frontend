@@ -6,10 +6,33 @@ import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 const InteractivePollDemo = lazy(() => import('./InteractivePollDemo'));
 const HolographicCard = lazy(() => import('./HolographicCard'));
 
+const FAQS = [
+  {
+    q: "Is CenterInsider really anonymous?",
+    a: "Yes. When you vote for a classmate in a poll, your identity is completely hidden. They will only see that \"someone\" from their institute voted for them, along with your gender (e.g., \"A boy from your hub\")."
+  },
+  {
+    q: "How do I see who voted for me?",
+    a: "If you receive a 'Secret Flame', you can reveal the voter's identity either by successfully inviting 3 friends to the app using your unique referral code, or by upgrading to God Mode."
+  },
+  {
+    q: "Why do I have to log in with Google?",
+    a: "We enforce Google authentication to keep the community safe and authentic. It prevents bots, fake accounts, and ensures that the polls represent real students in your coaching hub."
+  },
+  {
+    q: "Can people use this to bully others?",
+    a: "No. CenterInsider is built strictly on positivity. Users cannot create their own custom questions. All polls are pre-written by our team and are designed to be compliments, funny observations, or hype."
+  },
+  {
+    q: "How do I change my School or Coaching Institute?",
+    a: "Once you lock in your profile during onboarding, your institute is set to ensure poll accuracy. If you made a mistake, you must delete your account from the Profile tab and sign up again."
+  }
+];
+
 export default function Landing({
   grade = '11',
   setGrade = () => {},
-  stream = '11th Medical',
+  stream = '11-Med',
   setStream = () => {},
   institute = 'Kapil Institute',
   setInstitute = () => {},
@@ -43,6 +66,8 @@ export default function Landing({
   const [localActivePlan, setLocalActivePlan] = useState('weekly');
   const activePlan = propActivePlan !== undefined ? propActivePlan : localActivePlan;
   const setActivePlan = propSetActivePlan || setLocalActivePlan;
+
+  const [openFaqIndex, setOpenFaqIndex] = useState(null);
 
   const [referralCode, setReferralCode] = useState(() => {
     try {
@@ -575,14 +600,14 @@ export default function Landing({
             <p style={{ marginTop: '8px', textAlign: 'center', fontSize: '14px', color: '#000000', fontWeight: '700' }}>
               Join the Loop.
               <span style={{ color: '#6b7280', fontWeight: '500', display: 'block', marginTop: '2px', fontSize: '12.5px' }}>
-                Select your Coaching Hub to enter the loop.
+                Select your School/Institute to enter the loop.
               </span>
             </p>
 
             {/* Searchable Institute Combobox */}
             <div style={{ marginBottom: '14px', textAlign: 'left' }}>
               <label style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
-                Coaching Institute
+                School/Institute
               </label>
               <InstituteCombobox
                 value={institute}
@@ -592,58 +617,72 @@ export default function Landing({
                 }}
                 onSelectHub={(hub) => setCoachingHub(hub)}
               />
-              <div style={{ marginTop: '6px', fontSize: '11.5px', color: '#6b7280', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span>📍 Hub:</span>
-                <span style={{ color: '#000000' }}>{coachingHub || findHubForInstitute(institute)}</span>
-              </div>
             </div>
 
-            {/* Stream Selection Pills (Active: bg-black text-white; Inactive: bg-gray-100 text-gray-600) */}
+            {/* Standard Dropdown Selector */}
             <div style={{ marginBottom: '18px', textAlign: 'left' }}>
-              <label style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
-                Batch / Stream
+              <label htmlFor="standard-selector" style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+                Select Standard
               </label>
-              <div
-                className="flex flex-nowrap overflow-x-auto hide-scrollbar"
-                style={{
-                  display: 'flex',
-                  flexWrap: 'nowrap',
-                  overflowX: 'auto',
-                  gap: '8px',
-                  paddingBottom: '4px',
-                  scrollbarWidth: 'none',
-                  msOverflowStyle: 'none',
-                  WebkitOverflowScrolling: 'touch'
-                }}
-              >
-                {['11th Medical', '11th Non-Med', '12th Commerce', 'Dropper'].map((s) => {
-                  const isSelected = stream === s;
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => {
-                        if (window.navigator?.vibrate) window.navigator.vibrate(8);
-                        setStream(s);
-                        setGrade(s.includes('12') ? '12' : s.includes('drop') ? 'dropper' : '11');
-                      }}
-                      style={{
-                        flexShrink: 0,
-                        padding: '9px 14px',
-                        borderRadius: '12px',
-                        border: isSelected ? '1px solid #000000' : '1px solid #e5e7eb',
-                        background: isSelected ? '#000000' : '#f3f4f6',
-                        color: isSelected ? '#ffffff' : '#4b5563',
-                        fontWeight: '800',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      {s}
-                    </button>
-                  );
-                })}
+              <div style={{ position: 'relative' }}>
+                <select
+                  id="standard-selector"
+                  value={['10-Boards', '11-Med', '11-Non Med', '11-JEE', '11-NEET', '12-Med', '12-Non Med', '12-JEE', '12-NEET'].includes(stream) ? stream : '11-Med'}
+                  onChange={(e) => {
+                    const s = e.target.value;
+                    if (window.navigator?.vibrate) window.navigator.vibrate(8);
+                    setStream(s);
+                    setGrade(s.startsWith('10') ? '10' : s.startsWith('12') ? '12' : '11');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '13px 40px 13px 14px',
+                    background: '#f9fafb',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '14px',
+                    color: '#000000',
+                    fontSize: '14px',
+                    fontWeight: '700',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    boxSizing: 'border-box',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onFocus={(e) => { e.target.style.borderColor = '#000000'; }}
+                  onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; }}
+                >
+                  {[
+                    '10-Boards',
+                    '11-Med',
+                    '11-Non Med',
+                    '11-JEE',
+                    '11-NEET',
+                    '12-Med',
+                    '12-Non Med',
+                    '12-JEE',
+                    '12-NEET'
+                  ].map((opt) => (
+                    <option key={opt} value={opt} style={{ color: '#000000', background: '#ffffff', fontWeight: '600' }}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+                <span
+                  style={{
+                    position: 'absolute',
+                    right: '14px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    fontSize: '10px',
+                    color: '#6b7280',
+                    pointerEvents: 'none'
+                  }}
+                >
+                  ▼
+                </span>
               </div>
             </div>
 
@@ -780,6 +819,133 @@ export default function Landing({
         </motion.div>
       </section>
 
+      {/* 5. Custom FAQ Accordion Section */}
+      <section
+        id="faq-section"
+        style={{
+          width: '100%',
+          padding: '48px 20px 64px 20px',
+          background: '#ffffff',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          borderTop: '1px solid #f3f4f6',
+          boxSizing: 'border-box'
+        }}
+      >
+        <div style={{ width: '100%', maxWidth: '640px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+            <span
+              style={{
+                background: '#f3f4f6',
+                border: '1px solid #e5e7eb',
+                color: '#4b5563',
+                fontSize: '11px',
+                fontWeight: '800',
+                padding: '4px 12px',
+                borderRadius: '20px',
+                letterSpacing: '0.04em',
+                display: 'inline-block'
+              }}
+            >
+              ❓ FREQUENTLY ASKED QUESTIONS
+            </span>
+            <h2
+              style={{
+                fontSize: 'clamp(24px, 5vw, 32px)',
+                fontWeight: 900,
+                margin: '12px 0 6px 0',
+                color: '#000000',
+                letterSpacing: '-0.5px'
+              }}
+            >
+              Got Questions? We've Got Answers.
+            </h2>
+            <p style={{ color: '#6b7280', fontSize: '13.5px', margin: 0 }}>
+              Everything you need to know about CenterInsider and how it works.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {FAQS.map((faq, idx) => {
+              const isOpen = openFaqIndex === idx;
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '16px',
+                    background: isOpen ? '#f9fafb' : '#ffffff',
+                    overflow: 'hidden',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.navigator?.vibrate) window.navigator.vibrate(6);
+                      setOpenFaqIndex(isOpen ? null : idx);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '16px 18px',
+                      background: 'transparent',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      gap: '12px'
+                    }}
+                  >
+                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#000000', lineHeight: 1.4 }}>
+                      {faq.q}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        color: '#6b7280',
+                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s ease',
+                        flexShrink: 0
+                      }}
+                    >
+                      ▼
+                    </span>
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: 'easeOut' }}
+                        style={{ overflow: 'hidden' }}
+                      >
+                        <div
+                          style={{
+                            padding: '0 18px 16px 18px',
+                            color: '#4b5563',
+                            fontSize: '13.5px',
+                            lineHeight: 1.6,
+                            borderTop: '1px solid #f3f4f6',
+                            paddingTop: '12px'
+                          }}
+                        >
+                          {faq.a}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* Legal Modal Overlay */}
       <AnimatePresence>
         {legalView && (
@@ -809,19 +975,27 @@ export default function Landing({
                 color: '#000000',
                 padding: '28px',
                 borderRadius: '24px',
-                maxWidth: '420px',
+                maxWidth: '480px',
                 width: '100%',
                 border: '1px solid #e5e7eb',
                 boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)'
               }}
               onClick={e => e.stopPropagation()}
             >
-              <h2 style={{ color: '#000000', marginTop: 0, fontSize: '20px', fontWeight: 800 }}>
-                {legalView === 'terms' ? 'Terms & Conditions' : 'Privacy Policy'}
+              <h2 style={{ color: '#000000', marginTop: 0, fontSize: '19px', fontWeight: 800 }}>
+                {legalView === 'terms' ? 'Terms of Service & User Agreement' : 'Privacy Policy & Data Handling'}
               </h2>
-              <p style={{ color: '#6b7280', fontSize: '13px', lineHeight: '1.6' }}>
-                CenterInsider is an anonymous positive voting platform built for coaching hubs & student communities. Compliments are moderated to promote positivity.
-              </p>
+              <div style={{ color: '#4b5563', fontSize: '13px', lineHeight: '1.65', maxHeight: '360px', overflowY: 'auto', paddingRight: '4px' }}>
+                {legalView === 'terms' ? (
+                  <p style={{ margin: 0 }}>
+                    Welcome to CenterInsider. By accessing or using our platform, you agree to be bound by these Terms of Service. CenterInsider operates as a closed-network, peer-to-peer polling application designed exclusively for verified student communities. Users must authenticate via Google OAuth to maintain platform integrity and prevent sybil attacks (fake accounts). You agree to use the platform solely for its intended positive interactions. Any attempt to reverse-engineer, scrape data, harass other users, or manipulate the voting algorithms will result in immediate and permanent account termination. CenterInsider reserves the right to modify, suspend, or discontinue any aspect of the service at any time without prior notice. We do not guarantee uninterrupted access to the platform and shall not be held liable for any data loss, digital goods (e.g., Feed Drops, God Mode status) loss, or service downtimes. All intellectual property, including branding, UI/UX, and proprietary algorithms, remains the sole property of CenterInsider Inc.
+                  </p>
+                ) : (
+                  <p style={{ margin: 0 }}>
+                    CenterInsider is committed to protecting your privacy and digital footprint. When you authenticate using Google OAuth, we collect only minimal required data: your email address, name, and profile picture, strictly to verify your identity and map you to your local educational institute. Your voting activity is encrypted and anonymized by default. We do not sell your personal data, email addresses, or voting history to third-party data brokers or advertising networks. The identities behind sent votes remain strictly confidential unless a user explicitly utilizes platform mechanics (such as God Mode or referral milestones) to reveal interactions directed at them. You retain full ownership of your data; you may permanently delete your account and wipe all associated database records at any time via the Profile settings. By using the app, you consent to our secure data storage practices and targeted internal analytics used solely to improve the application experience.
+                  </p>
+                )}
+              </div>
               <button
                 type="button"
                 style={{
@@ -834,7 +1008,7 @@ export default function Landing({
                   fontWeight: '800',
                   fontSize: '13px',
                   cursor: 'pointer',
-                  marginTop: '16px'
+                  marginTop: '18px'
                 }}
                 onClick={() => setLegalView(null)}
               >
