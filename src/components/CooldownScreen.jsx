@@ -3,9 +3,11 @@ import { motion } from 'framer-motion';
 import { supabase } from '../supabase';
 import { handleShare, showShareToast } from '../utils/share';
 
-const API = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
-  ? 'http://localhost:5000/api'
-  : 'https://campusfeed-backend-po4g.onrender.com/api';
+const API = import.meta.env.VITE_BACKEND_URL || (
+  (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+    ? 'http://localhost:5000/api'
+    : 'https://campusfeed-backend-po4g.onrender.com/api'
+);
 
 export default function CooldownScreen({
   cooldownUntil,

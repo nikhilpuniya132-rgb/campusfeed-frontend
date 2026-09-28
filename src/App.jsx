@@ -28,9 +28,11 @@ import { handleShare } from './utils/share';
 import { supabase } from './supabase';
 import { useNavigate } from './useNavigate';
 
-const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  ? 'http://localhost:5000/api'
-  : 'https://campusfeed-backend-po4g.onrender.com/api';
+const API = import.meta.env.VITE_BACKEND_URL || (
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:5000/api'
+    : 'https://campusfeed-backend-po4g.onrender.com/api'
+);
 
 const AURA_RINGS = {
   none: { border: 'none', boxShadow: 'none' },
@@ -881,7 +883,7 @@ export default function App() {
       if (!orderRes.ok) throw new Error(orderData.error);
 
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        key: import.meta.env.VITE_RAZORPAY_KEY || import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'CenterInsider',
