@@ -62,9 +62,9 @@ export default function App() {
   const [handle, setHandle] = useState('');
   const [password, setPassword] = useState('');
   const [grade, setGrade] = useState('11');
-  const [stream, setStream] = useState('11-Med');
-  const [institute, setInstitute] = useState('Kapil Institute');
-  const [coachingHub, setCoachingHub] = useState('Ajit Road Hub');
+  const [stream, setStream] = useState('Class 11 - Medical');
+  const [institute, setInstitute] = useState('');
+  const [coachingHub, setCoachingHub] = useState('');
   const [avatar, setAvatar] = useState('😎');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
@@ -540,6 +540,11 @@ export default function App() {
     localStorage.setItem('campus_stream', stream);
     localStorage.setItem('campus_institute', institute);
     localStorage.setItem('campus_hub', coachingHub || findHubForInstitute(institute));
+    if (institute && institute.trim()) {
+      localStorage.setItem('pre_selected_school', institute.trim());
+    } else {
+      localStorage.removeItem('pre_selected_school');
+    }
     
     const redirectUrl = (typeof window !== 'undefined' && window.location.origin)
       ? `${window.location.origin}/feed`

@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence, useScroll, useSpring, useTransform } from 'framer-motion';
 import AddToHomeScreenGuide from './AddToHomeScreenGuide';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
+import { MASTER_CLASS_OPTIONS } from '../constants/classes';
 
 const InteractivePollDemo = lazy(() => import('./InteractivePollDemo'));
 const HolographicCard = lazy(() => import('./HolographicCard'));
@@ -32,9 +33,9 @@ const FAQS = [
 export default function Landing({
   grade = '11',
   setGrade = () => {},
-  stream = '11-Med',
+  stream = 'Class 11 - Medical',
   setStream = () => {},
-  institute = 'Kapil Institute',
+  institute = '',
   setInstitute = () => {},
   coachingHub = 'Ajit Road Hub',
   setCoachingHub = () => {},
@@ -98,6 +99,19 @@ export default function Landing({
       console.error('Error capturing referral parameter in Landing:', e);
     }
   }, []);
+
+  const handleGoogleLogin = () => {
+    if (institute && institute.trim()) {
+      try {
+        localStorage.setItem('pre_selected_school', institute.trim());
+      } catch (_) {}
+    } else {
+      try {
+        localStorage.removeItem('pre_selected_school');
+      } catch (_) {}
+    }
+    loginWithGoogle();
+  };
 
   const doPasswordLogin = loginWithPassword || login;
 
@@ -611,6 +625,7 @@ export default function Landing({
               </label>
               <InstituteCombobox
                 value={institute}
+                placeholder="Search or select your school"
                 onChange={(val) => {
                   setInstitute(val);
                   setCoachingHub(findHubForInstitute(val));
@@ -627,12 +642,12 @@ export default function Landing({
               <div style={{ position: 'relative' }}>
                 <select
                   id="standard-selector"
-                  value={['10-Boards', '11-Med', '11-Non Med', '11-JEE', '11-NEET', '12-Med', '12-Non Med', '12-JEE', '12-NEET'].includes(stream) ? stream : '11-Med'}
+                  value={MASTER_CLASS_OPTIONS.includes(stream) ? stream : 'Class 11 - Medical'}
                   onChange={(e) => {
                     const s = e.target.value;
                     if (window.navigator?.vibrate) window.navigator.vibrate(8);
                     setStream(s);
-                    setGrade(s.startsWith('10') ? '10' : s.startsWith('12') ? '12' : '11');
+                    setGrade(s.includes('10') ? '10' : s.includes('12') ? '12' : '11');
                   }}
                   style={{
                     width: '100%',
@@ -654,17 +669,7 @@ export default function Landing({
                   onFocus={(e) => { e.target.style.borderColor = '#000000'; }}
                   onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; }}
                 >
-                  {[
-                    '10-Boards',
-                    '11-Med',
-                    '11-Non Med',
-                    '11-JEE',
-                    '11-NEET',
-                    '12-Med',
-                    '12-Non Med',
-                    '12-JEE',
-                    '12-NEET'
-                  ].map((opt) => (
+                  {MASTER_CLASS_OPTIONS.map((opt) => (
                     <option key={opt} value={opt} style={{ color: '#000000', background: '#ffffff', fontWeight: '600' }}>
                       {opt}
                     </option>
@@ -692,7 +697,7 @@ export default function Landing({
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 className="oauthButton"
-                onClick={loginWithGoogle}
+                onClick={handleGoogleLogin}
                 disabled={isAuthenticating}
                 type="button"
                 style={{
@@ -726,7 +731,7 @@ export default function Landing({
               {/* Secondary: Log In with Google */}
               <motion.button
                 whileTap={{ scale: 0.98 }}
-                onClick={loginWithGoogle}
+                onClick={handleGoogleLogin}
                 disabled={isAuthenticating}
                 type="button"
                 style={{

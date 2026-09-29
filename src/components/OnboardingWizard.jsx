@@ -47,8 +47,21 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
   const [currentUserId, setCurrentUserId] = useState(googleUser?.googleId || googleUser?.id || '');
 
   const [name, setName] = useState(initialName);
-  const [institute, setInstitute] = useState('Kapil Institute');
-  const [coachingHub, setCoachingHub] = useState('Ajit Road Hub');
+  const [institute, setInstitute] = useState(() => {
+    try {
+      return localStorage.getItem('pre_selected_school') || '';
+    } catch (_) {
+      return '';
+    }
+  });
+  const [coachingHub, setCoachingHub] = useState(() => {
+    try {
+      const pre = localStorage.getItem('pre_selected_school');
+      return pre ? findHubForInstitute(pre) : '';
+    } catch (_) {
+      return '';
+    }
+  });
   const [stream, setStream] = useState('Class 11 - Medical');
   const [grade, setGrade] = useState('11');
 
@@ -106,6 +119,21 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       }
     } catch (e) {
       console.error('Error capturing ref parameter in OnboardingWizard:', e);
+    }
+  }, []);
+
+  // Fix 3: Check localStorage for pre_selected_school on mount, autofill Coaching Institute, then clear from localStorage
+  useEffect(() => {
+    try {
+      const preSelectedSchool = localStorage.getItem('pre_selected_school');
+      if (preSelectedSchool && preSelectedSchool.trim()) {
+        const trimmed = preSelectedSchool.trim();
+        setInstitute(trimmed);
+        setCoachingHub(findHubForInstitute(trimmed));
+        localStorage.removeItem('pre_selected_school');
+      }
+    } catch (e) {
+      console.warn('Error applying pre_selected_school in OnboardingWizard:', e);
     }
   }, []);
 
@@ -546,9 +574,40 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
 
                 {/* Coaching Institute Combobox */}
                 <div>
-                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
-                    Coaching Institute
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Coaching Institute
+                    </label>
+                    {institute && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setInstitute('');
+                          setCoachingHub('');
+                          try {
+                            localStorage.removeItem('pre_selected_school');
+                          } catch (_) {}
+                        }}
+                        style={{
+                          background: '#f3f4f6',
+                          border: 'none',
+                          color: '#ef4444',
+                          fontSize: '11px',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          lineHeight: '1.2'
+                        }}
+                        title="Clear Institute"
+                      >
+                        ✕ Clear
+                      </button>
+                    )}
+                  </div>
                   <InstituteCombobox
                     value={institute}
                     onChange={(val) => {
@@ -556,11 +615,14 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                       setCoachingHub(findHubForInstitute(val));
                     }}
                     onSelectHub={(hub) => setCoachingHub(hub)}
+                    placeholder="Search or select your school"
                   />
-                  <div style={{ marginTop: '5px', fontSize: '11.5px', color: '#6b7280', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span>📍 Hub:</span>
-                    <span style={{ color: '#000000' }}>{coachingHub || findHubForInstitute(institute)}</span>
-                  </div>
+                  {coachingHub && (
+                    <div style={{ marginTop: '5px', fontSize: '11.5px', color: '#6b7280', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>📍 Hub:</span>
+                      <span style={{ color: '#000000' }}>{coachingHub || findHubForInstitute(institute)}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Class / Batch Stream Dropdown (Task 1) */}

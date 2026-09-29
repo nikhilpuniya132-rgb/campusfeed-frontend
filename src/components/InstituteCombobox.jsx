@@ -22,18 +22,16 @@ export default function InstituteCombobox({
   value,
   onChange,
   onSelectHub,
-  placeholder = "Search or select your school/institute..."
+  placeholder = "Search or select your school"
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(value || '');
   const containerRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Sync internal search query if external value changes
+  // Sync internal search query if external value changes (including reset to empty)
   useEffect(() => {
-    if (value && value !== searchQuery) {
-      setSearchQuery(value);
-    }
+    setSearchQuery(value || '');
   }, [value]);
 
   // Click outside to close
