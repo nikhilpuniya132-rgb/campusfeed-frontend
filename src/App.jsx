@@ -296,6 +296,21 @@ export default function App() {
         } catch (_) {}
       }
 
+      // Safe fallback: check backend Express API /api/profile/:userId
+      if (!data) {
+        try {
+          const res = await fetch(`${API}/profile/${currentSessionId}`);
+          if (res.ok) {
+            const backendData = await res.json().catch(() => null);
+            if (backendData?.exists && backendData?.user) {
+              data = backendData.user;
+            }
+          }
+        } catch (backendFetchErr) {
+          console.warn('Backend profile fetch fallback warning:', backendFetchErr);
+        }
+      }
+
       // 2. The Routing Decision:
       // Required completed fields: handle or institute
       const handleVal = (data?.handle || data?.username || '').trim();
@@ -778,10 +793,16 @@ export default function App() {
     setPublicProfile(null);
     try {
       const res = await fetch(`${API}/profile/public/${userId}`);
-      const data = await res.json();
-      setPublicProfile(data.user);
+      if (!res.ok) {
+        console.warn(`Public profile fetch returned status: ${res.status}`);
+        return;
+      }
+      const data = await res.json().catch(() => null);
+      if (data?.user) {
+        setPublicProfile(data.user);
+      }
     } catch (e) {
-      console.error(e);
+      console.error('Failed to load public profile:', e);
     }
   };
 
@@ -800,18 +821,41 @@ export default function App() {
       window.history.replaceState(null, '', targetPath);
     }
     if (newView === 'inbox') fetchInbox(user?.id);
-    if (newView === 'explore') fetch(`${API}/explore/leaderboard`).then(r => r.json()).then(d => setLeaderboard(d.leaderboard || []));
+    if (newView === 'explore') fetch(`${API}/explore/leaderboard`).then(r => r.json()).then(d => setLeaderboard(d.leaderboard || [])).catch(console.warn);
     if (newView === 'profile') {
       fetchAcceptedFriends(user?.id);
       fetchPendingRequests(user?.id);
-      fetch(`${API}/profile/${user?.id}`).then(r => r.json()).then(d => {
-        setProfileData(d);
-        setEditBio(d.user?.bio || '');
-        setEditAvatar(d.user?.avatar || '');
-        setEditRing(d.user?.ring || 'gold');
-        setEditGrade(d.user?.grade ? d.user.grade.toString() : '11');
-        setEditProfilePic(d.user?.profile_pic || '');
-      });
+      if (user?.id) {
+        (async () => {
+          try {
+            const res = await fetch(`${API}/profile/${user.id}`);
+            if (!res.ok) {
+              console.warn(`Profile fetch returned status: ${res.status}`);
+              if (!user.institute || !user.handle) {
+                setIsOnboarding(true);
+                navigate('/onboarding');
+              }
+              return;
+            }
+            const d = await res.json().catch(() => null);
+            if (d && d.exists !== false && d.user) {
+              setProfileData(d);
+              setEditBio(d.user?.bio || '');
+              setEditAvatar(d.user?.avatar || '');
+              setEditRing(d.user?.ring || 'gold');
+              setEditGrade(d.user?.grade ? d.user.grade.toString() : '11');
+              setEditProfilePic(d.user?.profile_pic || '');
+            } else if (d && d.exists === false) {
+              if (!user.institute || !user.handle) {
+                setIsOnboarding(true);
+                navigate('/onboarding');
+              }
+            }
+          } catch (err) {
+            console.warn('Profile fetch safe handling warning:', err);
+          }
+        })();
+      }
     }
   };
 
