@@ -440,16 +440,29 @@ export default function App() {
     }, hasOAuthParams ? 6000 : 3500);
 
     const initAuth = async () => {
+      let initialSession = null;
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const authCode = urlParams.get('code');
         const hasHashToken = window.location.hash?.includes('access_token=');
-        let initialSession = null;
 
-        // 1. If incoming redirect has an auth code, exchange it for session
-        if (authCode) {
+        // 1. Retrieve session from Supabase (Supabase automatically handles PKCE code exchange with detectSessionInUrl: true)
+        try {
+          const { data: { session: fetchedSession }, error: sessionError } = await supabase.auth.getSession();
+          if (sessionError) {
+            console.warn('supabase.auth.getSession() check:', sessionError);
+          }
+          if (fetchedSession) {
+            initialSession = fetchedSession;
+          }
+        } catch (sessErr) {
+          console.warn('getSession catch error:', sessErr);
+        }
+
+        // 2. Safe fallback manual exchange if session was not automatically resolved yet
+        if (!initialSession && authCode) {
           try {
-            console.log("OAuth Callback: Exchanging code for session...");
+            console.log("OAuth Callback: Attempting safe code exchange fallback...");
             const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(authCode);
             if (exchangeError) {
               console.warn("exchangeCodeForSession warning (handled by client listener):", exchangeError);
@@ -457,19 +470,9 @@ export default function App() {
             if (exchangeData?.session) {
               initialSession = exchangeData.session;
             }
-          } catch (e) {
-            console.warn('exchangeCodeForSession catch:', e);
-          }
-        }
-
-        // 2. Query active session via supabase.auth.getSession()
-        if (!initialSession) {
-          const { data: { session: fetchedSession }, error: sessionError } = await supabase.auth.getSession();
-          if (sessionError) {
-            console.error('supabase.auth.getSession() error on mount:', sessionError);
-          }
-          if (fetchedSession) {
-            initialSession = fetchedSession;
+          } catch (pkceErr) {
+            // Safely catch PKCE verifier errors without crashing or throwing unhandled errors
+            console.warn('Safe PKCE code exchange catch:', pkceErr?.message || pkceErr);
           }
         }
 
