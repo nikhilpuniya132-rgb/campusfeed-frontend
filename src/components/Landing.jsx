@@ -101,16 +101,17 @@ export default function Landing({
   }, []);
 
   const handleGoogleLogin = async () => {
-    if (institute && institute.trim()) {
+    const selectedInstitute = (institute || localStorage.getItem('pre_selected_school') || '').trim();
+    if (selectedInstitute) {
       try {
-        localStorage.setItem('pre_selected_school', institute.trim());
+        localStorage.setItem('pre_selected_school', selectedInstitute);
       } catch (_) {}
     } else {
       try {
         localStorage.removeItem('pre_selected_school');
       } catch (_) {}
     }
-    await loginWithGoogle();
+    await loginWithGoogle(selectedInstitute);
   };
 
   const doPasswordLogin = loginWithPassword || login;
@@ -629,6 +630,15 @@ export default function Landing({
                 onChange={(val) => {
                   setInstitute(val);
                   setCoachingHub(findHubForInstitute(val));
+                  if (val && val.trim()) {
+                    try {
+                      localStorage.setItem('pre_selected_school', val.trim());
+                    } catch (_) {}
+                  } else {
+                    try {
+                      localStorage.removeItem('pre_selected_school');
+                    } catch (_) {}
+                  }
                 }}
                 onSelectHub={(hub) => setCoachingHub(hub)}
               />

@@ -324,13 +324,16 @@ export default function App() {
       }
 
       // 2. The Routing Decision:
-      // Required completed fields: handle or institute
+      // Robust Post-Auth Profile Validation:
+      // If a row is found in public.users for this specific user.id AND it has a completed handle, route to /feed.
+      // If NO row is found in public.users for this specific user.id (e.g. new user or re-signup after account deletion),
+      // forcefully route them to /onboarding. Do not rely on cached local storage or old session flags.
       const handleVal = (data?.handle || data?.username || '').trim();
       const userInstitute = (data?.school || data?.institute || '').trim();
-      const isReturningUser = Boolean(data && (handleVal !== '' || userInstitute !== ''));
+      const isReturningUser = Boolean(data && handleVal !== '');
 
       if (isReturningUser) {
-        // LOGIC A (Returning User): Record exists for this exact session.user.id -> route directly to feed
+        // LOGIC A (Returning User): Record exists for this exact session.user.id with completed handle -> route directly to feed
         const userRing = data.selected_ring || data.ring || localStorage.getItem('campus_user_ring') || 'gold';
         localStorage.setItem('campus_user_ring', userRing);
         const fullUser = {
@@ -363,9 +366,11 @@ export default function App() {
         fetchAcceptedFriends(fullUser.id);
         fetchInbox(fullUser.id);
       } else {
-        // LOGIC B (New User): No record exists in public users table for this session.user.id
-        // Route strictly to Onboarding Wizard with ONLY the current session's identity
+        // LOGIC B (New User / Re-signup after account deletion):
+        // No row in public.users for this specific user.id or handle is incomplete.
+        // Forcefully route strictly to Onboarding Wizard with ONLY the current session's identity
         const cleanRef = (localStorage.getItem('referred_by') || sessionStorage.getItem('referred_by') || sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
+        const preSchool = (localStorage.getItem('pre_selected_school') || localStorage.getItem('campus_institute') || '').trim();
         
         // Ensure stale cached user is cleared so no old state leaks
         localStorage.removeItem('campus_cached_user');
@@ -377,7 +382,8 @@ export default function App() {
           name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || currentSessionEmail?.split('@')[0] || '',
           avatar: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
           refCode: cleanRef,
-          referred_by: cleanRef
+          referred_by: cleanRef,
+          preSelectedSchool: preSchool
         };
 
         setOnboardingGoogleUser(newGoogleUser);
@@ -387,6 +393,7 @@ export default function App() {
         setIsOnboarding(true);
         setIsProfileLoading(false);
         setIsAuthLoading(false);
+        window.history.replaceState(null, '', '/onboarding');
         navigate('/onboarding');
       }
     } catch (err) {
@@ -561,9 +568,8 @@ export default function App() {
   // automatically redirect them away directly to the main app interface (/feed).
   useEffect(() => {
     if (isAuthLoading || isProfileLoading) return;
-    const userInstitute = (user?.school || user?.institute || '').trim();
     const userHandle = (user?.handle || user?.username || '').trim();
-    if (user && (userInstitute || userHandle)) {
+    if (user && userHandle) {
       const currentPath = window.location.pathname.replace(/^\//, '');
       if (!currentPath || currentPath === 'landing' || currentPath === 'onboarding') {
         window.history.replaceState(null, '', '/feed');
@@ -575,8 +581,8 @@ export default function App() {
   useEffect(() => {
     const handlePopState = () => {
       if (isAuthLoading || isProfileLoading) return;
-      const userInstitute = (user?.school || user?.institute || '').trim();
-      if (user && userInstitute) {
+      const userHandle = (user?.handle || user?.username || '').trim();
+      if (user && userHandle) {
         const path = window.location.pathname.replace(/^\//, '');
         if (!path || path === 'landing') {
           window.history.replaceState(null, '', '/feed');
@@ -595,8 +601,23 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [user, isAuthLoading, isProfileLoading]);
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (explicitSchool = null) => {
     setIsAuthenticating(true);
+
+    // Preserve non-auth user context (referral and school selection)
+    const selectedSchool = (
+      (typeof explicitSchool === 'string' && explicitSchool.trim()) ||
+      (typeof institute === 'string' && institute.trim()) ||
+      localStorage.getItem('pre_selected_school') ||
+      localStorage.getItem('campus_institute') ||
+      ''
+    ).trim();
+
+    const refCode = (
+      localStorage.getItem('referred_by') ||
+      localStorage.getItem('campus_ref_code') ||
+      ''
+    ).trim();
 
     // 1. Force Clean Session Wipe on Login/Signup Initiation
     try {
@@ -608,18 +629,14 @@ export default function App() {
       console.warn("Pre-login signOut error:", e);
     }
 
-    // Preserve non-auth user context (referral and school selection)
-    const preSchool = localStorage.getItem('pre_selected_school') || localStorage.getItem('campus_institute');
-    const refCode = (localStorage.getItem('referred_by') || localStorage.getItem('campus_ref_code') || '').trim();
-
     // Explicitly run localStorage.clear() and sessionStorage.clear() to eliminate ALL ghost tokens (sb-*, cached users, etc.)
     localStorage.clear();
     sessionStorage.clear();
 
     // Restore essential non-auth preferences for onboarding
-    if (preSchool) {
-      localStorage.setItem('pre_selected_school', preSchool);
-      localStorage.setItem('campus_institute', preSchool);
+    if (selectedSchool) {
+      localStorage.setItem('pre_selected_school', selectedSchool);
+      localStorage.setItem('campus_institute', selectedSchool);
     }
     if (refCode) {
       localStorage.setItem('referred_by', refCode);
@@ -628,9 +645,9 @@ export default function App() {
 
     if (grade) localStorage.setItem('campus_grade', grade);
     if (stream) localStorage.setItem('campus_stream', stream);
-    if (institute && institute.trim()) {
-      localStorage.setItem('pre_selected_school', institute.trim());
-      localStorage.setItem('campus_institute', institute.trim());
+    if (selectedSchool) {
+      localStorage.setItem('pre_selected_school', selectedSchool);
+      localStorage.setItem('campus_institute', selectedSchool);
     }
     if (coachingHub) localStorage.setItem('campus_hub', coachingHub);
 
@@ -1203,21 +1220,24 @@ export default function App() {
   // Protected Route Check:
   // LOGIC A (Returning User): If a profile record exists with required completed fields (handle or institute), do NOT show Onboarding Wizard.
   // LOGIC B (New User): Route to Onboarding Wizard only if profile is incomplete or explicitly onboarding.
-  const userInstitute = (user?.school || user?.institute || '').trim();
   const userHandle = (user?.handle || user?.username || '').trim();
-  const hasCompletedProfile = Boolean(user && (userHandle !== '' || userInstitute !== ''));
+  const hasCompletedProfile = Boolean(user && userHandle !== '');
   const isProfileIncomplete = Boolean(user && !hasCompletedProfile);
-  if (!isAuthLoading && !isProfileLoading && (isOnboarding || isProfileIncomplete)) {
+  const isSessionWithoutProfile = Boolean(session?.user && !hasCompletedProfile);
+
+  if (!isAuthLoading && !isProfileLoading && (isOnboarding || isProfileIncomplete || isSessionWithoutProfile)) {
     if (window.location.pathname !== '/onboarding') {
       window.history.replaceState(null, '', '/onboarding');
     }
     const activeAuthUser = session?.user;
+    const preSchool = (localStorage.getItem('pre_selected_school') || localStorage.getItem('campus_institute') || '').trim();
     const wizardUser = onboardingGoogleUser || (activeAuthUser ? {
       googleId: activeAuthUser.id,
       id: activeAuthUser.id,
       email: activeAuthUser.email,
       name: activeAuthUser.user_metadata?.full_name || activeAuthUser.user_metadata?.name || activeAuthUser.email?.split('@')[0] || '',
-      avatar: activeAuthUser.user_metadata?.avatar_url || activeAuthUser.user_metadata?.picture || ''
+      avatar: activeAuthUser.user_metadata?.avatar_url || activeAuthUser.user_metadata?.picture || '',
+      preSelectedSchool: preSchool
     } : null);
     return (
       <div className="gas-landing-wrapper">

@@ -73,6 +73,29 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
   const [avatarEmoji, setAvatarEmoji] = useState('😎');
   const [shareToast, setShareToast] = useState('');
 
+  // BUG FIX: Pre-fill Selected School from Landing Page to Onboarding Step 1
+  useEffect(() => {
+    try {
+      const storedSchool = (
+        localStorage.getItem('pre_selected_school') ||
+        googleUser?.preSelectedSchool ||
+        sessionStorage.getItem('pre_selected_school') ||
+        ''
+      ).trim();
+
+      if (storedSchool) {
+        setInstitute(storedSchool);
+        setCoachingHub(findHubForInstitute(storedSchool));
+        // Once successfully loaded into the state, clean up localStorage so it doesn't loop or persist incorrectly on future refreshes
+        localStorage.removeItem('pre_selected_school');
+        sessionStorage.removeItem('pre_selected_school');
+        localStorage.removeItem('campus_institute');
+      }
+    } catch (e) {
+      console.warn('Error reading/clearing pre_selected_school in OnboardingWizard:', e);
+    }
+  }, [googleUser]);
+
   // Task 3: Strictly pull email directly from newly resolved session.user.email on mount
   useEffect(() => {
     let isMounted = true;
@@ -625,6 +648,8 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                           setCoachingHub('');
                           try {
                             localStorage.removeItem('pre_selected_school');
+                            sessionStorage.removeItem('pre_selected_school');
+                            localStorage.removeItem('campus_institute');
                           } catch (_) {}
                         }}
                         style={{
