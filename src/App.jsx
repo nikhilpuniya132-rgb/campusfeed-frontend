@@ -119,7 +119,7 @@ export default function App() {
     if (!sessionUser) return;
     try {
       const selectedGrade = localStorage.getItem('campus_grade') || targetGrade || grade || '11';
-      const cleanRef = (sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
+      const cleanRef = (localStorage.getItem('referred_by') || sessionStorage.getItem('referred_by') || sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
       await fetch(`${API}/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -344,7 +344,7 @@ export default function App() {
         fetchInbox(fullUser.id);
       } else {
         // If username or institute is null/missing, strictly route to /onboarding
-        const cleanRef = (sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
+        const cleanRef = (localStorage.getItem('referred_by') || sessionStorage.getItem('referred_by') || sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
         setOnboardingGoogleUser({
           ...(data || {}),
           googleId: session.user.id,

@@ -2,6 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 import { handleShare } from '../utils/share';
+import ReferralInviteSnippet from './ReferralInviteSnippet';
+
+const CLASS_OPTIONS = [
+  "Class 10",
+  "Class 11 - Medical",
+  "Class 11 - Non-Medical",
+  "Class 11 - Commerce",
+  "Class 11 - Arts",
+  "Class 12 - Medical",
+  "Class 12 - Non-Medical",
+  "Class 12 - Commerce",
+  "Class 12 - Arts"
+];
 
 const AURA_OPTIONS = [
   { id: 'none', label: 'None (Default)', color: '#9ca3af', desc: 'No special aura ring' },
@@ -71,12 +84,13 @@ export default function Profile({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showSettingsMenu]);
 
-  const my_invite_code = (user?.invite_code || user?.handle || 'campus').replace(/^@/, '').trim();
-  const inviteLink = `${window.location.origin}/?ref=${my_invite_code}`;
+  const referralUserId = user?.id || user?.google_id || user?.handle || 'user';
+  const my_invite_code = (user?.invite_code || user?.handle || referralUserId).replace(/^@/, '').trim();
+  const inviteLink = `${window.location.origin}/signup?ref=${encodeURIComponent(referralUserId)}`;
 
   const copyInviteToClipboard = async () => {
     const hubText = user?.stream || 'your batch';
-    const shareText = `Someone from ${hubText} voted for you on CenterInsider! Join to see who: ${inviteLink} (Code: ${my_invite_code})`;
+    const shareText = `Someone from ${hubText} voted for you on CenterInsider! Join to see who: ${inviteLink}`;
     await handleShare({
       title: 'CenterInsider',
       text: shareText,
@@ -673,72 +687,8 @@ export default function Profile({
         </div>
       )}
 
-      {/* 5. MINIMALIST INVITE PASS */}
-      <div
-        style={{
-          background: '#f9fafb',
-          borderRadius: '18px',
-          padding: '14px 16px',
-          border: '1px solid #e5e7eb',
-          marginBottom: '16px',
-          textAlign: 'left'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '15px' }}>🎟️</span>
-            <span style={{ fontSize: '13px', fontWeight: '800', color: '#000000' }}>
-              Invite Pass
-            </span>
-          </div>
-          <span style={{ fontSize: '10.5px', background: '#e5e7eb', color: '#374151', padding: '2px 8px', borderRadius: '6px', fontWeight: '600' }}>
-            3 Invites = 1 Reveal
-          </span>
-        </div>
-
-        <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px 0', lineHeight: '1.4', fontWeight: '500' }}>
-          Your code unlocks secret voter identities when friends join.
-        </p>
-
-        {/* Unique Code Box */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: '#ffffff',
-          padding: '8px 12px',
-          borderRadius: '12px',
-          border: '1px solid #e5e7eb'
-        }}>
-          <div>
-            <span style={{ fontSize: '9px', color: '#6b7280', fontWeight: '600', textTransform: 'uppercase', display: 'block', letterSpacing: '0.04em' }}>
-              Your Code
-            </span>
-            <span style={{ fontSize: '15px', fontWeight: '800', color: '#000000', letterSpacing: '0.02em' }}>
-              @{my_invite_code}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <motion.button
-              whileTap={{ scale: 0.94 }}
-              onClick={copyInviteToClipboard}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: '1px solid #e5e7eb',
-                background: copySuccess ? '#f0fdf4' : '#000000',
-                color: copySuccess ? '#166534' : '#ffffff',
-                fontSize: '11.5px',
-                fontWeight: '700',
-                cursor: 'pointer'
-              }}
-            >
-              {copySuccess ? '✓ Copied' : 'Copy'}
-            </motion.button>
-          </div>
-        </div>
-      </div>
+      {/* 5. REFERRAL DASHBOARD SNIPPET */}
+      <ReferralInviteSnippet user={user} />
 
       {/* 6. EDIT PROFILE MODAL / DRAWER */}
       {isEditing && (
@@ -827,7 +777,7 @@ export default function Profile({
               }}
               className="flex flex-nowrap overflow-x-auto hide-scrollbar"
             >
-              {['11th Medical', '11th Non-Med', '12th Commerce', 'Dropper'].map((s) => {
+              {CLASS_OPTIONS.map((s) => {
                 const isSelected = editStream === s;
                 return (
                   <button
@@ -836,7 +786,7 @@ export default function Profile({
                     onClick={() => {
                       if (window.navigator?.vibrate) window.navigator.vibrate(8);
                       setEditStream(s);
-                      setEditGrade(s.includes('12') ? '12' : s.includes('drop') ? 'dropper' : '11');
+                      setEditGrade(s.includes('10') ? '10' : s.includes('12') ? '12' : '11');
                     }}
                     style={{
                       flexShrink: 0,

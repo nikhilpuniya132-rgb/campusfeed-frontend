@@ -5,6 +5,18 @@ import { supabase } from '../supabase';
 import { useNavigate } from '../useNavigate';
 
 // Hardware-accelerated step transitions (opacity + transform only)
+export const CLASS_OPTIONS = [
+  "Class 10",
+  "Class 11 - Medical",
+  "Class 11 - Non-Medical",
+  "Class 11 - Commerce",
+  "Class 11 - Arts",
+  "Class 12 - Medical",
+  "Class 12 - Non-Medical",
+  "Class 12 - Commerce",
+  "Class 12 - Arts"
+];
+
 const stepVariants = {
   enter: (direction) => ({
     x: direction > 0 ? 30 : -30,
@@ -47,7 +59,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
   const [name, setName] = useState(initialName);
   const [institute, setInstitute] = useState('Kapil Institute');
   const [coachingHub, setCoachingHub] = useState('Ajit Road Hub');
-  const [stream, setStream] = useState('11th Medical');
+  const [stream, setStream] = useState('Class 11 - Medical');
   const [grade, setGrade] = useState('11');
 
   const [handle, setHandle] = useState(initialHandle);
@@ -89,11 +101,29 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
     return () => { isMounted = false; };
   }, []);
 
+  // Task 2: Capture ?ref= query parameter and store in localStorage as referred_by
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const urlParams = new URLSearchParams(window.location.search);
+      const refParam = urlParams.get('ref');
+      if (refParam) {
+        const cleanRef = refParam.trim().replace(/^@/, '');
+        localStorage.setItem('referred_by', cleanRef);
+        sessionStorage.setItem('referred_by', cleanRef);
+        localStorage.setItem('campus_ref_code', cleanRef);
+        sessionStorage.setItem('campus_ref_code', cleanRef);
+      }
+    } catch (e) {
+      console.error('Error capturing ref parameter in OnboardingWizard:', e);
+    }
+  }, []);
+
   const [refCode] = useState(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const fromUrl = urlParams.get('ref');
-      const fromStorage = localStorage.getItem('campus_ref_code') || sessionStorage.getItem('campus_ref_code');
+      const fromStorage = localStorage.getItem('referred_by') || localStorage.getItem('campus_ref_code') || sessionStorage.getItem('campus_ref_code');
       return (fromUrl || fromStorage || googleUser?.refCode || '').trim().replace(/^@/, '');
     } catch {
       return '';
@@ -185,8 +215,11 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
     setIsSubmitting(true);
     setErrorMsg('');
     try {
-      const cleanRef = (refCode || googleUser?.refCode || sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
+      // Task 2: Read referred_by from localStorage
+      const storedRef = localStorage.getItem('referred_by') || sessionStorage.getItem('referred_by') || localStorage.getItem('campus_ref_code') || refCode || googleUser?.refCode || '';
+      const cleanRef = storedRef ? storedRef.trim().replace(/^@/, '') : null;
       const finalAvatar = gender === 'girl' ? (avatarEmoji === '😎' ? '🌸' : avatarEmoji) : avatarEmoji;
+      const resolvedGrade = stream.includes('10') ? '10' : stream.includes('12') ? '12' : '11';
 
       // 1. Direct Supabase save (Primary database of truth)
       let authenticatedUserId = currentUserId || googleUser?.googleId || googleUser?.id;
@@ -208,12 +241,16 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             name: name.trim(),
             handle: handle.trim().replace(/^@/, '').toLowerCase(),
             school: institute.trim(),
+            institute: institute.trim(),
+            coaching_hub: coachingHub || findHubForInstitute(institute),
             district: 'Bathinda',
             gender,
             avatar: finalAvatar,
             profile_pic: profilePic || '',
             bio: `${institute.trim()} • ${stream}`,
-            grade: stream.includes('12') ? '12' : stream.includes('drop') ? 'dropper' : '11'
+            grade: resolvedGrade,
+            stream: stream,
+            referred_by: cleanRef || null
           };
 
           const { data: upsertData, error } = await supabase
@@ -226,6 +263,15 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
           if (error) {
             console.error("Supabase upsert into users table failed:", error);
           }
+
+          // Also persist into profiles table if used in Supabase schema
+          try {
+            await supabase
+              .from('profiles')
+              .upsert(supabasePayload)
+              .select()
+              .maybeSingle();
+          } catch (_) {}
         }
       }
 
@@ -246,7 +292,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             coaching_hub: coachingHub || findHubForInstitute(institute),
             stream: stream,
             district: 'Bathinda',
-            grade: stream.includes('12') ? 12 : stream.includes('drop') ? 'dropper' : 11,
+            grade: parseInt(resolvedGrade) || 11,
             avatar: finalAvatar,
             profilePic: profilePic || '',
             refCode: cleanRef,
@@ -257,11 +303,11 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
         console.warn('Backend sync warning:', beErr);
       }
 
-      // Clear referral code from storage
-      sessionStorage.removeItem('campus_ref_code');
-      sessionStorage.removeItem('referred_by');
-      localStorage.removeItem('campus_ref_code');
+      // Task 2: Clear referral code from local storage
       localStorage.removeItem('referred_by');
+      localStorage.removeItem('campus_ref_code');
+      sessionStorage.removeItem('referred_by');
+      sessionStorage.removeItem('campus_ref_code');
 
       // Task 3: Ensure Immediate State Update and redirect to /feed
       const completedUser = {
@@ -527,50 +573,45 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                   </div>
                 </div>
 
-                {/* Class / Batch Stream Pills */}
+                {/* Class / Batch Stream Dropdown (Task 1) */}
                 <div>
-                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
-                    Batch / Class
+                  <label htmlFor="class-select" style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
+                    Select Class / Stream
                   </label>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'nowrap',
-                      overflowX: 'auto',
-                      gap: '8px',
-                      padding: '2px 2px 6px 2px',
-                      scrollbarWidth: 'none',
-                      msOverflowStyle: 'none'
-                    }}
-                  >
-                    {['11th Medical', '11th Non-Med', '12th Commerce', 'Dropper'].map(s => {
-                      const isSelected = stream === s;
-                      return (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => {
-                            if (window.navigator?.vibrate) window.navigator.vibrate(8);
-                            setStream(s);
-                            setGrade(s.includes('12') ? '12' : s.includes('drop') ? 'dropper' : '11');
-                          }}
-                          style={{
-                            flexShrink: 0,
-                            padding: '10px 14px',
-                            borderRadius: '12px',
-                            border: isSelected ? '1px solid #000000' : '1px solid #e5e7eb',
-                            background: isSelected ? '#000000' : '#f3f4f6',
-                            color: isSelected ? '#ffffff' : '#4b5563',
-                            fontWeight: '800',
-                            fontSize: '12px',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          {s}
-                        </button>
-                      );
-                    })}
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      id="class-select"
+                      value={stream}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (window.navigator?.vibrate) window.navigator.vibrate(8);
+                        setStream(val);
+                        setGrade(val.includes('10') ? '10' : val.includes('12') ? '12' : '11');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '12px 14px',
+                        borderRadius: '12px',
+                        border: '1px solid #d1d5db',
+                        background: '#f9fafb',
+                        color: '#111827',
+                        fontWeight: '700',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        outline: 'none',
+                        appearance: 'none',
+                        WebkitAppearance: 'none'
+                      }}
+                    >
+                      {CLASS_OPTIONS.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                    <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '11px', color: '#6b7280' }}>
+                      ▼
+                    </div>
                   </div>
                 </div>
               </div>

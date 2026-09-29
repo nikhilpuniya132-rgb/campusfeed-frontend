@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import HolographicCard from './HolographicCard';
+import CustomPollSubmit from './CustomPollSubmit';
 
 const AURA_RING_OPTIONS = [
   { id: 'gold', label: 'Gold Ring', color: '#d97706', desc: 'Championship gold halo' },
@@ -21,7 +22,8 @@ export default function GodMode({
   renderProfilePic
 }) {
   const [selectedPlan, setSelectedPlan] = useState('monthly'); // default to high-value tier
-  const isPro = Boolean(user?.is_pro);
+  const isGodMode = Boolean(user?.is_god_mode || user?.is_pro || (user?.invites || 0) >= 25);
+  const isPro = isGodMode;
 
   const [selectedRing, setSelectedRing] = useState(
     user?.selected_ring || user?.ring || localStorage.getItem('campus_user_ring') || 'gold'
@@ -193,6 +195,9 @@ export default function GodMode({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 4. GOD MODE CUSTOM POLL SUBMISSION (AI-MODERATED) */}
+      <CustomPollSubmit user={user} API={API} supabase={supabase} />
 
       {/* AURA RING EQUIPMENT (Interactive for Pro Users, Preview for Non-Pro) */}
       <div style={{
