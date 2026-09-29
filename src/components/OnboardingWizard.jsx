@@ -233,15 +233,26 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
     setIsSubmitting(true);
     setErrorMsg('');
     try {
-      // Task 2: Read referred_by from localStorage
-      const storedRef = localStorage.getItem('referred_by') || sessionStorage.getItem('referred_by') || localStorage.getItem('campus_ref_code') || refCode || googleUser?.refCode || '';
-      const cleanRef = storedRef ? storedRef.trim().replace(/^@/, '') : null;
-      const finalAvatar = gender === 'girl' ? (avatarEmoji === '😎' ? '🌸' : avatarEmoji) : avatarEmoji;
-      const resolvedGrade = stream.includes('10') ? '10' : stream.includes('12') ? '12' : '11';
+      // 1. Clean referral code: explicitly null if missing, empty, or string "null"/"undefined"
+      const storedRef = (localStorage.getItem('referred_by') || sessionStorage.getItem('referred_by') || localStorage.getItem('campus_ref_code') || refCode || googleUser?.refCode || '');
+      let cleanRef = null;
+      if (storedRef && typeof storedRef === 'string') {
+        const trimmed = storedRef.trim().replace(/^@/, '');
+        if (trimmed && trimmed !== 'null' && trimmed !== 'undefined' && trimmed !== 'campus') {
+          cleanRef = trimmed;
+        }
+      }
 
-      // 1. Direct Supabase save (Primary database of truth)
+      const finalAvatar = gender === 'girl' ? (avatarEmoji === '😎' ? '🌸' : avatarEmoji) : avatarEmoji;
+      const resolvedGrade = stream.includes('10') ? 10 : stream.includes('12') ? 12 : 11;
+      const cleanHandle = handle.trim().replace(/^@/, '').toLowerCase();
+      const cleanInstitute = institute.trim();
+      const cleanHub = coachingHub || findHubForInstitute(cleanInstitute);
+
+      // Resolve authenticated user ID
       let authenticatedUserId = currentUserId || googleUser?.googleId || googleUser?.id;
       let sessionEmail = currentUserEmail || googleUser?.email;
+
       if (supabase) {
         try {
           const { data: sessionData } = await supabase.auth.getSession();
@@ -250,50 +261,69 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             sessionEmail = sessionData.session.user.email || sessionEmail;
           }
         } catch (_) {}
-
-        if (authenticatedUserId) {
-          const supabasePayload = {
-            id: authenticatedUserId,
-            google_id: googleUser?.googleId || authenticatedUserId,
-            email: sessionEmail || null,
-            name: name.trim(),
-            handle: handle.trim().replace(/^@/, '').toLowerCase(),
-            school: institute.trim(),
-            institute: institute.trim(),
-            coaching_hub: coachingHub || findHubForInstitute(institute),
-            district: 'Bathinda',
-            gender,
-            avatar: finalAvatar,
-            profile_pic: profilePic || '',
-            bio: `${institute.trim()} • ${stream}`,
-            grade: resolvedGrade,
-            stream: stream,
-            referred_by: cleanRef || null
-          };
-
-          const { data: upsertData, error } = await supabase
-            .from('users')
-            .upsert(supabasePayload)
-            .select()
-            .maybeSingle();
-
-          console.log("Onboarding Save Result:", { upsertData, error });
-          if (error) {
-            console.error("Supabase upsert into users table failed:", error);
-          }
-
-          // Also persist into profiles table if used in Supabase schema
-          try {
-            await supabase
-              .from('profiles')
-              .upsert(supabasePayload)
-              .select()
-              .maybeSingle();
-          } catch (_) {}
-        }
       }
 
-      // 2. Best-effort backend sync
+      if (!authenticatedUserId) {
+        throw new Error("No active authenticated user session found. Please sign in again.");
+      }
+
+      // 2. Build Supabase payload matching public.users schema precisely
+      const supabasePayload = {
+        id: authenticatedUserId,
+        google_id: googleUser?.googleId || authenticatedUserId,
+        email: sessionEmail || null,
+        name: name.trim(),
+        handle: cleanHandle,
+        institute: cleanInstitute,
+        coaching_hub: cleanHub,
+        district: 'Bathinda',
+        gender,
+        avatar: finalAvatar,
+        profile_pic: profilePic || '',
+        bio: `${cleanInstitute} • ${stream}`,
+        grade: resolvedGrade,
+        stream: stream,
+        referred_by: cleanRef // explicitly null if no referral, never empty string or undefined
+      };
+
+      // 3. Strict database insert into Supabase public.users
+      console.log("Submitting Onboarding to Supabase public.users:", supabasePayload);
+      let { data: insertData, error: insertError } = await supabase
+        .from('users')
+        .insert(supabasePayload)
+        .select()
+        .maybeSingle();
+
+      // If user row already exists with this ID (duplicate key), fall back to upsert
+      if (insertError && (insertError.code === '23505' || insertError.message?.includes('duplicate key') || insertError.message?.includes('already exists'))) {
+        console.warn("User ID already exists in users table, retrying with upsert...");
+        const upsertRes = await supabase
+          .from('users')
+          .upsert(supabasePayload)
+          .select()
+          .maybeSingle();
+        insertData = upsertRes.data;
+        insertError = upsertRes.error;
+      }
+
+      // 4. Strict Error Handling: Stop execution if Supabase failed!
+      if (insertError) {
+        console.error("Supabase insert into users table failed:", insertError);
+        const detailedError = insertError.message || insertError.details || JSON.stringify(insertError);
+        setErrorMsg(`Database error: ${detailedError}`);
+        alert(`Supabase Insert Failed: ${detailedError}`);
+        setIsSubmitting(false);
+        return; // NEVER REDIRECT TO /FEED ON FAILURE!
+      }
+
+      console.log("Supabase insert confirmed successful:", insertData);
+
+      // Also persist to profiles table if present in schema (non-blocking)
+      try {
+        await supabase.from('profiles').upsert(supabasePayload).select().maybeSingle();
+      } catch (_) {}
+
+      // 5. Backend sync via API (service role sync)
       try {
         await fetch(`${API}/user/complete-onboarding`, {
           method: 'POST',
@@ -302,15 +332,15 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             googleId: authenticatedUserId,
             email: sessionEmail,
             name: name.trim(),
-            handle: handle.trim().replace(/^@/, '').toLowerCase(),
+            handle: cleanHandle,
             password: password.trim(),
             gender,
-            school: institute.trim(),
-            institute: institute.trim(),
-            coaching_hub: coachingHub || findHubForInstitute(institute),
+            school: cleanInstitute,
+            institute: cleanInstitute,
+            coaching_hub: cleanHub,
             stream: stream,
             district: 'Bathinda',
-            grade: parseInt(resolvedGrade) || 11,
+            grade: resolvedGrade,
             avatar: finalAvatar,
             profilePic: profilePic || '',
             refCode: cleanRef,
@@ -321,29 +351,29 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
         console.warn('Backend sync warning:', beErr);
       }
 
-      // Task 2: Clear referral code from local storage
+      // 6. Clear referral code from storage after successful save
       localStorage.removeItem('referred_by');
       localStorage.removeItem('campus_ref_code');
       sessionStorage.removeItem('referred_by');
       sessionStorage.removeItem('campus_ref_code');
 
-      // Task 3: Ensure Immediate State Update and redirect to /feed
+      // 7. Success: Update cached user and navigate to /feed
       const completedUser = {
         id: authenticatedUserId,
         email: sessionEmail || '',
         name: name.trim(),
-        handle: handle.trim().replace(/^@/, '').toLowerCase(),
-        username: handle.trim().replace(/^@/, '').toLowerCase(),
-        institute: institute.trim(),
-        school: institute.trim(),
+        handle: cleanHandle,
+        username: cleanHandle,
+        institute: cleanInstitute,
+        school: cleanInstitute,
         district: 'Bathinda',
         stream: stream,
-        coaching_hub: coachingHub || findHubForInstitute(institute),
+        coaching_hub: cleanHub,
         gender,
         avatar: finalAvatar,
         profile_pic: profilePic || '',
-        bio: `${institute.trim()} • ${stream}`,
-        grade: stream.includes('12') ? 12 : stream.includes('drop') ? 'dropper' : 11
+        bio: `${cleanInstitute} • ${stream}`,
+        grade: resolvedGrade
       };
 
       localStorage.setItem('campus_cached_user', JSON.stringify(completedUser));
@@ -354,7 +384,8 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       navigate('/feed');
     } catch (err) {
       console.error('Onboarding finish error:', err);
-      setErrorMsg(err.message || 'Something went wrong. Please try again.');
+      setErrorMsg(err.message || 'Something went wrong saving your profile.');
+      alert(`Onboarding Error: ${err.message || err}`);
     } finally {
       setIsSubmitting(false);
     }
