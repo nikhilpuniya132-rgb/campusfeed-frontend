@@ -1,6 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy, useRef } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'framer-motion';
-import { createClient } from '@supabase/supabase-js';
 import bgVideo from './assets/campus_promo.mp4';
 import './App.css';
 

@@ -5,12 +5,11 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1N
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
-    flowType: 'pkce', // <-- This forces the clean URL fix
+    detectSessionInUrl: true,
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,
-    storage: window.localStorage
-  }
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+  },
 });
 
 export default supabase;
