@@ -259,6 +259,11 @@ export default function App() {
   // =========================================================
   const fetchProfile = async (session) => {
     if (!session?.user?.id) {
+      setUser(null);
+      setProfileData(null);
+      setOnboardingGoogleUser(null);
+      userRef.current = null;
+      localStorage.removeItem('campus_cached_user');
       setIsProfileLoading(false);
       setIsAuthLoading(false);
       return;
@@ -266,6 +271,13 @@ export default function App() {
 
     setIsProfileLoading(true);
     setIsAuthLoading(true);
+
+    // Instantly reset React profile state and cache so previous user state cannot leak
+    setUser(null);
+    setProfileData(null);
+    setOnboardingGoogleUser(null);
+    userRef.current = null;
+    localStorage.removeItem('campus_cached_user');
 
     const currentSessionId = session.user.id;
     const currentSessionEmail = session.user.email || null;
@@ -445,12 +457,21 @@ export default function App() {
         if (!isMounted) return;
 
         if (initialSession?.user) {
+          setUser(null);
+          setProfileData(null);
+          setOnboardingGoogleUser(null);
+          userRef.current = null;
+          localStorage.removeItem('campus_cached_user');
+
           setSession(initialSession);
           await fetchProfile(initialSession);
         } else {
           setSession(null);
           setUser(null);
           setProfileData(null);
+          setOnboardingGoogleUser(null);
+          userRef.current = null;
+          localStorage.removeItem('campus_cached_user');
           setIsProfileLoading(false);
           setIsAuthLoading(false);
         }
@@ -460,6 +481,9 @@ export default function App() {
           setSession(null);
           setUser(null);
           setProfileData(null);
+          setOnboardingGoogleUser(null);
+          userRef.current = null;
+          localStorage.removeItem('campus_cached_user');
           setIsProfileLoading(false);
           setIsAuthLoading(false);
         }
@@ -473,8 +497,9 @@ export default function App() {
 
     initAuth();
 
-    // Task 3: Synchronize Session State
-    // Listen for SIGNED_IN and SIGNED_OUT events and reliably update React state
+    // Task 3: Robust onAuthStateChange Listener
+    // When a SIGNED_IN event fires, instantly reset cached user profile state in React,
+    // grab the new session.user.id, and fetch that specific user's profile fresh from Supabase.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!isMounted) return;
 
@@ -484,6 +509,10 @@ export default function App() {
         setSession(null);
         setUser(null);
         setProfileData(null);
+        setOnboardingGoogleUser(null);
+        userRef.current = null;
+        localStorage.clear();
+        sessionStorage.clear();
         setIsProfileLoading(false);
         setIsAuthLoading(false);
         navigate('/');
@@ -492,10 +521,31 @@ export default function App() {
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (currentSession?.user) {
+          // 1. Instantly reset any cached user profile state in React
+          setUser(null);
+          setProfileData(null);
+          setOnboardingGoogleUser(null);
+          userRef.current = null;
+          localStorage.removeItem('campus_cached_user');
+
+          // 2. Grab the new session.user.id
+          const newUserId = currentSession.user.id;
+          console.log("SIGNED_IN fresh profile fetch for new user ID:", newUserId);
+
+          // 3. Fetch that specific user's profile fresh from Supabase
           setIsAuthLoading(true);
           setIsProfileLoading(true);
           setSession(currentSession);
           await fetchProfile(currentSession);
+        } else {
+          setUser(null);
+          setProfileData(null);
+          setSession(null);
+          setOnboardingGoogleUser(null);
+          userRef.current = null;
+          localStorage.removeItem('campus_cached_user');
+          setIsProfileLoading(false);
+          setIsAuthLoading(false);
         }
       }
     });
@@ -548,7 +598,7 @@ export default function App() {
   const loginWithGoogle = async () => {
     setIsAuthenticating(true);
 
-    // 1. Mandatory: Aggressively sign out of Supabase to terminate any existing session
+    // 1. Force Clean Session Wipe on Login/Signup Initiation
     try {
       await supabase.auth.signOut({ scope: 'local' });
     } catch (_) {}
@@ -558,40 +608,33 @@ export default function App() {
       console.warn("Pre-login signOut error:", e);
     }
 
-    // 2. Clear stale tokens and user cache from localStorage & sessionStorage
-    const preSchool = localStorage.getItem('pre_selected_school');
-    const refCode = localStorage.getItem('referred_by') || localStorage.getItem('campus_ref_code');
+    // Preserve non-auth user context (referral and school selection)
+    const preSchool = localStorage.getItem('pre_selected_school') || localStorage.getItem('campus_institute');
+    const refCode = (localStorage.getItem('referred_by') || localStorage.getItem('campus_ref_code') || '').trim();
 
-    localStorage.removeItem('campus_cached_user');
-    localStorage.removeItem('campus_user_ring');
-    localStorage.removeItem('selected_ring');
-    localStorage.removeItem('applied_batch_captain');
-
-    // Remove all Supabase session tokens from localStorage
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
-      if (key && (key.startsWith('sb-') || key.includes('-auth-token'))) {
-        localStorage.removeItem(key);
-      }
-    }
+    // Explicitly run localStorage.clear() and sessionStorage.clear() to eliminate ALL ghost tokens (sb-*, cached users, etc.)
+    localStorage.clear();
     sessionStorage.clear();
 
-    // Preserve pre_selected_school & referral
-    if (preSchool) localStorage.setItem('pre_selected_school', preSchool);
+    // Restore essential non-auth preferences for onboarding
+    if (preSchool) {
+      localStorage.setItem('pre_selected_school', preSchool);
+      localStorage.setItem('campus_institute', preSchool);
+    }
     if (refCode) {
       localStorage.setItem('referred_by', refCode);
       localStorage.setItem('campus_ref_code', refCode);
     }
 
-    localStorage.setItem('campus_grade', grade);
-    localStorage.setItem('campus_stream', stream);
-    localStorage.setItem('campus_institute', institute);
-    localStorage.setItem('campus_hub', coachingHub || findHubForInstitute(institute));
+    if (grade) localStorage.setItem('campus_grade', grade);
+    if (stream) localStorage.setItem('campus_stream', stream);
     if (institute && institute.trim()) {
       localStorage.setItem('pre_selected_school', institute.trim());
+      localStorage.setItem('campus_institute', institute.trim());
     }
+    if (coachingHub) localStorage.setItem('campus_hub', coachingHub);
 
-    // 3. Clear all React state
+    // 2. Clear all React state
     setUser(null);
     setProfileData(null);
     setSession(null);
@@ -624,6 +667,15 @@ export default function App() {
     if (!handle || !password) return alert('Enter credentials');
     setIsAuthenticating(true);
     try {
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch (_) {}
+      try {
+        await supabase.auth.signOut();
+      } catch (_) {}
+      localStorage.clear();
+      sessionStorage.clear();
+
       const res = await fetch(`${API}/auth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -658,11 +710,19 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (_) {}
+    try {
       await supabase.auth.signOut();
     } catch (e) {
       console.warn('Sign out error:', e);
     }
     setUser(null);
+    setProfileData(null);
+    setSession(null);
+    setOnboardingGoogleUser(null);
+    setIsOnboarding(false);
+    userRef.current = null;
     localStorage.clear();
     sessionStorage.clear();
     window.location.href = '/'; // Hard redirect to completely clear cache
@@ -944,11 +1004,19 @@ export default function App() {
       // 3. Delete Supabase Auth session
       if (supabase) {
         try {
+          await supabase.auth.signOut({ scope: 'local' });
+        } catch (_) {}
+        try {
           await supabase.auth.signOut();
         } catch (_) {}
       }
 
       setUser(null);
+      setProfileData(null);
+      setSession(null);
+      setOnboardingGoogleUser(null);
+      setIsOnboarding(false);
+      userRef.current = null;
       localStorage.clear();
       sessionStorage.clear();
       alert('Your account has been deleted successfully.');

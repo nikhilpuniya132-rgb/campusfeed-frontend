@@ -398,6 +398,9 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
 
   const handleSignOut = async () => {
     try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (_) {}
+    try {
       await supabase.auth.signOut();
     } catch (e) {
       console.warn("Sign out error:", e);
