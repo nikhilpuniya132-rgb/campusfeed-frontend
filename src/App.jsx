@@ -425,54 +425,75 @@ export default function App() {
     setIsAuthLoading(true);
     setIsProfileLoading(true);
 
-    // Guaranteed failsafe timer (3.5s max) to prevent infinite "Loading..." state
+    const hasOAuthParams = typeof window !== 'undefined' && (
+      window.location.search?.includes('code=') ||
+      window.location.hash?.includes('access_token=') ||
+      window.location.hash?.includes('error=')
+    );
+
+    // Guaranteed failsafe timer to prevent infinite "Loading..." state
     const safetyTimer = setTimeout(() => {
       if (isMounted) {
         setIsAuthLoading(false);
         setIsProfileLoading(false);
       }
-    }, 3500);
+    }, hasOAuthParams ? 6000 : 3500);
 
     const initAuth = async () => {
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const authCode = urlParams.get('code');
+        const hasHashToken = window.location.hash?.includes('access_token=');
         let initialSession = null;
 
+        // 1. If incoming redirect has an auth code, exchange it for session
         if (authCode) {
           try {
-            const { data: exchangeData } = await supabase.auth.exchangeCodeForSession(authCode);
+            console.log("OAuth Callback: Exchanging code for session...");
+            const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(authCode);
+            if (exchangeError) {
+              console.warn("exchangeCodeForSession warning (handled by client listener):", exchangeError);
+            }
             if (exchangeData?.session) {
               initialSession = exchangeData.session;
             }
           } catch (e) {
-            console.warn('exchangeCodeForSession warning:', e);
-          }
-          if (window.history.replaceState) {
-            window.history.replaceState(null, '', window.location.pathname);
+            console.warn('exchangeCodeForSession catch:', e);
           }
         }
 
+        // 2. Query active session via supabase.auth.getSession()
         if (!initialSession) {
           const { data: { session: fetchedSession }, error: sessionError } = await supabase.auth.getSession();
           if (sessionError) {
             console.error('supabase.auth.getSession() error on mount:', sessionError);
           }
-          initialSession = fetchedSession;
+          if (fetchedSession) {
+            initialSession = fetchedSession;
+          }
+        }
+
+        // 3. Clean up URL parameters once session is resolved
+        if (initialSession && (authCode || hasHashToken)) {
+          if (window.history.replaceState) {
+            window.history.replaceState(null, '', window.location.pathname);
+          }
         }
 
         if (!isMounted) return;
 
+        // 4. Post-Auth Routing
         if (initialSession?.user) {
-          setUser(null);
-          setProfileData(null);
-          setOnboardingGoogleUser(null);
-          userRef.current = null;
-          localStorage.removeItem('campus_cached_user');
-
+          console.log("Valid session found on mount for user:", initialSession.user.id);
           setSession(initialSession);
           await fetchProfile(initialSession);
         } else {
+          // If OAuth params are in the URL, wait for onAuthStateChange to deliver the session before showing landing
+          if (authCode || hasHashToken) {
+            console.log("OAuth params present; waiting for onAuthStateChange to complete session resolution...");
+            return;
+          }
+
           setSession(null);
           setUser(null);
           setProfileData(null);
@@ -495,7 +516,11 @@ export default function App() {
           setIsAuthLoading(false);
         }
       } finally {
-        if (isMounted) {
+        const isOAuthPending = !initialSession && (
+          window.location.search?.includes('code=') ||
+          window.location.hash?.includes('access_token=')
+        );
+        if (isMounted && !isOAuthPending) {
           setIsAuthLoading(false);
           setIsProfileLoading(false);
         }
@@ -505,41 +530,43 @@ export default function App() {
     initAuth();
 
     // Task 3: Robust onAuthStateChange Listener
-    // When a SIGNED_IN event fires, instantly reset cached user profile state in React,
-    // grab the new session.user.id, and fetch that specific user's profile fresh from Supabase.
+    // Capture incoming session tokens from URL hash/query and process profile routing
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!isMounted) return;
 
       console.log("Supabase Auth Event:", event, currentSession?.user?.id);
 
       if (event === 'SIGNED_OUT') {
+        const isOAuthPending = window.location.search?.includes('code=') || window.location.hash?.includes('access_token=');
+        if (isOAuthPending) {
+          console.log("Ignoring SIGNED_OUT while OAuth callback parameters are pending in URL");
+          return;
+        }
+
         setSession(null);
         setUser(null);
         setProfileData(null);
         setOnboardingGoogleUser(null);
         userRef.current = null;
-        localStorage.clear();
-        sessionStorage.clear();
         setIsProfileLoading(false);
         setIsAuthLoading(false);
-        navigate('/');
+
+        const currentPath = window.location.pathname.replace(/^\//, '');
+        if (currentPath === 'feed' || currentPath === 'poll' || currentPath === 'inbox' || currentPath === 'profile') {
+          navigate('/');
+        }
         return;
       }
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (currentSession?.user) {
-          // 1. Instantly reset any cached user profile state in React
-          setUser(null);
-          setProfileData(null);
-          setOnboardingGoogleUser(null);
-          userRef.current = null;
-          localStorage.removeItem('campus_cached_user');
+          // Clean URL parameters if present
+          if (window.location.search?.includes('code=') || window.location.hash?.includes('access_token=')) {
+            if (window.history.replaceState) {
+              window.history.replaceState(null, '', window.location.pathname);
+            }
+          }
 
-          // 2. Grab the new session.user.id
-          const newUserId = currentSession.user.id;
-          console.log("SIGNED_IN fresh profile fetch for new user ID:", newUserId);
-
-          // 3. Fetch that specific user's profile fresh from Supabase
           setIsAuthLoading(true);
           setIsProfileLoading(true);
           setSession(currentSession);
@@ -629,8 +656,19 @@ export default function App() {
       console.warn("Pre-login signOut error:", e);
     }
 
-    // Explicitly run localStorage.clear() and sessionStorage.clear() to eliminate ALL ghost tokens (sb-*, cached users, etc.)
-    localStorage.clear();
+    // Selectively wipe stale user tokens and cached data to prevent ghost logins,
+    // while keeping storage clean for the new OAuth PKCE challenge
+    localStorage.removeItem('campus_cached_user');
+    localStorage.removeItem('campus_user_ring');
+    localStorage.removeItem('selected_ring');
+    localStorage.removeItem('applied_batch_captain');
+
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('sb-') || key.includes('-auth-token'))) {
+        localStorage.removeItem(key);
+      }
+    }
     sessionStorage.clear();
 
     // Restore essential non-auth preferences for onboarding
@@ -645,10 +683,6 @@ export default function App() {
 
     if (grade) localStorage.setItem('campus_grade', grade);
     if (stream) localStorage.setItem('campus_stream', stream);
-    if (selectedSchool) {
-      localStorage.setItem('pre_selected_school', selectedSchool);
-      localStorage.setItem('campus_institute', selectedSchool);
-    }
     if (coachingHub) localStorage.setItem('campus_hub', coachingHub);
 
     // 2. Clear all React state
