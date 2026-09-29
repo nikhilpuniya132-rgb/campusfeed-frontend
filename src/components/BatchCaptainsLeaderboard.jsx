@@ -3,11 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getWhatsAppShareUrl, copyReferralLink, getReferralLink } from '../utils/referral';
 import HamsterLoader from './HamsterLoader';
 import { supabase } from '../supabase';
+import { MASTER_CLASS_OPTIONS } from '../constants/classes';
+
+const CAPTAIN_CLASS_OPTIONS = [
+  ...MASTER_CLASS_OPTIONS,
+  "All Bathinda"
+];
 
 export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProfilePic }) {
   const [captains, setCaptains] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [gradeFilter, setGradeFilter] = useState('all');
+  const [gradeFilter, setGradeFilter] = useState('All Bathinda');
   const [copyToast, setCopyToast] = useState(false);
   const [applyToast, setApplyToast] = useState(false);
   const [hasApplied, setHasApplied] = useState(() => {
@@ -76,22 +82,48 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
 
   // Filter captains by stream/grade
   const filteredCaptains = captains.filter(c => {
-    if (gradeFilter === 'all') return true;
-    const stream = (c.stream || '').toLowerCase();
-    const grade = (c.grade || '').toString().toLowerCase();
-    const target = gradeFilter.toLowerCase();
+    if (!gradeFilter || gradeFilter === 'All Bathinda' || gradeFilter === 'all') return true;
+
+    const stream = (c.stream || '').toLowerCase().trim();
+    const grade = (c.grade || '').toString().toLowerCase().trim();
+    const target = gradeFilter.toLowerCase().trim();
+
+    // 1. Direct equality check
+    if (stream === target) return true;
+
+    // 2. Class 10 check
+    if (target === 'class 10' || target === '10') {
+      return stream.includes('10') || grade === '10';
+    }
+
+    // 3. Grade-level isolation (prevent Class 11 matching Class 12 and vice-versa)
+    const targetGrade = target.includes('11') ? '11' : target.includes('12') ? '12' : '';
+    const captainGrade = (stream.includes('11') || grade === '11') ? '11' : (stream.includes('12') || grade === '12') ? '12' : (stream.includes('10') || grade === '10') ? '10' : '';
+
+    if (targetGrade && captainGrade && targetGrade !== captainGrade) {
+      return false;
+    }
+
+    // 4. Stream-specific matching
+    if (target.includes('non-medical') || target.includes('non-med')) {
+      return stream.includes('non');
+    }
     if (target.includes('medical') && !target.includes('non')) {
       return stream.includes('med') && !stream.includes('non');
     }
-    if (target.includes('non-med') || target.includes('nonmed')) {
-      return stream.includes('non');
+    if (target.includes('commerce')) {
+      return stream.includes('comm');
     }
-    if (target.includes('board') || target.includes('12')) {
-      return stream.includes('12') || grade === '12';
+    if (target.includes('arts')) {
+      return stream.includes('art');
     }
-    if (target.includes('dropper')) {
-      return stream.includes('drop') || grade === 'dropper';
+    if (target.includes('jee')) {
+      return stream.includes('jee');
     }
+    if (target.includes('neet')) {
+      return stream.includes('neet') || (stream.includes('med') && !stream.includes('non'));
+    }
+
     return stream.includes(target) || grade === target;
   });
 
@@ -381,36 +413,67 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
         )}
       </div>
 
-      {/* Category Switcher Tabs (active: bg-black text-white; inactive: bg-gray-100 text-gray-600) */}
-      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginBottom: '18px', flexWrap: 'wrap' }}>
-        {[
-          { id: '11th Medical', label: '11th Medical' },
-          { id: '11th Non-Med', label: '11th Non-Med' },
-          { id: '12th Board', label: '12th Board' },
-          { id: 'NEET Droppers', label: 'NEET Droppers' },
-          { id: 'all', label: 'All Bathinda' }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => {
+      {/* Classes Dropdown Filter */}
+      <div style={{ marginBottom: '18px' }}>
+        <label
+          htmlFor="captains-class-dropdown"
+          style={{
+            fontSize: '11px',
+            fontWeight: '800',
+            color: '#6b7280',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            display: 'block',
+            marginBottom: '6px'
+          }}
+        >
+          Classes
+        </label>
+        <div style={{ position: 'relative' }}>
+          <select
+            id="captains-class-dropdown"
+            value={gradeFilter}
+            onChange={(e) => {
               if (window.navigator?.vibrate) window.navigator.vibrate(8);
-              setGradeFilter(tab.id);
+              setGradeFilter(e.target.value);
             }}
             style={{
-              padding: '6px 12px',
+              width: '100%',
+              padding: '11px 40px 11px 14px',
               borderRadius: '12px',
-              border: gradeFilter === tab.id ? '1px solid #000000' : '1px solid #e5e7eb',
-              fontSize: '11.5px',
-              fontWeight: '800',
+              border: '1px solid #e5e7eb',
+              background: '#f9fafb',
+              color: '#111827',
+              fontWeight: '700',
+              fontSize: '13.5px',
               cursor: 'pointer',
-              background: gradeFilter === tab.id ? '#000000' : '#f3f4f6',
-              color: gradeFilter === tab.id ? '#ffffff' : '#4b5563',
-              transition: 'all 0.15s ease'
+              outline: 'none',
+              appearance: 'none',
+              WebkitAppearance: 'none',
+              boxSizing: 'border-box',
+              transition: 'border-color 0.15s ease'
             }}
           >
-            {tab.label}
-          </button>
-        ))}
+            {CAPTAIN_CLASS_OPTIONS.map((opt) => (
+              <option key={opt} value={opt} style={{ color: '#000000', background: '#ffffff', fontWeight: '600' }}>
+                {opt}
+              </option>
+            ))}
+          </select>
+          <div
+            style={{
+              position: 'absolute',
+              right: '14px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              pointerEvents: 'none',
+              fontSize: '10px',
+              color: '#6b7280'
+            }}
+          >
+            ▼
+          </div>
+        </div>
       </div>
 
       {loading ? (
