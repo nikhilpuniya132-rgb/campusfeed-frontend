@@ -3,19 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 import { supabase } from '../supabase';
 import { useNavigate } from '../useNavigate';
+import { MASTER_CLASS_OPTIONS, CLASS_OPTIONS } from '../constants/classes';
 
-// Hardware-accelerated step transitions (opacity + transform only)
-export const CLASS_OPTIONS = [
-  "Class 10",
-  "Class 11 - Medical",
-  "Class 11 - Non-Medical",
-  "Class 11 - Commerce",
-  "Class 11 - Arts",
-  "Class 12 - Medical",
-  "Class 12 - Non-Medical",
-  "Class 12 - Commerce",
-  "Class 12 - Arts"
-];
+export { CLASS_OPTIONS };
 
 const stepVariants = {
   enter: (direction) => ({

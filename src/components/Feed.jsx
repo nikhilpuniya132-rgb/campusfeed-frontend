@@ -1,17 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SkeletonPollCard from './SkeletonPollCard';
 import CooldownScreen from './CooldownScreen';
 import SponsorBanner from './SponsorBanner';
 import { handleShare } from '../utils/share';
-
-const COACHING_FILTER_PILLS = [
-  { id: '11th Medical', label: '11th Medical' },
-  { id: '11th Non-Med', label: '11th Non-Med' },
-  { id: '12th Board', label: '12th Board' },
-  { id: 'NEET Droppers', label: 'NEET Droppers' },
-  { id: 'all', label: 'Institute' }
-];
+import { MASTER_CLASS_OPTIONS } from '../constants/classes';
 
 export default function Feed({
   user,
@@ -32,6 +25,29 @@ export default function Feed({
   const [shuffleCount, setShuffleCount] = useState(0);
   const [optimisticVoted, setOptimisticVoted] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [isClassesOpen, setIsClassesOpen] = useState(false);
+  const classesDropdownRef = useRef(null);
+
+  // Close dropdown on outside click or tap
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (classesDropdownRef.current && !classesDropdownRef.current.contains(e.target)) {
+        setIsClassesOpen(false);
+      }
+    };
+    if (isClassesOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isClassesOpen]);
+
+  const currentClassLabel = !gradeFilter || gradeFilter === 'all'
+    ? 'All Classes'
+    : (MASTER_CLASS_OPTIONS.find(c => c.toLowerCase() === gradeFilter.toLowerCase()) || gradeFilter);
 
   // Check if active cooldown is in the future
   const isCooldownActive = Boolean(
@@ -138,44 +154,140 @@ export default function Feed({
         background: '#ffffff'
       }}
     >
-      {/* Category Pills */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '6px',
-          justifyContent: 'center',
-          marginBottom: '16px'
-        }}
-      >
-        {COACHING_FILTER_PILLS.map((pill) => {
-          const isActive = gradeFilter?.toLowerCase() === pill.id.toLowerCase() ||
-            (pill.id === 'all' && (!gradeFilter || gradeFilter === 'all'));
-          return (
-            <motion.button
-              key={pill.id}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                if (window.navigator?.vibrate) window.navigator.vibrate(8);
-                onLoadNextPoll(pill.id);
-              }}
-              style={{
-                padding: '7px 12px',
-                borderRadius: '12px',
-                border: isActive ? '1px solid #000000' : '1px solid #e5e7eb',
-                fontSize: '11.5px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                background: isActive ? '#000000' : '#f3f4f6',
-                color: isActive ? '#ffffff' : '#4b5563',
-                boxShadow: 'none',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              {pill.label}
-            </motion.button>
-          );
-        })}
+      {/* 2. Refactored Classes Dropdown (Vertical & Scrollable) */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px', position: 'relative', zIndex: 40 }}>
+        <div ref={classesDropdownRef} style={{ position: 'relative', width: '100%', maxWidth: '290px' }}>
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            type="button"
+            onClick={() => setIsClassesOpen(prev => !prev)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '9px 14px',
+              borderRadius: '14px',
+              border: '1.5px solid #000000',
+              background: '#f9fafb',
+              color: '#000000',
+              fontWeight: '800',
+              fontSize: '12.5px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+              <span style={{ fontSize: '13px' }}>🎓</span>
+              <span style={{ color: '#6b7280', fontWeight: '700', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Classes:
+              </span>
+              <span style={{ fontWeight: '800', color: '#000000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {currentClassLabel}
+              </span>
+            </div>
+            <span style={{ fontSize: '10px', color: '#6b7280', transition: 'transform 0.2s ease', transform: isClassesOpen ? 'rotate(180deg)' : 'none' }}>
+              ▼
+            </span>
+          </motion.button>
+
+          <AnimatePresence>
+            {isClassesOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                transition={{ duration: 0.15 }}
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 6px)',
+                  left: 0,
+                  right: 0,
+                  maxHeight: '260px',
+                  overflowY: 'auto',
+                  background: '#ffffff',
+                  border: '1.5px solid #000000',
+                  borderRadius: '16px',
+                  boxShadow: '0 12px 30px rgba(0, 0, 0, 0.15)',
+                  zIndex: 100,
+                  padding: '6px',
+                  scrollbarWidth: 'thin'
+                }}
+              >
+                <div style={{ padding: '6px 10px 4px 10px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', color: '#9ca3af', letterSpacing: '0.05em' }}>
+                  Filter By Class / Stream
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.navigator?.vibrate) window.navigator.vibrate(8);
+                    setIsClassesOpen(false);
+                    onLoadNextPoll('all');
+                  }}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: (!gradeFilter || gradeFilter === 'all') ? '#000000' : 'transparent',
+                    color: (!gradeFilter || gradeFilter === 'all') ? '#ffffff' : '#111827',
+                    fontWeight: '800',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '2px',
+                    transition: 'background 0.12s ease'
+                  }}
+                >
+                  <span>🏫 All Classes (Institute)</span>
+                  {(!gradeFilter || gradeFilter === 'all') && <span>✓</span>}
+                </button>
+
+                <div style={{ height: '1px', background: '#f3f4f6', margin: '4px 0' }} />
+
+                {MASTER_CLASS_OPTIONS.map((c) => {
+                  const isSelected = gradeFilter?.toLowerCase() === c.toLowerCase();
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        if (window.navigator?.vibrate) window.navigator.vibrate(8);
+                        setIsClassesOpen(false);
+                        onLoadNextPoll(c);
+                      }}
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '9px 12px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: isSelected ? '#000000' : 'transparent',
+                        color: isSelected ? '#ffffff' : '#1f2937',
+                        fontWeight: '700',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '2px',
+                        transition: 'background 0.12s ease'
+                      }}
+                    >
+                      <span>{c}</span>
+                      {isSelected && <span>✓</span>}
+                    </button>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {isLoadingPoll ? (

@@ -3,18 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 import { handleShare } from '../utils/share';
 import ReferralInviteSnippet from './ReferralInviteSnippet';
-
-const CLASS_OPTIONS = [
-  "Class 10",
-  "Class 11 - Medical",
-  "Class 11 - Non-Medical",
-  "Class 11 - Commerce",
-  "Class 11 - Arts",
-  "Class 12 - Medical",
-  "Class 12 - Non-Medical",
-  "Class 12 - Commerce",
-  "Class 12 - Arts"
-];
+import { MASTER_CLASS_OPTIONS, CLASS_OPTIONS } from '../constants/classes';
 
 const AURA_OPTIONS = [
   { id: 'none', label: 'None (Default)', color: '#9ca3af', desc: 'No special aura ring' },
@@ -174,7 +163,7 @@ export default function Profile({
   const saveProfile = async () => {
     setIsSaving(true);
     try {
-      const computedGrade = editStream.includes('12') ? 12 : editStream.includes('drop') ? 'dropper' : 11;
+      const computedGrade = editStream.includes('10') ? 10 : editStream.includes('12') ? 12 : 11;
       const computedHub = editHub || findHubForInstitute(editInstitute);
       const updatedUser = {
         ...user,
@@ -208,6 +197,9 @@ export default function Profile({
           profile_pic: editProfilePic
         };
         await supabase.from('users').update(updatePayload).eq('id', user.id);
+        try {
+          await supabase.from('profiles').update(updatePayload).eq('id', user.id);
+        } catch (_) {}
       }
 
       await fetch(`${API}/profile/${user.id}`, {
@@ -759,53 +751,51 @@ export default function Profile({
             </div>
           </div>
 
-          {/* Stream Selection Pills */}
+          {/* Change Class Dropdown (Task 3) */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '11px', color: '#4b5563', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
-              Batch / Stream
-            </label>
-            <div
+            <label
+              htmlFor="change-class-select"
               style={{
-                display: 'flex',
-                flexWrap: 'nowrap',
-                overflowX: 'auto',
-                gap: '8px',
-                paddingBottom: '4px',
-                scrollbarWidth: 'none',
-                msOverflowStyle: 'none',
-                WebkitOverflowScrolling: 'touch'
+                fontSize: '11px',
+                color: '#4b5563',
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                display: 'block',
+                marginBottom: '6px'
               }}
-              className="flex flex-nowrap overflow-x-auto hide-scrollbar"
             >
-              {CLASS_OPTIONS.map((s) => {
-                const isSelected = editStream === s;
-                return (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => {
-                      if (window.navigator?.vibrate) window.navigator.vibrate(8);
-                      setEditStream(s);
-                      setEditGrade(s.includes('10') ? '10' : s.includes('12') ? '12' : '11');
-                    }}
-                    style={{
-                      flexShrink: 0,
-                      padding: '8px 14px',
-                      borderRadius: '10px',
-                      border: isSelected ? '1px solid #000000' : '1px solid #e5e7eb',
-                      background: isSelected ? '#000000' : '#f3f4f6',
-                      color: isSelected ? '#ffffff' : '#4b5563',
-                      fontWeight: '800',
-                      fontSize: '12px',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    {s}
-                  </button>
-                );
-              })}
+              Change Class
+            </label>
+            <div style={{ position: 'relative' }}>
+              <select
+                id="change-class-select"
+                value={editStream}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (window.navigator?.vibrate) window.navigator.vibrate(8);
+                  setEditStream(val);
+                  setEditGrade(val.includes('10') ? '10' : val.includes('12') ? '12' : '11');
+                }}
+                className="w-full px-3.5 py-3 rounded-xl border border-gray-300 bg-gray-50 text-gray-900 font-bold text-sm cursor-pointer outline-none appearance-none focus:border-black focus:ring-1 focus:ring-black transition-all"
+                style={{
+                  maxHeight: '240px',
+                  overflowY: 'auto'
+                }}
+              >
+                {MASTER_CLASS_OPTIONS.map((c) => (
+                  <option key={c} value={c} className="py-2 text-sm font-semibold">
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '11px', color: '#6b7280' }}>
+                ▼
+              </div>
             </div>
+            <p style={{ margin: '5px 0 0 0', fontSize: '11px', color: '#6b7280' }}>
+              Select your coaching batch/stream to see batch-specific polls and leaderboards.
+            </p>
           </div>
 
           {/* Actions */}
