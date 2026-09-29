@@ -58,6 +58,7 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
+  const setProfile = setProfileData;
   const [user, setUser] = useState(null);
   const [handle, setHandle] = useState('');
   const [password, setPassword] = useState('');
@@ -417,181 +418,62 @@ export default function App() {
     syncWithBackend(session.user).catch(console.warn);
   };
 
-  // Task 1: Fix Initial Session Mount
-  // Task 2: Fix Initial Session Load (The Re-Login Bug)
-  // On initial mount, immediately call supabase.auth.getSession() and block UI rendering
+  const handleAuthSession = async (session) => {
+    if (!session?.user) {
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      setOnboardingGoogleUser(null);
+      userRef.current = null;
+      setIsOnboarding(false);
+      localStorage.removeItem('campus_cached_user');
+      setIsAuthLoading(false);
+      setIsProfileLoading(false);
+      setIsCheckingSession(false);
+      setIsAuthenticating(false);
+
+      const currentPath = window.location.pathname.replace(/^\//, '');
+      if (currentPath === 'feed' || currentPath === 'poll' || currentPath === 'inbox' || currentPath === 'profile') {
+        navigate('/');
+      }
+      return;
+    }
+
+    setSession(session);
+    await fetchProfile(session);
+  };
+
   useEffect(() => {
-    let isMounted = true;
-    setIsAuthLoading(true);
-    setIsProfileLoading(true);
+    // 1. Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleAuthSession(session);
+    });
 
-    const hasOAuthParams = typeof window !== 'undefined' && (
-      window.location.search?.includes('code=') ||
-      window.location.hash?.includes('access_token=') ||
-      window.location.hash?.includes('error=')
-    );
-
-    // Guaranteed failsafe timer to prevent infinite "Loading..." state
-    const safetyTimer = setTimeout(() => {
-      if (isMounted) {
-        setIsAuthLoading(false);
-        setIsProfileLoading(false);
-      }
-    }, hasOAuthParams ? 6000 : 3500);
-
-    const initAuth = async () => {
-      let initialSession = null;
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const authCode = urlParams.get('code');
-        const hasHashToken = window.location.hash?.includes('access_token=');
-
-        // 1. Retrieve session from Supabase (Supabase automatically handles PKCE code exchange with detectSessionInUrl: true)
-        try {
-          const { data: { session: fetchedSession }, error: sessionError } = await supabase.auth.getSession();
-          if (sessionError) {
-            console.warn('supabase.auth.getSession() check:', sessionError);
-          }
-          if (fetchedSession) {
-            initialSession = fetchedSession;
-          }
-        } catch (sessErr) {
-          console.warn('getSession catch error:', sessErr);
-        }
-
-        // 2. Safe fallback manual exchange if session was not automatically resolved yet
-        if (!initialSession && authCode) {
-          try {
-            console.log("OAuth Callback: Attempting safe code exchange fallback...");
-            const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(authCode);
-            if (exchangeError) {
-              console.warn("exchangeCodeForSession warning (handled by client listener):", exchangeError);
-            }
-            if (exchangeData?.session) {
-              initialSession = exchangeData.session;
-            }
-          } catch (pkceErr) {
-            // Safely catch PKCE verifier errors without crashing or throwing unhandled errors
-            console.warn('Safe PKCE code exchange catch:', pkceErr?.message || pkceErr);
-          }
-        }
-
-        // 3. Clean up URL parameters once session is resolved
-        if (initialSession && (authCode || hasHashToken)) {
-          if (window.history.replaceState) {
-            window.history.replaceState(null, '', window.location.pathname);
-          }
-        }
-
-        if (!isMounted) return;
-
-        // 4. Post-Auth Routing
-        if (initialSession?.user) {
-          console.log("Valid session found on mount for user:", initialSession.user.id);
-          setSession(initialSession);
-          await fetchProfile(initialSession);
-        } else {
-          // If OAuth params are in the URL, wait for onAuthStateChange to deliver the session before showing landing
-          if (authCode || hasHashToken) {
-            console.log("OAuth params present; waiting for onAuthStateChange to complete session resolution...");
-            return;
-          }
-
-          setSession(null);
-          setUser(null);
-          setProfileData(null);
-          setOnboardingGoogleUser(null);
-          userRef.current = null;
-          localStorage.removeItem('campus_cached_user');
-          setIsProfileLoading(false);
-          setIsAuthLoading(false);
-        }
-      } catch (err) {
-        console.error('Initial session mount error:', err);
-        if (isMounted) {
-          setSession(null);
-          setUser(null);
-          setProfileData(null);
-          setOnboardingGoogleUser(null);
-          userRef.current = null;
-          localStorage.removeItem('campus_cached_user');
-          setIsProfileLoading(false);
-          setIsAuthLoading(false);
-        }
-      } finally {
-        const isOAuthPending = !initialSession && (
-          window.location.search?.includes('code=') ||
-          window.location.hash?.includes('access_token=')
-        );
-        if (isMounted && !isOAuthPending) {
-          setIsAuthLoading(false);
-          setIsProfileLoading(false);
-        }
-      }
-    };
-
-    initAuth();
-
-    // Task 3: Robust onAuthStateChange Listener
-    // Capture incoming session tokens from URL hash/query and process profile routing
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      if (!isMounted) return;
-
-      console.log("Supabase Auth Event:", event, currentSession?.user?.id);
-
-      if (event === 'SIGNED_OUT') {
-        const isOAuthPending = window.location.search?.includes('code=') || window.location.hash?.includes('access_token=');
-        if (isOAuthPending) {
-          console.log("Ignoring SIGNED_OUT while OAuth callback parameters are pending in URL");
-          return;
-        }
-
-        setSession(null);
+    // 2. Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        handleAuthSession(session);
+      } else if (event === 'SIGNED_OUT') {
         setUser(null);
-        setProfileData(null);
+        setProfile(null);
+        setSession(null);
         setOnboardingGoogleUser(null);
         userRef.current = null;
-        setIsProfileLoading(false);
+        setIsOnboarding(false);
+        localStorage.removeItem('campus_cached_user');
         setIsAuthLoading(false);
+        setIsProfileLoading(false);
+        setIsCheckingSession(false);
+        setIsAuthenticating(false);
 
         const currentPath = window.location.pathname.replace(/^\//, '');
         if (currentPath === 'feed' || currentPath === 'poll' || currentPath === 'inbox' || currentPath === 'profile') {
           navigate('/');
         }
-        return;
-      }
-
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        if (currentSession?.user) {
-          // Clean URL parameters if present
-          if (window.location.search?.includes('code=') || window.location.hash?.includes('access_token=')) {
-            if (window.history.replaceState) {
-              window.history.replaceState(null, '', window.location.pathname);
-            }
-          }
-
-          setIsAuthLoading(true);
-          setIsProfileLoading(true);
-          setSession(currentSession);
-          await fetchProfile(currentSession);
-        } else {
-          setUser(null);
-          setProfileData(null);
-          setSession(null);
-          setOnboardingGoogleUser(null);
-          userRef.current = null;
-          localStorage.removeItem('campus_cached_user');
-          setIsProfileLoading(false);
-          setIsAuthLoading(false);
-        }
       }
     });
 
-    return () => {
-      isMounted = false;
-      clearTimeout(safetyTimer);
-      subscription?.unsubscribe();
-    };
+    return () => subscription?.unsubscribe();
   }, []);
 
   // Persistent Auth Routing: If a logged-in user with completed profile is on base URL, landing, or onboarding,
