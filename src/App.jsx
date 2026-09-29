@@ -267,52 +267,32 @@ export default function App() {
     setIsProfileLoading(true);
     setIsAuthLoading(true);
 
+    const currentSessionId = session.user.id;
+    const currentSessionEmail = session.user.email || null;
+
     try {
-      // 1. Strict Database Check: Query the public 'users' table for user.id
+      // 1. Strict Database Check: Query the public 'users' table ONLY for the currently authenticated session's user ID
       let { data, error } = await supabase
         .from('users')
         .select('*')
-        .eq('id', session.user.id)
+        .eq('id', currentSessionId)
         .maybeSingle();
 
-      console.log("Auth Guard - Session ID:", session.user.id, "Profile Data:", data, "Supabase Error:", error);
+      console.log("Auth Guard - Current Session ID:", currentSessionId, "Email:", currentSessionEmail, "Found Profile:", data);
 
       if (error) {
         console.error("Supabase user query error in Auth Guard:", error);
       }
 
-      // Safe fallbacks if ID format varies across OAuth/database migrations
+      // Safe fallback: check if google_id equals this exact session ID
       if (!data) {
         try {
           const { data: byGid } = await supabase
             .from('users')
             .select('*')
-            .eq('google_id', session.user.id)
+            .eq('google_id', currentSessionId)
             .maybeSingle();
           if (byGid) data = byGid;
-        } catch (_) {}
-      }
-
-      const googleSub = session.user.user_metadata?.sub;
-      if (!data && googleSub) {
-        try {
-          const { data: bySub } = await supabase
-            .from('users')
-            .select('*')
-            .eq('google_id', googleSub)
-            .maybeSingle();
-          if (bySub) data = bySub;
-        } catch (_) {}
-      }
-
-      if (!data && session.user.email) {
-        try {
-          const { data: byEmail } = await supabase
-            .from('users')
-            .select('*')
-            .eq('email', session.user.email)
-            .maybeSingle();
-          if (byEmail) data = byEmail;
         } catch (_) {}
       }
 
@@ -323,11 +303,12 @@ export default function App() {
       const isReturningUser = Boolean(data && (handleVal !== '' || userInstitute !== ''));
 
       if (isReturningUser) {
-        // LOGIC A (Returning User): Record exists and has completed fields -> route directly to feed
+        // LOGIC A (Returning User): Record exists for this exact session.user.id -> route directly to feed
         const userRing = data.selected_ring || data.ring || localStorage.getItem('campus_user_ring') || 'gold';
         localStorage.setItem('campus_user_ring', userRing);
         const fullUser = {
           ...data,
+          id: currentSessionId, // Guarantee ID matches active session
           handle: handleVal,
           username: handleVal,
           institute: userInstitute,
@@ -355,19 +336,27 @@ export default function App() {
         fetchAcceptedFriends(fullUser.id);
         fetchInbox(fullUser.id);
       } else {
-        // LOGIC B (New User): No record exists or profile is incomplete -> route to Onboarding Wizard
+        // LOGIC B (New User): No record exists in public users table for this session.user.id
+        // Route strictly to Onboarding Wizard with ONLY the current session's identity
         const cleanRef = (localStorage.getItem('referred_by') || sessionStorage.getItem('referred_by') || sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
-        setOnboardingGoogleUser({
-          ...(data || {}),
-          googleId: session.user.id,
-          email: session.user.email,
-          name: data?.name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
-          avatar: data?.profile_pic || data?.avatar || session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
+        
+        // Ensure stale cached user is cleared so no old state leaks
+        localStorage.removeItem('campus_cached_user');
+
+        const newGoogleUser = {
+          googleId: currentSessionId,
+          id: currentSessionId,
+          email: currentSessionEmail,
+          name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || currentSessionEmail?.split('@')[0] || '',
+          avatar: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
           refCode: cleanRef,
           referred_by: cleanRef
-        });
-        setProfileData(data || null);
-        setUser(data ? { ...data, handle: handleVal, institute: userInstitute, school: userInstitute } : null);
+        };
+
+        setOnboardingGoogleUser(newGoogleUser);
+        setProfileData(null);
+        setUser(null);
+        userRef.current = null;
         setIsOnboarding(true);
         setIsProfileLoading(false);
         setIsAuthLoading(false);
@@ -375,23 +364,10 @@ export default function App() {
       }
     } catch (err) {
       console.error('fetchProfile routing error:', err);
-      const cached = localStorage.getItem('campus_cached_user');
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          if (parsed && (parsed.handle || parsed.institute)) {
-            setUser(parsed);
-            setProfileData(parsed);
-            userRef.current = parsed;
-            setIsOnboarding(false);
-            setView('poll');
-            setIsProfileLoading(false);
-            setIsAuthLoading(false);
-            navigate('/feed');
-            return;
-          }
-        } catch (_) {}
-      }
+      localStorage.removeItem('campus_cached_user');
+      setUser(null);
+      setProfileData(null);
+      userRef.current = null;
       setIsProfileLoading(false);
       setIsAuthLoading(false);
       setIsOnboarding(true);
@@ -557,14 +533,40 @@ export default function App() {
   const loginWithGoogle = async () => {
     setIsAuthenticating(true);
 
-    // Task 1: Mandatory: Before calling signInWithOAuth, aggressively clear hanging local sessions
+    // 1. Mandatory: Aggressively sign out of Supabase to terminate any existing session
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (_) {}
     try {
       await supabase.auth.signOut();
     } catch (e) {
       console.warn("Pre-login signOut error:", e);
     }
+
+    // 2. Clear stale tokens and user cache from localStorage & sessionStorage
+    const preSchool = localStorage.getItem('pre_selected_school');
+    const refCode = localStorage.getItem('referred_by') || localStorage.getItem('campus_ref_code');
+
     localStorage.removeItem('campus_cached_user');
+    localStorage.removeItem('campus_user_ring');
+    localStorage.removeItem('selected_ring');
+    localStorage.removeItem('applied_batch_captain');
+
+    // Remove all Supabase session tokens from localStorage
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('sb-') || key.includes('-auth-token'))) {
+        localStorage.removeItem(key);
+      }
+    }
     sessionStorage.clear();
+
+    // Preserve pre_selected_school & referral
+    if (preSchool) localStorage.setItem('pre_selected_school', preSchool);
+    if (refCode) {
+      localStorage.setItem('referred_by', refCode);
+      localStorage.setItem('campus_ref_code', refCode);
+    }
 
     localStorage.setItem('campus_grade', grade);
     localStorage.setItem('campus_stream', stream);
@@ -572,9 +574,15 @@ export default function App() {
     localStorage.setItem('campus_hub', coachingHub || findHubForInstitute(institute));
     if (institute && institute.trim()) {
       localStorage.setItem('pre_selected_school', institute.trim());
-    } else {
-      localStorage.removeItem('pre_selected_school');
     }
+
+    // 3. Clear all React state
+    setUser(null);
+    setProfileData(null);
+    setSession(null);
+    setOnboardingGoogleUser(null);
+    setIsOnboarding(false);
+    userRef.current = null;
     
     const redirectUrl = (typeof window !== 'undefined' && window.location.origin)
       ? `${window.location.origin}/feed`
@@ -585,7 +593,8 @@ export default function App() {
       options: {
         redirectTo: redirectUrl,
         queryParams: {
-          prompt: 'consent select_account',
+          prompt: 'select_account',
+          access_type: 'offline'
         },
       },
     });
@@ -1090,12 +1099,14 @@ export default function App() {
     if (window.location.pathname !== '/onboarding') {
       window.history.replaceState(null, '', '/onboarding');
     }
-    const wizardUser = onboardingGoogleUser || {
-      googleId: user?.id || user?.google_id,
-      email: user?.email,
-      name: user?.name || user?.email?.split('@')[0] || '',
-      avatar: user?.profile_pic || user?.avatar || ''
-    };
+    const activeAuthUser = session?.user;
+    const wizardUser = onboardingGoogleUser || (activeAuthUser ? {
+      googleId: activeAuthUser.id,
+      id: activeAuthUser.id,
+      email: activeAuthUser.email,
+      name: activeAuthUser.user_metadata?.full_name || activeAuthUser.user_metadata?.name || activeAuthUser.email?.split('@')[0] || '',
+      avatar: activeAuthUser.user_metadata?.avatar_url || activeAuthUser.user_metadata?.picture || ''
+    } : null);
     return (
       <div className="gas-landing-wrapper">
         <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100svh', background: '#ffffff', color: '#000000' }}><HamsterLoader message="Loading Onboarding..." /></div>}>

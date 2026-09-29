@@ -100,7 +100,7 @@ export default function Landing({
     }
   }, []);
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     if (institute && institute.trim()) {
       try {
         localStorage.setItem('pre_selected_school', institute.trim());
@@ -110,7 +110,7 @@ export default function Landing({
         localStorage.removeItem('pre_selected_school');
       } catch (_) {}
     }
-    loginWithGoogle();
+    await loginWithGoogle();
   };
 
   const doPasswordLogin = loginWithPassword || login;

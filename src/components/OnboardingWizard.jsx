@@ -249,18 +249,23 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       const cleanInstitute = institute.trim();
       const cleanHub = coachingHub || findHubForInstitute(cleanInstitute);
 
-      // Resolve authenticated user ID
-      let authenticatedUserId = currentUserId || googleUser?.googleId || googleUser?.id;
-      let sessionEmail = currentUserEmail || googleUser?.email;
+      // Resolve authenticated user ID strictly from the active Supabase session
+      let authenticatedUserId = null;
+      let sessionEmail = null;
 
       if (supabase) {
         try {
           const { data: sessionData } = await supabase.auth.getSession();
           if (sessionData?.session?.user?.id) {
             authenticatedUserId = sessionData.session.user.id;
-            sessionEmail = sessionData.session.user.email || sessionEmail;
+            sessionEmail = sessionData.session.user.email || null;
           }
         } catch (_) {}
+      }
+
+      if (!authenticatedUserId) {
+        authenticatedUserId = currentUserId || googleUser?.googleId || googleUser?.id;
+        sessionEmail = sessionEmail || currentUserEmail || googleUser?.email || null;
       }
 
       if (!authenticatedUserId) {
@@ -270,8 +275,8 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       // 2. Build Supabase payload matching public.users schema precisely
       const supabasePayload = {
         id: authenticatedUserId,
-        google_id: googleUser?.googleId || authenticatedUserId,
-        email: sessionEmail || null,
+        google_id: authenticatedUserId,
+        email: sessionEmail,
         name: name.trim(),
         handle: cleanHandle,
         institute: cleanInstitute,
