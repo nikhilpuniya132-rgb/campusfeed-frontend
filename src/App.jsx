@@ -268,20 +268,20 @@ export default function App() {
     setIsAuthLoading(true);
 
     try {
-      // The Database Query: Query the 'users' table using maybeSingle()
+      // 1. Strict Database Check: Query the public 'users' table for user.id
       let { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', session.user.id)
         .maybeSingle();
 
-      console.log("Auth Guard - Session ID:", session?.user?.id, "Profile Data:", data, "Supabase Error:", error);
+      console.log("Auth Guard - Session ID:", session.user.id, "Profile Data:", data, "Supabase Error:", error);
 
       if (error) {
         console.error("Supabase user query error in Auth Guard:", error);
       }
 
-      // Safe fallback if data was not found by direct id: check by google_id
+      // Safe fallbacks if ID format varies across OAuth/database migrations
       if (!data) {
         try {
           const { data: byGid } = await supabase
@@ -293,7 +293,18 @@ export default function App() {
         } catch (_) {}
       }
 
-      // Safe fallback: check by email
+      const googleSub = session.user.user_metadata?.sub;
+      if (!data && googleSub) {
+        try {
+          const { data: bySub } = await supabase
+            .from('users')
+            .select('*')
+            .eq('google_id', googleSub)
+            .maybeSingle();
+          if (bySub) data = bySub;
+        } catch (_) {}
+      }
+
       if (!data && session.user.email) {
         try {
           const { data: byEmail } = await supabase
@@ -305,13 +316,14 @@ export default function App() {
         } catch (_) {}
       }
 
-      // The Routing Decision:
-      // In Supabase users table, handle/username and school/institute define a completed profile
+      // 2. The Routing Decision:
+      // Required completed fields: handle or institute
       const handleVal = (data?.handle || data?.username || '').trim();
       const userInstitute = (data?.school || data?.institute || '').trim();
-      const hasCompletedProfile = Boolean(data && handleVal !== '' && userInstitute !== '');
+      const isReturningUser = Boolean(data && (handleVal !== '' || userInstitute !== ''));
 
-      if (hasCompletedProfile) {
+      if (isReturningUser) {
+        // LOGIC A (Returning User): Record exists and has completed fields -> route directly to feed
         const userRing = data.selected_ring || data.ring || localStorage.getItem('campus_user_ring') || 'gold';
         localStorage.setItem('campus_user_ring', userRing);
         const fullUser = {
@@ -343,7 +355,7 @@ export default function App() {
         fetchAcceptedFriends(fullUser.id);
         fetchInbox(fullUser.id);
       } else {
-        // If username or institute is null/missing, strictly route to /onboarding
+        // LOGIC B (New User): No record exists or profile is incomplete -> route to Onboarding Wizard
         const cleanRef = (localStorage.getItem('referred_by') || sessionStorage.getItem('referred_by') || sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
         setOnboardingGoogleUser({
           ...(data || {}),
@@ -363,8 +375,26 @@ export default function App() {
       }
     } catch (err) {
       console.error('fetchProfile routing error:', err);
+      const cached = localStorage.getItem('campus_cached_user');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (parsed && (parsed.handle || parsed.institute)) {
+            setUser(parsed);
+            setProfileData(parsed);
+            userRef.current = parsed;
+            setIsOnboarding(false);
+            setView('poll');
+            setIsProfileLoading(false);
+            setIsAuthLoading(false);
+            navigate('/feed');
+            return;
+          }
+        } catch (_) {}
+      }
       setIsProfileLoading(false);
       setIsAuthLoading(false);
+      setIsOnboarding(true);
       navigate('/onboarding');
     } finally {
       setIsCheckingSession(false);
@@ -486,15 +516,15 @@ export default function App() {
     };
   }, []);
 
-  // Persistent Auth Routing: If a logged-in user with an assigned institute is on the base URL or landing page,
-  // automatically redirect them away from the base URL (/ or landing page) directly to the main app interface (/feed).
-  // A logged-in user should never see the public landing page again unless they explicitly click a "Sign Out" button.
+  // Persistent Auth Routing: If a logged-in user with completed profile is on base URL, landing, or onboarding,
+  // automatically redirect them away directly to the main app interface (/feed).
   useEffect(() => {
     if (isAuthLoading || isProfileLoading) return;
     const userInstitute = (user?.school || user?.institute || '').trim();
-    if (user && userInstitute) {
+    const userHandle = (user?.handle || user?.username || '').trim();
+    if (user && (userInstitute || userHandle)) {
       const currentPath = window.location.pathname.replace(/^\//, '');
-      if (!currentPath || currentPath === 'landing') {
+      if (!currentPath || currentPath === 'landing' || currentPath === 'onboarding') {
         window.history.replaceState(null, '', '/feed');
         setView('poll');
       }
@@ -1050,9 +1080,12 @@ export default function App() {
   }
 
   // Protected Route Check:
-  // Only evaluate if (!profile.institute) navigate('/onboarding') after the fetch completes and isAuthLoading & isProfileLoading are false.
+  // LOGIC A (Returning User): If a profile record exists with required completed fields (handle or institute), do NOT show Onboarding Wizard.
+  // LOGIC B (New User): Route to Onboarding Wizard only if profile is incomplete or explicitly onboarding.
   const userInstitute = (user?.school || user?.institute || '').trim();
-  const isProfileIncomplete = Boolean(user && !userInstitute);
+  const userHandle = (user?.handle || user?.username || '').trim();
+  const hasCompletedProfile = Boolean(user && (userHandle !== '' || userInstitute !== ''));
+  const isProfileIncomplete = Boolean(user && !hasCompletedProfile);
   if (!isAuthLoading && !isProfileLoading && (isOnboarding || isProfileIncomplete)) {
     if (window.location.pathname !== '/onboarding') {
       window.history.replaceState(null, '', '/onboarding');

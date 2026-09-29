@@ -7,13 +7,13 @@ import { MASTER_CLASS_OPTIONS } from '../constants/classes';
 
 const CAPTAIN_CLASS_OPTIONS = [
   ...MASTER_CLASS_OPTIONS,
-  "All Bathinda"
+  "Whole Institute"
 ];
 
 export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProfilePic }) {
   const [captains, setCaptains] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [gradeFilter, setGradeFilter] = useState('All Bathinda');
+  const [gradeFilter, setGradeFilter] = useState('Whole Institute');
   const [copyToast, setCopyToast] = useState(false);
   const [applyToast, setApplyToast] = useState(false);
   const [hasApplied, setHasApplied] = useState(() => {
@@ -22,27 +22,32 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
 
   useEffect(() => {
     fetchCaptains();
-  }, [user?.institute]);
+  }, [user?.institute, user?.school]);
 
   const fetchCaptains = async () => {
     setLoading(true);
+    const currentUserInstitute = (user?.institute || user?.school || '').trim();
     try {
       // 1. Direct Supabase query strictly isolated to current user's institute
       if (supabase) {
         let query = supabase
           .from('users')
-          .select('id, handle, name, avatar, profile_pic, grade, stream, institute, coaching_hub, invites, feed_drops, total_votes, is_pro, ring, is_batch_captain, batch_captain_admin_override')
+          .select('id, handle, name, avatar, profile_pic, grade, stream, institute, school, coaching_hub, invites, feed_drops, total_votes, is_pro, ring, is_batch_captain, batch_captain_admin_override')
           .gte('invites', 25)
           .order('invites', { ascending: false });
 
-        if (user?.institute) {
-          query = query.eq('institute', user.institute);
+        if (currentUserInstitute) {
+          query = query.or(`institute.eq.${currentUserInstitute},school.eq.${currentUserInstitute}`);
         }
 
         const { data: dbCaptains } = await query.limit(50);
         if (dbCaptains && dbCaptains.length > 0) {
           const verified = dbCaptains
-            .filter(c => !user?.institute || c.institute === user.institute)
+            .filter(c => {
+              if (!currentUserInstitute) return true;
+              const cInst = (c.institute || c.school || '').trim().toLowerCase();
+              return cInst === currentUserInstitute.toLowerCase();
+            })
             .filter(c => ((c.invites || c.recruits || 0) >= 25 || c.batch_captain_admin_override));
           setCaptains(verified);
           setLoading(false);
@@ -51,12 +56,16 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
       }
 
       // 2. Fallback to API with institute param & client-side filter
-      const instParam = encodeURIComponent(user?.institute || '');
+      const instParam = encodeURIComponent(currentUserInstitute);
       const res = await fetch(`${API}/referrals/leaderboard?institute=${instParam}`);
       const data = await res.json();
       if (data.leaderboard) {
         // Strict Institute Silo: Never show Captains from a rival institute
-        const instituteFiltered = data.leaderboard.filter(c => !user?.institute || c.institute === user.institute);
+        const instituteFiltered = data.leaderboard.filter(c => {
+          if (!currentUserInstitute) return true;
+          const cInst = (c.institute || c.school || '').trim().toLowerCase();
+          return cInst === currentUserInstitute.toLowerCase();
+        });
         const verified = instituteFiltered.filter(c => ((c.invites || c.recruits || 0) >= 25 || c.batch_captain_admin_override));
         setCaptains(verified);
       }
@@ -82,7 +91,16 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
 
   // Filter captains by stream/grade
   const filteredCaptains = captains.filter(c => {
-    if (!gradeFilter || gradeFilter === 'All Bathinda' || gradeFilter === 'all') return true;
+    // Strict Institute Isolation: NEVER show a captain from a different institute
+    const currentUserInstitute = (user?.institute || user?.school || '').trim().toLowerCase();
+    const captainInstitute = (c.institute || c.school || '').trim().toLowerCase();
+    if (currentUserInstitute && captainInstitute && captainInstitute !== currentUserInstitute) {
+      return false;
+    }
+
+    if (!gradeFilter || gradeFilter === 'Whole Institute' || gradeFilter === 'All Bathinda' || gradeFilter === 'all') {
+      return true;
+    }
 
     const stream = (c.stream || '').toLowerCase().trim();
     const grade = (c.grade || '').toString().toLowerCase().trim();
