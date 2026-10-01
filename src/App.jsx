@@ -742,7 +742,7 @@ export default function App() {
     setOptions(prev => [...prev].sort(() => 0.5 - Math.random()));
   };
 
-  const castVote = async (receiverId) => {
+  const castVote = async (receiverId, explicitPollId = null) => {
     setHasVoted(true);
     setUser(prev => prev ? { ...prev, total_votes: (prev.total_votes || 0) + 1 } : prev);
 
@@ -750,7 +750,7 @@ export default function App() {
       const res = await fetch(`${API}/vote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pollId: currentPoll?.id, voterId: user?.id, receiverId })
+        body: JSON.stringify({ pollId: explicitPollId || currentPoll?.id, voterId: user?.id, receiverId })
       });
       const data = await res.json();
       if (data.cooldown_until) {

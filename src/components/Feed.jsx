@@ -5,13 +5,105 @@ import CooldownScreen from './CooldownScreen';
 import SponsorBanner from './SponsorBanner';
 import { handleShare } from '../utils/share';
 import { MASTER_CLASS_OPTIONS } from '../constants/classes';
+import { supabase } from '../supabase';
+
+const FALLBACK_POLLS = [
+  { id: 1, question: "Always sleeps through 5 PM Physics?", is_crush_poll: false },
+  { id: 2, question: "Most likely to crack NEET on the first attempt?", is_crush_poll: false },
+  { id: 3, question: "Spends more time at the Maggi point than in class?", is_crush_poll: false },
+  { id: 4, question: "Solves HC Verma questions during recess?", is_crush_poll: false },
+  { id: 5, question: "Has handwritten formula cheat sheets everyone borrows?", is_crush_poll: false },
+  { id: 6, question: "Sells their Allen/Aakash test series analysis for samosas?", is_crush_poll: false },
+  { id: 7, question: "Secret crush in the coaching batch", is_crush_poll: true },
+  { id: 8, question: "Biggest drip at Ajit Road", is_crush_poll: false },
+  { id: 9, question: "Who has the neatest notes in Chemistry?", is_crush_poll: false },
+  { id: 10, question: "Most likely to get AIR 1 in JEE Advanced?", is_crush_poll: false },
+  { id: 11, question: "Best partner for last-minute exam prep?", is_crush_poll: false },
+  { id: 12, question: "Always asks the hardest doubts to confuse the teacher?", is_crush_poll: false }
+];
+
+const filterCandidates = (candidates, gradeFilter) => {
+  if (!gradeFilter || gradeFilter === 'all' || gradeFilter === 'All Classes') {
+    return candidates || [];
+  }
+  const f = gradeFilter.toLowerCase().trim();
+  return (candidates || []).filter(c => {
+    const s = (c.stream || '').toLowerCase();
+    const g = (c.grade || '').toString().toLowerCase();
+    return s.includes(f) || g === f || f.includes(g);
+  });
+};
+
+const buildPollBatch = (pollsList, candidatesList, targetGrade, count = 12) => {
+  const polls = (pollsList && pollsList.length > 0) ? pollsList : FALLBACK_POLLS;
+  const filteredCandidates = filterCandidates(candidatesList, targetGrade);
+  const eligibleCandidates = filteredCandidates.length >= 4 ? filteredCandidates : (candidatesList || []);
+
+  const shuffledPolls = [...polls].sort(() => 0.5 - Math.random());
+  const batch = [];
+
+  for (let i = 0; i < count; i++) {
+    const poll = shuffledPolls[i % shuffledPolls.length];
+    let selectedOptions = [];
+    if (eligibleCandidates.length >= 4) {
+      selectedOptions = [...eligibleCandidates].sort(() => 0.5 - Math.random()).slice(0, 4);
+    } else {
+      selectedOptions = [...eligibleCandidates];
+    }
+    batch.push({
+      poll,
+      options: selectedOptions
+    });
+  }
+
+  return batch;
+};
+
+const fetchPollsFromSupabase = async (limit = 30) => {
+  if (!supabase) return FALLBACK_POLLS;
+  try {
+    const { data, error } = await supabase
+      .from('polls')
+      .select('*')
+      .limit(limit);
+    if (error) throw error;
+    if (data && data.length > 0) return data;
+  } catch (err) {
+    console.warn('Supabase fetch polls warning:', err);
+  }
+  return FALLBACK_POLLS;
+};
+
+const fetchCandidatesFromSupabase = async (institute, excludeUserId) => {
+  if (!supabase) return [];
+  try {
+    let query = supabase
+      .from('users')
+      .select('id, handle, name, avatar, profile_pic, grade, stream, institute, coaching_hub, is_pro, ring, selected_ring')
+      .limit(60);
+
+    if (institute) {
+      query = query.eq('institute', institute);
+    }
+    if (excludeUserId) {
+      query = query.neq('id', excludeUserId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.warn('Supabase fetch candidates warning:', err);
+    return [];
+  }
+};
 
 export default function Feed({
   user,
-  currentPoll,
-  options = [],
-  gradeFilter = 'all',
-  isLoadingPoll,
+  currentPoll: propCurrentPoll,
+  options: propOptions = [],
+  gradeFilter: propGradeFilter = 'all',
+  isLoadingPoll: propIsLoadingPoll,
   hasVoted,
   cooldownUntil,
   onLoadNextPoll,
@@ -22,11 +114,34 @@ export default function Feed({
   onSkipCooldown,
   onCooldownUnlocked
 }) {
+  // Local Batch Queue State
+  const [pollQueue, setPollQueue] = useState([]);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [activeGradeFilter, setActiveGradeFilter] = useState(propGradeFilter || 'all');
   const [shuffleCount, setShuffleCount] = useState(0);
   const [optimisticVoted, setOptimisticVoted] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [isClassesOpen, setIsClassesOpen] = useState(false);
+
   const classesDropdownRef = useRef(null);
+  const pollsPoolRef = useRef([]);
+  const candidatesPoolRef = useRef([]);
+  const isFetchingRef = useRef(false);
+  const isRefillingRef = useRef(false);
+  const initialFetchedRef = useRef(false);
+  const lastFetchedUserRef = useRef('');
+  const lastFetchedInstituteRef = useRef('');
+  const autoAdvanceRef = useRef(null);
+
+  const userId = user?.id;
+  const userInstitute = (user?.institute || user?.school || '').trim();
+
+  // Synchronize grade filter prop if parent changes it
+  useEffect(() => {
+    if (propGradeFilter && propGradeFilter !== activeGradeFilter) {
+      setActiveGradeFilter(propGradeFilter);
+    }
+  }, [propGradeFilter]);
 
   // Close dropdown on outside click or tap
   useEffect(() => {
@@ -45,9 +160,100 @@ export default function Feed({
     };
   }, [isClassesOpen]);
 
-  const currentClassLabel = !gradeFilter || gradeFilter === 'all'
+  // Clean up auto advance timer
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+    };
+  }, []);
+
+  // INITIAL BATCH PRE-FETCH: exactly once on mount per user/institute, zero loops
+  useEffect(() => {
+    if (!userId) return;
+
+    if (
+      initialFetchedRef.current &&
+      lastFetchedUserRef.current === userId &&
+      lastFetchedInstituteRef.current === userInstitute
+    ) {
+      return;
+    }
+
+    initialFetchedRef.current = true;
+    lastFetchedUserRef.current = userId;
+    lastFetchedInstituteRef.current = userInstitute;
+
+    fetchInitialBatch(userInstitute, userId, activeGradeFilter);
+  }, [userId, userInstitute]);
+
+  const fetchInitialBatch = async (institute, voterId, grade) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    setIsInitialLoading(true);
+
+    try {
+      const [polls, candidates] = await Promise.all([
+        fetchPollsFromSupabase(30),
+        fetchCandidatesFromSupabase(institute, voterId)
+      ]);
+
+      pollsPoolRef.current = polls;
+      candidatesPoolRef.current = candidates;
+
+      const batch = buildPollBatch(polls, candidates, grade, 12);
+      setPollQueue(batch);
+    } catch (err) {
+      console.error('Initial batch fetch failed:', err);
+      const fallbackBatch = buildPollBatch(FALLBACK_POLLS, candidatesPoolRef.current || [], grade, 12);
+      setPollQueue(fallbackBatch);
+    } finally {
+      setIsInitialLoading(false);
+      isFetchingRef.current = false;
+    }
+  };
+
+  // BACKGROUND REFILL: silently pre-fetches next 10 polls when remaining <= 3
+  const triggerBackgroundRefill = async (grade = activeGradeFilter) => {
+    if (isRefillingRef.current) return;
+    isRefillingRef.current = true;
+
+    try {
+      let polls = pollsPoolRef.current;
+      if (!polls || polls.length === 0) {
+        polls = await fetchPollsFromSupabase(30);
+        pollsPoolRef.current = polls;
+      }
+
+      let candidates = candidatesPoolRef.current;
+      if (!candidates || candidates.length === 0) {
+        candidates = await fetchCandidatesFromSupabase(userInstitute, userId);
+        candidatesPoolRef.current = candidates;
+      }
+
+      const nextBatch = buildPollBatch(polls, candidates, grade, 10);
+      setPollQueue(prev => [...prev, ...nextBatch]);
+    } catch (err) {
+      console.warn('Background refill error:', err);
+    } finally {
+      isRefillingRef.current = false;
+    }
+  };
+
+  // INSTANT ADVANCE: zero network delay, pop from local state array
+  const advanceToNextPoll = () => {
+    setPollQueue(prevQueue => {
+      const nextQueue = prevQueue.slice(1);
+      // Background refill triggered when reaching last 3 polls in queue
+      if (nextQueue.length <= 3 && !isRefillingRef.current) {
+        triggerBackgroundRefill(activeGradeFilter);
+      }
+      return nextQueue;
+    });
+  };
+
+  const currentClassLabel = !activeGradeFilter || activeGradeFilter === 'all'
     ? 'All Classes'
-    : (MASTER_CLASS_OPTIONS.find(c => c.toLowerCase() === gradeFilter.toLowerCase()) || gradeFilter);
+    : (MASTER_CLASS_OPTIONS.find(c => c.toLowerCase() === activeGradeFilter.toLowerCase()) || activeGradeFilter);
 
   // Check if active cooldown is in the future
   const isCooldownActive = Boolean(
@@ -56,19 +262,15 @@ export default function Feed({
     new Date(cooldownUntil).getTime() > Date.now()
   );
 
-  // Reset shuffle and optimistic vote when poll changes or parent hasVoted changes
-  useEffect(() => {
-    setShuffleCount(0);
-    setOptimisticVoted(false);
-    setSelectedCandidate(null);
-  }, [currentPoll?.id]);
+  // Active Poll and Options from pre-fetched queue (with prop fallback)
+  const currentItem = pollQueue[0] || null;
+  const currentPoll = currentItem?.poll || propCurrentPoll || null;
+  const options = currentItem?.options || propOptions || [];
+  const displayOptions = (options || []).slice(0, 4);
 
-  useEffect(() => {
-    if (!hasVoted) {
-      setOptimisticVoted(false);
-      setSelectedCandidate(null);
-    }
-  }, [hasVoted]);
+  // Only show skeleton loader when initial batch is truly loading and no poll exists yet
+  const isLoading = pollQueue.length === 0 && isInitialLoading && !currentPoll;
+  const isVoteFinished = optimisticVoted;
 
   const handleShuffleClick = () => {
     if (shuffleCount >= 3) return;
@@ -76,6 +278,24 @@ export default function Feed({
 
     if (window.navigator?.vibrate) {
       window.navigator.vibrate(10);
+    }
+
+    if (candidatesPoolRef.current && candidatesPoolRef.current.length >= 4) {
+      const filtered = filterCandidates(candidatesPoolRef.current, activeGradeFilter);
+      const eligible = filtered.length >= 4 ? filtered : candidatesPoolRef.current;
+      const shuffledOptions = [...eligible].sort(() => 0.5 - Math.random()).slice(0, 4);
+
+      setPollQueue(prev => {
+        if (!prev.length) return prev;
+        const [first, ...rest] = prev;
+        return [{ ...first, options: shuffledOptions }, ...rest];
+      });
+    } else {
+      setPollQueue(prev => {
+        if (!prev.length) return prev;
+        const [first, ...rest] = prev;
+        return [{ ...first, options: [...first.options].sort(() => 0.5 - Math.random()) }, ...rest];
+      });
     }
 
     if (onShuffle) onShuffle();
@@ -90,16 +310,72 @@ export default function Feed({
       window.navigator.vibrate(15);
     }
 
-    // Dispatch vote asynchronously
+    // Fire-and-forget asynchronous vote dispatch
     if (onCastVote) {
-      onCastVote(candidate.id);
+      onCastVote(candidate.id, currentPoll?.id);
     }
+    if (supabase && user?.id && currentPoll?.id) {
+      supabase.from('votes').insert([{
+        poll_id: currentPoll.id,
+        voter_id: user.id,
+        receiver_id: candidate.id
+      }]).catch(err => console.warn('Vote background insert warning:', err));
+    }
+
+    // Auto-advance after 1.2s if user doesn't manually tap "Next Question ➔"
+    if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+    autoAdvanceRef.current = setTimeout(() => {
+      handleNextClick();
+    }, 1200);
   };
 
   const handleNextClick = () => {
+    if (autoAdvanceRef.current) {
+      clearTimeout(autoAdvanceRef.current);
+      autoAdvanceRef.current = null;
+    }
     setOptimisticVoted(false);
     setSelectedCandidate(null);
-    onLoadNextPoll(gradeFilter);
+    setShuffleCount(0);
+    advanceToNextPoll();
+  };
+
+  const handleSkipClick = () => {
+    if (window.navigator?.vibrate) window.navigator.vibrate(8);
+    if (autoAdvanceRef.current) {
+      clearTimeout(autoAdvanceRef.current);
+      autoAdvanceRef.current = null;
+    }
+    setShuffleCount(0);
+    setOptimisticVoted(false);
+    setSelectedCandidate(null);
+    advanceToNextPoll();
+  };
+
+  const handleGradeFilterSelect = (selectedGrade) => {
+    if (window.navigator?.vibrate) window.navigator.vibrate(8);
+    setIsClassesOpen(false);
+    setActiveGradeFilter(selectedGrade);
+
+    // Instantly rebuild local queue from in-memory pool
+    if (pollsPoolRef.current.length > 0) {
+      const newBatch = buildPollBatch(
+        pollsPoolRef.current,
+        candidatesPoolRef.current,
+        selectedGrade,
+        12
+      );
+      setPollQueue(newBatch);
+      setOptimisticVoted(false);
+      setSelectedCandidate(null);
+      setShuffleCount(0);
+    } else {
+      fetchInitialBatch(userInstitute, userId, selectedGrade);
+    }
+
+    if (onLoadNextPoll) {
+      onLoadNextPoll(selectedGrade);
+    }
   };
 
   const handleSharePoll = async () => {
@@ -125,20 +401,16 @@ export default function Feed({
         onCooldownFinished={() => {
           if (onCooldownUnlocked) onCooldownUnlocked();
           else if (onSkipCooldown) onSkipCooldown();
-          else onLoadNextPoll(gradeFilter);
+          else advanceToNextPoll();
         }}
         onCooldownUnlocked={() => {
           if (onCooldownUnlocked) onCooldownUnlocked();
           else if (onSkipCooldown) onSkipCooldown();
-          else onLoadNextPoll(gradeFilter);
+          else advanceToNextPoll();
         }}
       />
     );
   }
-
-  // Exactly 4 items
-  const displayOptions = (options || []).slice(0, 4);
-  const isVoteFinished = optimisticVoted || hasVoted;
 
   return (
     <div
@@ -221,19 +493,15 @@ export default function Feed({
 
                 <button
                   type="button"
-                  onClick={() => {
-                    if (window.navigator?.vibrate) window.navigator.vibrate(8);
-                    setIsClassesOpen(false);
-                    onLoadNextPoll('all');
-                  }}
+                  onClick={() => handleGradeFilterSelect('all')}
                   style={{
                     width: '100%',
                     textAlign: 'left',
                     padding: '9px 12px',
                     borderRadius: '10px',
                     border: 'none',
-                    background: (!gradeFilter || gradeFilter === 'all') ? '#000000' : 'transparent',
-                    color: (!gradeFilter || gradeFilter === 'all') ? '#ffffff' : '#111827',
+                    background: (!activeGradeFilter || activeGradeFilter === 'all') ? '#000000' : 'transparent',
+                    color: (!activeGradeFilter || activeGradeFilter === 'all') ? '#ffffff' : '#111827',
                     fontWeight: '800',
                     fontSize: '12px',
                     cursor: 'pointer',
@@ -245,22 +513,18 @@ export default function Feed({
                   }}
                 >
                   <span>🏫 All Classes (Institute)</span>
-                  {(!gradeFilter || gradeFilter === 'all') && <span>✓</span>}
+                  {(!activeGradeFilter || activeGradeFilter === 'all') && <span>✓</span>}
                 </button>
 
                 <div style={{ height: '1px', background: '#f3f4f6', margin: '4px 0' }} />
 
                 {MASTER_CLASS_OPTIONS.map((c) => {
-                  const isSelected = gradeFilter?.toLowerCase() === c.toLowerCase();
+                  const isSelected = activeGradeFilter?.toLowerCase() === c.toLowerCase();
                   return (
                     <button
                       key={c}
                       type="button"
-                      onClick={() => {
-                        if (window.navigator?.vibrate) window.navigator.vibrate(8);
-                        setIsClassesOpen(false);
-                        onLoadNextPoll(c);
-                      }}
+                      onClick={() => handleGradeFilterSelect(c)}
                       style={{
                         width: '100%',
                         textAlign: 'left',
@@ -290,7 +554,7 @@ export default function Feed({
         </div>
       </div>
 
-      {isLoadingPoll ? (
+      {isLoading ? (
         <SkeletonPollCard />
       ) : isVoteFinished ? (
         /* Optimistic Success Screen */
@@ -568,11 +832,7 @@ export default function Feed({
 
             <motion.button
               whileTap={{ scale: 0.94 }}
-              onClick={() => {
-                if (window.navigator?.vibrate) window.navigator.vibrate(8);
-                setShuffleCount(0);
-                onLoadNextPoll(gradeFilter);
-              }}
+              onClick={handleSkipClick}
               style={{
                 background: '#f9fafb',
                 border: '1px solid #e5e7eb',
