@@ -1,4 +1,4 @@
-const CACHE_NAME = 'centerinsider-beta-v1.0';
+const CACHE_NAME = 'centerinsider-beta-v1.1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
