@@ -11,7 +11,7 @@ export default function GodMode({
   onUpdateUser,
   renderProfilePic
 }) {
-  const [openSubmenu, setOpenSubmenu] = useState('utility'); // 'utility' | 'locked' | 'polls' | 'spying' | null
+  const [openSubmenu, setOpenSubmenu] = useState(null); // strictly closed by default
   const [toastMessage, setToastMessage] = useState('');
   const [liveInvites, setLiveInvites] = useState(user?.invites || user?.recruits || 0);
   const [visitors, setVisitors] = useState([]);

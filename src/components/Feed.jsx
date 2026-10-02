@@ -195,8 +195,6 @@ export default function Feed({
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [isClassesOpen, setIsClassesOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAuraSubmenuOpen, setIsAuraSubmenuOpen] = useState(false);
-  const [auraToast, setAuraToast] = useState('');
 
   const classesDropdownRef = useRef(null);
   const menuRef = useRef(null);
@@ -870,154 +868,9 @@ export default function Feed({
                     <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '600' }}>0</span>
                   )}
                 </button>
-
-                {/* 4. Select Aura Rings Sub-menu (Moved into Hamburger Menu) */}
-                {(() => {
-                  const effectiveInvites = Math.max(Number(user?.invites || 0), Number(user?.recruits || 0));
-                  const isLifetimeLegend = effectiveInvites >= 25 || user?.is_god_mode === true || user?.is_legend === true;
-                  const currentRing = user?.selected_ring || user?.ring || 'gold';
-
-                  const handleSelectRing = async (ringId) => {
-                    if (!isLifetimeLegend) {
-                      setAuraToast('🔒 Requires 25 Invites (Lifetime Legend)!');
-                      setTimeout(() => setAuraToast(''), 2500);
-                      return;
-                    }
-                    const updatedUser = { ...user, ring: ringId, selected_ring: ringId };
-                    if (onUpdateUser) onUpdateUser(updatedUser);
-                    localStorage.setItem('campus_user_ring', ringId);
-                    localStorage.setItem('selected_ring', ringId);
-                    setAuraToast(`✓ Equipped ${ringId}!`);
-                    setTimeout(() => setAuraToast(''), 2200);
-
-                    if (supabase && user?.id) {
-                      try {
-                        await supabase.from('users').update({ ring: ringId, selected_ring: ringId }).eq('id', user.id);
-                      } catch (_) {}
-                    }
-                  };
-
-                  return (
-                    <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '6px', marginTop: '2px' }}>
-                      <button
-                        type="button"
-                        onClick={() => setIsAuraSubmenuOpen(prev => !prev)}
-                        style={{
-                          background: isAuraSubmenuOpen ? '#000000' : '#f3f4f6',
-                          color: isAuraSubmenuOpen ? '#ffffff' : '#000000',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '12px',
-                          padding: '8px 12px',
-                          height: '38px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          fontWeight: '800',
-                          width: '100%',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '14px' }}>💍</span>
-                          <span>Select Aura Rings</span>
-                        </div>
-                        <span style={{ fontSize: '10px', color: isAuraSubmenuOpen ? '#fbbf24' : '#6b7280', fontWeight: '800' }}>
-                          {isLifetimeLegend ? '👑 Unlocked' : '🔒 Locked'} {isAuraSubmenuOpen ? '▲' : '▼'}
-                        </span>
-                      </button>
-
-                      {auraToast && (
-                        <div style={{
-                          marginTop: '6px',
-                          padding: '6px 8px',
-                          borderRadius: '8px',
-                          background: isLifetimeLegend ? '#dcfce7' : '#fee2e2',
-                          color: isLifetimeLegend ? '#166534' : '#991b1b',
-                          fontSize: '10.5px',
-                          fontWeight: '800',
-                          textAlign: 'center'
-                        }}>
-                          {auraToast}
-                        </div>
-                      )}
-
-                      <AnimatePresence>
-                        {isAuraSubmenuOpen && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            style={{ overflow: 'hidden', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}
-                          >
-                            {!isLifetimeLegend && (
-                              <div style={{
-                                padding: '8px',
-                                background: '#fef2f2',
-                                border: '1px solid #fecaca',
-                                borderRadius: '10px',
-                                color: '#991b1b',
-                                fontSize: '10.5px',
-                                lineHeight: '1.35',
-                                textAlign: 'left',
-                                marginBottom: '4px'
-                              }}>
-                                🔒 <strong>STRICTLY LOCKED:</strong> Aura Rings unlock exclusively for Lifetime Legends (25+ invites).
-                              </div>
-                            )}
-
-                            {AURA_RING_OPTIONS.map((r) => {
-                              const isSelected = isLifetimeLegend && currentRing === r.id;
-                              return (
-                                <button
-                                  key={r.id}
-                                  type="button"
-                                  onClick={() => handleSelectRing(r.id)}
-                                  disabled={!isLifetimeLegend}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    padding: '7px 10px',
-                                    borderRadius: '10px',
-                                    border: isSelected ? '1.5px solid #000000' : '1px solid #e5e7eb',
-                                    background: isSelected ? '#f3f4f6' : '#ffffff',
-                                    cursor: isLifetimeLegend ? 'pointer' : 'not-allowed',
-                                    opacity: isLifetimeLegend ? 1 : 0.5,
-                                    width: '100%',
-                                    textAlign: 'left'
-                                  }}
-                                >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <div style={{
-                                      width: '14px',
-                                      height: '14px',
-                                      borderRadius: '50%',
-                                      border: `2px solid ${r.color}`,
-                                      background: r.color
-                                    }} />
-                                    <div>
-                                      <span style={{ fontSize: '11px', fontWeight: '800', color: '#000000', display: 'block' }}>
-                                        {r.label}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <span style={{ fontSize: '10px', fontWeight: '800' }}>
-                                    {isLifetimeLegend ? (isSelected ? '✓' : 'Equip') : '🔒'}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  );
-                })()}
               </motion.div>
             )}
+
           </AnimatePresence>
         </div>
       </div>

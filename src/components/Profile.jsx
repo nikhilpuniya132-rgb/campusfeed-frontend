@@ -4,6 +4,15 @@ import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 import { handleShare } from '../utils/share';
 import { MASTER_CLASS_OPTIONS, CLASS_OPTIONS } from '../constants/classes';
 
+const AURA_RING_OPTIONS = [
+  { id: 'gold', label: 'Gold Ring', color: '#d97706', desc: 'Championship gold halo' },
+  { id: 'neon', label: 'Electric Blue', color: '#2563eb', desc: 'High-voltage energy pulse' },
+  { id: 'ruby', label: 'Ruby Red', color: '#dc2626', desc: 'Crimson flame intensity' },
+  { id: 'purple', label: 'Cosmic Purple', color: '#7c3aed', desc: 'Ultraviolet nebula aura' },
+  { id: 'emerald', label: 'Emerald Green', color: '#059669', desc: 'Radiant mystic jade glow' },
+  { id: 'none', label: 'Minimal / None', color: '#9ca3af', desc: 'Clean standard border' }
+];
+
 export default function Profile({
   user,
   profileData,
@@ -35,9 +44,18 @@ export default function Profile({
   // Friends Modal
   const [showFriendsModal, setShowFriendsModal] = useState(false);
 
+  // Accordion 1: Select Aura Rings (Strictly closed by default)
+  const [isAuraOpen, setIsAuraOpen] = useState(false);
+  const [auraToast, setAuraToast] = useState('');
+
+  // Accordion 2: Number of polls casted today (Strictly closed by default)
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [todayVotesCount, setTodayVotesCount] = useState(0);
+  const [todayVotesHistory, setTodayVotesHistory] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
   // Ring display
   const selectedRing = user?.selected_ring || user?.ring || 'gold';
-
 
   // Invite state & Tier checks
   const [copySuccess, setCopySuccess] = useState(false);
@@ -49,6 +67,111 @@ export default function Profile({
   );
   const isLifetimeLegend = effectiveInvites >= 25 || user?.is_god_mode === true || user?.is_legend === true;
 
+  // Fetch today's voting history from Supabase/Backend
+  const fetchTodayVotingHistory = async () => {
+    if (!user?.id) return;
+    setIsLoadingHistory(true);
+    try {
+      // 1. Try backend endpoint
+      if (API) {
+        const res = await fetch(`${API}/votes/today/${user.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && typeof data.totalToday === 'number') {
+            setTodayVotesCount(data.totalToday);
+            setTodayVotesHistory(data.history || []);
+            localStorage.setItem(`campus_today_votes_${user.id}`, JSON.stringify(data));
+            setIsLoadingHistory(false);
+            return;
+          }
+        }
+      }
+
+      // 2. Direct Supabase fallback
+      if (supabase) {
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const startIso = startOfToday.toISOString();
+
+        const { data: rawVotes, error } = await supabase
+          .from('votes')
+          .select('id, poll_id, receiver_id, created_at')
+          .eq('voter_id', user.id)
+          .gte('created_at', startIso)
+          .order('created_at', { ascending: false });
+
+        if (!error && rawVotes) {
+          const totalToday = rawVotes.length;
+          setTodayVotesCount(totalToday);
+
+          if (totalToday === 0) {
+            setTodayVotesHistory([]);
+            setIsLoadingHistory(false);
+            return;
+          }
+
+          const receiverIds = [...new Set(rawVotes.map(v => v.receiver_id).filter(Boolean))];
+          let userMap = {};
+          if (receiverIds.length > 0) {
+            const { data: recs } = await supabase
+              .from('users')
+              .select('id, name, handle, avatar')
+              .in('id', receiverIds);
+            (recs || []).forEach(u => { userMap[u.id] = u; });
+          }
+
+          const pollIds = [...new Set(rawVotes.map(v => v.poll_id).filter(Boolean))];
+          let pollMap = {};
+          if (pollIds.length > 0) {
+            try {
+              const { data: p1 } = await supabase.from('polls').select('id, question').in('id', pollIds);
+              (p1 || []).forEach(p => { pollMap[p.id] = p.question; });
+            } catch (_) {}
+            try {
+              const { data: p2 } = await supabase.from('polls2').select('id, question').in('id', pollIds);
+              (p2 || []).forEach(p => { pollMap[p.id] = p.question; });
+            } catch (_) {}
+          }
+
+          const history = rawVotes.map(v => {
+            const cand = userMap[v.receiver_id];
+            return {
+              id: v.id,
+              pollId: v.poll_id,
+              question: pollMap[v.poll_id] || 'School Poll',
+              candidateName: cand ? (cand.name || `@${cand.handle}`) : 'Classmate',
+              candidateHandle: cand ? cand.handle : '',
+              createdAt: v.created_at
+            };
+          });
+
+          setTodayVotesHistory(history);
+          localStorage.setItem(`campus_today_votes_${user.id}`, JSON.stringify({ totalToday, history }));
+        }
+      }
+    } catch (err) {
+      console.warn('Error fetching today voting history:', err);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // Initial 0ms load from localStorage cache + network fetch
+  useEffect(() => {
+    if (user?.id) {
+      const cached = localStorage.getItem(`campus_today_votes_${user.id}`);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed.totalToday === 'number') {
+            setTodayVotesCount(parsed.totalToday);
+            setTodayVotesHistory(parsed.history || []);
+          }
+        } catch (_) {}
+      }
+      fetchTodayVotingHistory();
+    }
+  }, [user?.id]);
 
   // Close 3-dots menu on outside click
   useEffect(() => {
@@ -66,18 +189,6 @@ export default function Profile({
   const referralUserId = user?.id || user?.google_id || user?.handle || 'user';
   const my_invite_code = (user?.invite_code || user?.handle || referralUserId).replace(/^@/, '').trim();
   const inviteLink = `${window.location.origin}/signup?ref=${encodeURIComponent(referralUserId)}`;
-
-  const copyInviteToClipboard = async () => {
-    const hubText = user?.stream || 'your batch';
-    const shareText = `Someone from ${hubText} voted for you on CenterInsider! Join to see who: ${inviteLink}`;
-    await handleShare({
-      title: 'CenterInsider',
-      text: shareText,
-      url: inviteLink
-    });
-    setCopySuccess(true);
-    setTimeout(() => setCopySuccess(false), 2500);
-  };
 
   const handleWhatsAppInvite = async () => {
     if (onInviteShare) {
@@ -106,6 +217,34 @@ export default function Profile({
     reader.readAsDataURL(file);
   };
 
+  const handleSelectRing = async (ringId) => {
+    if (!isLifetimeLegend) {
+      alert('🔒 Aura Rings unlock exclusively for Lifetime Legends (25+ invites)! Basic God Mode does not include Aura Rings.');
+      return;
+    }
+    const updatedUser = { ...user, ring: ringId, selected_ring: ringId };
+    if (onUpdateUser) onUpdateUser(updatedUser);
+    localStorage.setItem('campus_user_ring', ringId);
+    localStorage.setItem('selected_ring', ringId);
+    setAuraToast(`✓ Equipped ${ringId}!`);
+    setTimeout(() => setAuraToast(''), 2200);
+
+    if (supabase && user?.id) {
+      try {
+        await supabase.from('users').update({ ring: ringId, selected_ring: ringId }).eq('id', user.id);
+      } catch (_) {}
+    }
+
+    if (API && user?.id) {
+      try {
+        await fetch(`${API}/user/ring`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, selected_ring: ringId })
+        });
+      } catch (_) {}
+    }
+  };
 
   const saveProfile = async () => {
     setIsSaving(true);
@@ -176,7 +315,7 @@ export default function Profile({
   };
 
   return (
-    <div style={{ padding: '12px 14px 75px 14px', maxWidth: '440px', margin: '0 auto', boxSizing: 'border-box', position: 'relative', background: '#ffffff', minHeight: '100%' }}>
+    <div style={{ padding: '12px 14px 85px 14px', maxWidth: '440px', margin: '0 auto', boxSizing: 'border-box', position: 'relative', background: '#ffffff', minHeight: '100%' }}>
       
       {/* Top Bar: Unified Share Button & Settings 3-Dots Menu */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', position: 'relative', marginBottom: '8px' }} ref={settingsMenuRef}>
@@ -365,12 +504,526 @@ export default function Profile({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px',
-              marginBottom: '16px'
+              marginBottom: '12px'
             }}
           >
             <span>✏️</span> Edit Profile
           </button>
         )}
+      </div>
+
+      {/* EDIT PROFILE DRAWER (WHEN ACTIVE) */}
+      {isEditing && (
+        <div
+          style={{
+            background: '#ffffff',
+            borderRadius: '20px',
+            padding: '20px',
+            border: '2px solid #000000',
+            textAlign: 'left',
+            marginBottom: '18px',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06)'
+          }}
+        >
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '950', color: '#000000' }}>Edit Profile</h3>
+
+          {/* Profile Picture Upload */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '12px', color: '#4b5563', fontWeight: '800', display: 'block', marginBottom: '6px' }}>
+              Profile Photo
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              style={{ fontSize: '12px', color: '#4b5563' }}
+            />
+          </div>
+
+          {/* Bio Input */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '12px', color: '#4b5563', fontWeight: '800', display: 'block', marginBottom: '6px' }}>
+              Bio
+            </label>
+            <input
+              type="text"
+              value={editBio}
+              onChange={(e) => setEditBio(e.target.value)}
+              placeholder="e.g. Kapil Institute • 11th Med"
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                borderRadius: '12px',
+                border: '1.5px solid #000000',
+                background: '#f9fafb',
+                color: '#000000',
+                fontSize: '14px',
+                fontWeight: '600',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          {/* Coaching Institute Picker */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '11px', color: '#4b5563', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+              Coaching Institute
+            </label>
+            <InstituteCombobox
+              value={editInstitute}
+              onChange={(val) => {
+                setEditInstitute(val);
+                setEditHub(findHubForInstitute(val));
+              }}
+              onSelectHub={(hub) => setEditHub(hub)}
+            />
+            <div style={{ marginTop: '5px', fontSize: '11px', color: '#111827', fontWeight: '700' }}>
+              📍 Hub: {editHub || findHubForInstitute(editInstitute)}
+            </div>
+          </div>
+
+          {/* Change Class Dropdown */}
+          <div style={{ marginBottom: '16px' }}>
+            <label
+              htmlFor="change-class-select"
+              style={{
+                fontSize: '11px',
+                color: '#4b5563',
+                fontWeight: '800',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                display: 'block',
+                marginBottom: '6px'
+              }}
+            >
+              Change Class
+            </label>
+            <div style={{ position: 'relative' }}>
+              <select
+                id="change-class-select"
+                value={editStream}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (window.navigator?.vibrate) window.navigator.vibrate(8);
+                  setEditStream(val);
+                  setEditGrade(val.includes('10') ? '10' : val.includes('12') ? '12' : '11');
+                }}
+                className="w-full px-3.5 py-3 rounded-xl border-2 border-black bg-gray-50 text-gray-900 font-bold text-sm cursor-pointer outline-none appearance-none focus:border-black focus:ring-1 focus:ring-black transition-all"
+                style={{
+                  maxHeight: '240px',
+                  overflowY: 'auto'
+                }}
+              >
+                {MASTER_CLASS_OPTIONS.map((c) => (
+                  <option key={c} value={c} className="py-2 text-sm font-semibold">
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '11px', color: '#6b7280' }}>
+                ▼
+              </div>
+            </div>
+            <p style={{ margin: '5px 0 0 0', fontSize: '11px', color: '#6b7280' }}>
+              Select your coaching batch/stream to see batch-specific polls and leaderboards.
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={saveProfile}
+              disabled={isSaving}
+              style={{
+                flex: 1,
+                padding: '12px',
+                borderRadius: '12px',
+                border: 'none',
+                background: '#000000',
+                color: '#ffffff',
+                fontWeight: '950',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              {isSaving ? 'Saving...' : 'Save Profile'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              style={{
+                padding: '12px 18px',
+                borderRadius: '12px',
+                border: '1px solid #e5e7eb',
+                background: '#f3f4f6',
+                color: '#111827',
+                fontWeight: '800',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TWO CLOSED ACCORDIONS DIRECTLY UNDER EDIT PROFILE        */}
+      {/* ======================================================== */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '18px' }}>
+
+        {/* ACCORDION 1: SELECT AURA RINGS (MOVED HERE, CLOSED BY DEFAULT) */}
+        <div
+          style={{
+            background: '#ffffff',
+            border: '2px solid #000000',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)'
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setIsAuraOpen(prev => !prev)}
+            style={{
+              width: '100%',
+              padding: '14px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: '#ffffff',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '18px' }}>💍</span>
+              <div>
+                <div style={{ fontSize: '14.5px', fontWeight: '950', color: '#000000', letterSpacing: '-0.3px' }}>
+                  Select Aura Rings
+                </div>
+                <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '700', marginTop: '1px' }}>
+                  Equip halo ring on your profile & feeds
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: '900',
+                  padding: '3px 8px',
+                  borderRadius: '8px',
+                  background: isLifetimeLegend ? '#fbbf24' : '#f3f4f6',
+                  color: isLifetimeLegend ? '#000000' : '#6b7280'
+                }}
+              >
+                {isLifetimeLegend ? '👑 Unlocked' : '🔒 25 Invites'}
+              </span>
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: '900',
+                  color: '#000000',
+                  transform: isAuraOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease'
+                }}
+              >
+                ▼
+              </span>
+            </div>
+          </button>
+
+          {auraToast && (
+            <div style={{
+              margin: '0 16px 8px 16px',
+              padding: '6px 10px',
+              borderRadius: '8px',
+              background: '#dcfce7',
+              color: '#166534',
+              fontSize: '11px',
+              fontWeight: '800',
+              textAlign: 'center'
+            }}>
+              {auraToast}
+            </div>
+          )}
+
+          <AnimatePresence>
+            {isAuraOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                style={{ overflow: 'hidden', borderTop: '1px solid #f3f4f6' }}
+              >
+                <div style={{ padding: '12px 16px 16px 16px' }}>
+                  {!isLifetimeLegend && (
+                    <div style={{
+                      padding: '10px 12px',
+                      background: '#fef2f2',
+                      border: '1px solid #fecaca',
+                      borderRadius: '12px',
+                      color: '#991b1b',
+                      fontSize: '11px',
+                      lineHeight: '1.4',
+                      textAlign: 'left',
+                      marginBottom: '10px',
+                      fontWeight: '700'
+                    }}>
+                      🔒 <strong>STRICTLY LOCKED:</strong> Aura Rings unlock exclusively for Lifetime Legends (25+ invites). Basic God Mode does not include vanity rings.
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {AURA_RING_OPTIONS.map((r) => {
+                      const isEquipped = isLifetimeLegend && selectedRing === r.id;
+                      return (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => handleSelectRing(r.id)}
+                          disabled={!isLifetimeLegend}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '9px 12px',
+                            borderRadius: '12px',
+                            border: isEquipped ? '2px solid #000000' : '1px solid #e5e7eb',
+                            background: isEquipped ? '#f9fafb' : '#ffffff',
+                            cursor: isLifetimeLegend ? 'pointer' : 'not-allowed',
+                            opacity: isLifetimeLegend ? 1 : 0.55,
+                            width: '100%',
+                            textAlign: 'left',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '50%',
+                              border: `3px solid ${r.color}`,
+                              background: r.id === 'none' ? 'transparent' : `${r.color}22`,
+                              flexShrink: 0
+                            }} />
+                            <div>
+                              <div style={{ fontSize: '12.5px', fontWeight: '900', color: '#000000' }}>
+                                {r.label}
+                              </div>
+                              <div style={{ fontSize: '10.5px', color: '#6b7280' }}>
+                                {r.desc}
+                              </div>
+                            </div>
+                          </div>
+
+                          <span style={{
+                            fontSize: '10.5px',
+                            fontWeight: '900',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: isEquipped ? '#000000' : 'transparent',
+                            color: isEquipped ? '#ffffff' : '#4b5563'
+                          }}>
+                            {isLifetimeLegend ? (isEquipped ? 'Equipped ✓' : 'Equip') : '🔒'}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* ACCORDION 2: NUMBER OF POLLS CASTED TODAY (NEW COMPONENT, CLOSED BY DEFAULT) */}
+        <div
+          style={{
+            background: '#ffffff',
+            border: '2px solid #000000',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)'
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setIsHistoryOpen(prev => !prev);
+              if (!isHistoryOpen) fetchTodayVotingHistory();
+            }}
+            style={{
+              width: '100%',
+              padding: '14px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: '#ffffff',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '18px' }}>🗳️</span>
+              <div>
+                <div style={{ fontSize: '14.5px', fontWeight: '950', color: '#000000', letterSpacing: '-0.3px' }}>
+                  Number of polls casted today
+                </div>
+                <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '700', marginTop: '1px' }}>
+                  Live voting history & session tracker
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: '950',
+                  padding: '3px 9px',
+                  borderRadius: '8px',
+                  background: '#000000',
+                  color: '#ffffff'
+                }}
+              >
+                {todayVotesCount}
+              </span>
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: '900',
+                  color: '#000000',
+                  transform: isHistoryOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease'
+                }}
+              >
+                ▼
+              </span>
+            </div>
+          </button>
+
+          <AnimatePresence>
+            {isHistoryOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                style={{ overflow: 'hidden', borderTop: '1px solid #f3f4f6' }}
+              >
+                <div style={{ padding: '14px 16px 16px 16px' }}>
+                  {/* Dynamic Integer Banner */}
+                  <div
+                    style={{
+                      background: '#f9fafb',
+                      border: '1.5px solid #000000',
+                      borderRadius: '14px',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '12px'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Today's Activity
+                      </div>
+                      <div style={{ fontSize: '13px', fontWeight: '950', color: '#000000' }}>
+                        Polls Cast Today
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
+                      <span style={{ fontSize: '26px', fontWeight: '950', color: '#000000', lineHeight: 1 }}>
+                        {todayVotesCount}
+                      </span>
+                      <span style={{ fontSize: '12px', fontWeight: '800', color: '#6b7280' }}>
+                        polls
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Clean Scrollable History Log */}
+                  {isLoadingHistory ? (
+                    <div style={{ padding: '20px 0', textAlign: 'center', color: '#6b7280', fontSize: '12.5px', fontWeight: '700' }}>
+                      Loading today's votes...
+                    </div>
+                  ) : todayVotesHistory.length === 0 ? (
+                    <div style={{ padding: '16px 8px', textAlign: 'center', color: '#6b7280' }}>
+                      <span style={{ fontSize: '24px', display: 'block', marginBottom: '4px' }}>🎯</span>
+                      <p style={{ margin: '0 0 2px 0', fontSize: '13px', fontWeight: '900', color: '#000000' }}>
+                        No polls cast today yet
+                      </p>
+                      <span style={{ fontSize: '11.5px', color: '#6b7280' }}>
+                        Jump into the feed to cast votes for your classmates!
+                      </span>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                        maxHeight: '260px',
+                        overflowY: 'auto',
+                        paddingRight: '2px'
+                      }}
+                    >
+                      {todayVotesHistory.map((item, idx) => (
+                        <div
+                          key={item.id || idx}
+                          style={{
+                            background: '#f9fafb',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '12px',
+                            padding: '10px 12px',
+                            textAlign: 'left'
+                          }}
+                        >
+                          {/* Format: [Question Text] -> Voted for: [Candidate Name] */}
+                          <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#000000', marginBottom: '4px', lineHeight: '1.35' }}>
+                            "{item.question}"
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
+                              <span style={{ color: '#6b7280', fontWeight: '700' }}>➔ Voted for:</span>
+                              <span style={{ fontWeight: '950', color: '#000000' }}>
+                                {item.candidateName}
+                              </span>
+                              {item.candidateHandle && (
+                                <span style={{ color: '#6b7280', fontSize: '11px', fontWeight: '600' }}>
+                                  (@{item.candidateHandle})
+                                </span>
+                              )}
+                            </div>
+
+                            {item.createdAt && (
+                              <span style={{ fontSize: '10.5px', color: '#9ca3af', fontWeight: '600' }}>
+                                {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
       </div>
 
       {/* 2. Campus Social Stats Matrix */}
@@ -529,162 +1182,6 @@ export default function Profile({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* 6. EDIT PROFILE MODAL / DRAWER */}
-      {isEditing && (
-        <div
-          style={{
-            background: '#ffffff',
-            borderRadius: '20px',
-            padding: '20px',
-            border: '1px solid #e5e7eb',
-            textAlign: 'left',
-            marginBottom: '20px'
-          }}
-        >
-          <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '900', color: '#000000' }}>Edit Profile</h3>
-
-          {/* Profile Picture Upload */}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '12px', color: '#4b5563', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
-              Profile Photo
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              style={{ fontSize: '12px', color: '#4b5563' }}
-            />
-          </div>
-
-          {/* Bio Input */}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '12px', color: '#4b5563', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
-              Bio
-            </label>
-            <input
-              type="text"
-              value={editBio}
-              onChange={(e) => setEditBio(e.target.value)}
-              placeholder="e.g. Kapil Institute • 11th Med"
-              style={{
-                width: '100%',
-                padding: '12px 14px',
-                borderRadius: '12px',
-                border: '1px solid #e5e7eb',
-                background: '#f9fafb',
-                color: '#000000',
-                fontSize: '14px',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          {/* Coaching Institute Picker */}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '11px', color: '#4b5563', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
-              Coaching Institute
-            </label>
-            <InstituteCombobox
-              value={editInstitute}
-              onChange={(val) => {
-                setEditInstitute(val);
-                setEditHub(findHubForInstitute(val));
-              }}
-              onSelectHub={(hub) => setEditHub(hub)}
-            />
-            <div style={{ marginTop: '5px', fontSize: '11px', color: '#111827', fontWeight: '700' }}>
-              📍 Hub: {editHub || findHubForInstitute(editInstitute)}
-            </div>
-          </div>
-
-          {/* Change Class Dropdown (Task 3) */}
-          <div style={{ marginBottom: '16px' }}>
-            <label
-              htmlFor="change-class-select"
-              style={{
-                fontSize: '11px',
-                color: '#4b5563',
-                fontWeight: '700',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-                display: 'block',
-                marginBottom: '6px'
-              }}
-            >
-              Change Class
-            </label>
-            <div style={{ position: 'relative' }}>
-              <select
-                id="change-class-select"
-                value={editStream}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (window.navigator?.vibrate) window.navigator.vibrate(8);
-                  setEditStream(val);
-                  setEditGrade(val.includes('10') ? '10' : val.includes('12') ? '12' : '11');
-                }}
-                className="w-full px-3.5 py-3 rounded-xl border border-gray-300 bg-gray-50 text-gray-900 font-bold text-sm cursor-pointer outline-none appearance-none focus:border-black focus:ring-1 focus:ring-black transition-all"
-                style={{
-                  maxHeight: '240px',
-                  overflowY: 'auto'
-                }}
-              >
-                {MASTER_CLASS_OPTIONS.map((c) => (
-                  <option key={c} value={c} className="py-2 text-sm font-semibold">
-                    {c}
-                  </option>
-                ))}
-              </select>
-              <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '11px', color: '#6b7280' }}>
-                ▼
-              </div>
-            </div>
-            <p style={{ margin: '5px 0 0 0', fontSize: '11px', color: '#6b7280' }}>
-              Select your coaching batch/stream to see batch-specific polls and leaderboards.
-            </p>
-          </div>
-
-          {/* Actions */}
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              type="button"
-              onClick={saveProfile}
-              disabled={isSaving}
-              style={{
-                flex: 1,
-                padding: '12px',
-                borderRadius: '12px',
-                border: 'none',
-                background: '#000000',
-                color: '#ffffff',
-                fontWeight: '900',
-                fontSize: '14px',
-                cursor: 'pointer'
-              }}
-            >
-              {isSaving ? 'Saving...' : 'Save Profile'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              style={{
-                padding: '12px 18px',
-                borderRadius: '12px',
-                border: '1px solid #e5e7eb',
-                background: '#f3f4f6',
-                color: '#111827',
-                fontWeight: '800',
-                fontSize: '14px',
-                cursor: 'pointer'
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

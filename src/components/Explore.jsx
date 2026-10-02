@@ -13,8 +13,8 @@ export default function Explore({
 }) {
   const navigate = useNavigate();
 
-  // Collapsible accordion state: defaults to 'premium' open or null
-  const [openAccordion, setOpenAccordion] = useState('premium');
+  // Collapsible accordion state: defaults to closed/rest state (null)
+  const [openAccordion, setOpenAccordion] = useState(null);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -493,17 +493,17 @@ export default function Explore({
                 textAlign: 'left'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '20px' }}>⚡</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div>
-                  <div style={{ fontSize: '15px', fontWeight: '950', color: '#000000', letterSpacing: '-0.3px' }}>
-                    Unlock Premium Features
+                  <div style={{ fontSize: '15.5px', fontWeight: '950', color: '#000000', letterSpacing: '-0.3px' }}>
+                    ⚡ Unlock Premium Features
                   </div>
-                  <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '700', marginTop: '1px' }}>
+                  <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '700', marginTop: '2px' }}>
                     Viral Referral Tracker • Unique Link & WhatsApp Share
                   </div>
                 </div>
               </div>
+
               <span
                 style={{
                   fontSize: '13px',
