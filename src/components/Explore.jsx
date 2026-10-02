@@ -319,7 +319,7 @@ export default function Explore({
                         style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', flex: 1 }}
                       >
                         {renderProfilePic
-                          ? renderProfilePic(user.profile_pic, user.avatar, user.is_pro, user.selected_ring || user.ring, 38)
+                          ? renderProfilePic(user.profile_pic, user.avatar, user.is_pro, user.selected_ring || user.ring, 38, Boolean(user.invites >= 25 || user.recruits >= 25 || user.is_god_mode || user.is_legend))
                           : (
                             <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               {user.avatar || '😎'}
@@ -513,7 +513,7 @@ export default function Explore({
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             {renderProfilePic
-                              ? renderProfilePic(legend.profile_pic, legend.avatar, true, legend.selected_ring || legend.ring || 'gold', 42)
+                              ? renderProfilePic(legend.profile_pic, legend.avatar, true, legend.selected_ring || legend.ring || 'gold', 42, true)
                               : (
                                 <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
                                   {legend.avatar || '👑'}
@@ -678,7 +678,7 @@ export default function Explore({
                                 #{idx + 1}
                               </span>
                               {renderProfilePic
-                                ? renderProfilePic(student.profile_pic, student.avatar, student.is_pro, student.selected_ring || student.ring, 40)
+                                ? renderProfilePic(student.profile_pic, student.avatar, student.is_pro, student.selected_ring || student.ring, 40, Boolean(student.invites >= 25 || student.recruits >= 25 || student.is_god_mode || student.is_legend))
                                 : (
                                   <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     {student.avatar || '😎'}
@@ -798,7 +798,7 @@ export default function Explore({
                               #{idx + 1}
                             </span>
                             {renderProfilePic
-                              ? renderProfilePic(student.profile_pic, student.avatar, student.is_pro, student.selected_ring || student.ring, 40)
+                              ? renderProfilePic(student.profile_pic, student.avatar, student.is_pro, student.selected_ring || student.ring, 40, Boolean(student.invites >= 25 || student.recruits >= 25 || student.is_god_mode || student.is_legend))
                               : (
                                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                   {student.avatar || '😎'}

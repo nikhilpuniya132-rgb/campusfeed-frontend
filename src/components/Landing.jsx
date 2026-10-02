@@ -340,13 +340,29 @@ export default function Landing({
             <h2 style={{ fontSize: 'clamp(28px, 6vw, 42px)', fontWeight: 900, margin: '14px 0 8px 0', color: '#000000', letterSpacing: '-1px' }}>
               Unlock God Mode With Friends.
             </h2>
-            <p style={{ color: '#6b7280', maxWidth: '520px', margin: '0 auto', fontSize: '14px', lineHeight: 1.5 }}>
+            <p style={{ color: '#6b7280', maxWidth: '540px', margin: '0 auto 16px auto', fontSize: '14px', lineHeight: 1.5 }}>
               No subscriptions, no payment gateways, no fees. CenterInsider premium features unlock purely by inviting your classmates into the loop.
             </p>
+
+            {/* Normal User Tier Info Pill */}
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              padding: '6px 16px',
+              borderRadius: '20px',
+              fontSize: '12px',
+              color: '#4b5563',
+              fontWeight: '600'
+            }}>
+              <span>👤 <strong>Normal User (0-2 Invites):</strong> 12 votes/session (30m cooldown) • Standard Avatar • No Reveals</span>
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', width: '100%', maxWidth: '860px' }}>
-            {/* Card 1: 3 Invites (1 Month Access) */}
+            {/* Card 1: 3 Invites (Basic God Mode - 1 Month Access) */}
             <motion.div
               whileHover={{ y: -4 }}
               transition={{ duration: 0.2 }}
@@ -380,34 +396,42 @@ export default function Landing({
                 </div>
 
                 <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#000000', margin: '0 0 8px 0', letterSpacing: '-0.3px' }}>
-                  Invite 3 Friends (1 Month Access)
+                  Basic God Mode (3 Invites)
                 </h3>
                 <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 20px 0', lineHeight: 1.4 }}>
-                  Invite 3 classmates to instantly unlock 1 Month of full God Mode privileges.
+                  Invite 3 classmates to unlock essential utility powers with unlimited voting and voter reveals for 1 month.
                 </p>
 
-                <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '16px', marginBottom: '24px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '12px' }}>
-                    What You Unlock:
+                <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '16px', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '800', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '12px' }}>
+                    Unlocked Utility Perks:
                   </span>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#111827', fontWeight: '600' }}>
-                      <span style={{ color: '#000000', fontWeight: '900', fontSize: '15px' }}>✓</span>
-                      <span><strong>See who voted for you</strong></span>
+                      <span style={{ color: '#16a34a', fontWeight: '900', fontSize: '15px' }}>✓</span>
+                      <span><strong>Unlimited votes</strong> (cooldown timer permanently disabled for the month)</span>
                     </li>
                     <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#111827', fontWeight: '600' }}>
-                      <span style={{ color: '#000000', fontWeight: '900', fontSize: '15px' }}>✓</span>
-                      <span><strong>See who secretly views your profile</strong></span>
+                      <span style={{ color: '#16a34a', fontWeight: '900', fontSize: '15px' }}>✓</span>
+                      <span><strong>See who voted for you</strong> (Voter Reveal)</span>
                     </li>
                     <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#111827', fontWeight: '600' }}>
-                      <span style={{ color: '#000000', fontWeight: '900', fontSize: '15px' }}>✓</span>
-                      <span><strong>Cast unlimited votes</strong></span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#111827', fontWeight: '600' }}>
-                      <span style={{ color: '#000000', fontWeight: '900', fontSize: '15px' }}>✓</span>
-                      <span><strong>Create up to 3 custom polls</strong></span>
+                      <span style={{ color: '#16a34a', fontWeight: '900', fontSize: '15px' }}>✓</span>
+                      <span><strong>Create up to 3 custom polls</strong> per month</span>
                     </li>
                   </ul>
+                </div>
+
+                {/* Strict Restrictions Box */}
+                <div style={{ background: '#f9fafb', border: '1px dashed #d1d5db', borderRadius: '14px', padding: '12px 14px', marginBottom: '24px' }}>
+                  <span style={{ fontSize: '10.5px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+                    🔒 Strict Tier Restrictions:
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', color: '#6b7280' }}>
+                    <span>✕ Cannot see secret profile visitors</span>
+                    <span>✕ No Aura Rings or Crown badge</span>
+                    <span>✕ Not featured in Legends tab</span>
+                  </div>
                 </div>
               </div>
 
@@ -481,40 +505,44 @@ export default function Landing({
                 </div>
 
                 <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff', margin: '0 0 8px 0', letterSpacing: '-0.3px' }}>
-                  Invite 25 Friends (Lifetime Legend)
+                  Lifetime Legend (25 Invites)
                 </h3>
                 <p style={{ fontSize: '13px', color: '#a3a3a3', margin: '0 0 20px 0', lineHeight: 1.4 }}>
-                  Invite 25 classmates to permanently cement your status as an official School & Coaching Legend.
+                  Invite 25 classmates to permanently unlock full utility powers plus exclusive elite status & vanity perks.
                 </p>
 
                 <div style={{ borderTop: '1px solid #262626', paddingTop: '16px', marginBottom: '24px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '800', color: '#737373', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '12px' }}>
-                    Lifetime Superpowers:
+                  <span style={{ fontSize: '11px', fontWeight: '800', color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '12px' }}>
+                    Lifetime Status & Superpowers:
                   </span>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '11px' }}>
                     <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
                       <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
-                      <span><strong>Get featured in the Legends tab</strong></span>
+                      <span><strong>Unlimited votes</strong> (no timers ever)</span>
                     </li>
                     <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
                       <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
-                      <span><strong>Create up to 150 custom polls/month</strong></span>
+                      <span><strong>See who voted for you</strong></span>
                     </li>
                     <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
                       <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
-                      <span><strong>Cast unlimited votes</strong></span>
+                      <span><strong>Create up to 150 custom polls</strong>/month</span>
                     </li>
                     <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
                       <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
-                      <span><strong>See all voters and profile visitors</strong></span>
+                      <span><strong>See who secretly views your profile</strong></span>
                     </li>
                     <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
                       <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
-                      <span><strong>Unlock preferred aura rings</strong></span>
+                      <span><strong>Unlock preferred custom Aura Rings</strong></span>
                     </li>
                     <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
                       <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
-                      <span><strong>Get boosted visibility in the feed</strong></span>
+                      <span><strong>Crown badge under your profile picture</strong></span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
+                      <span><strong>Prominently featured in the Legends Tab</strong></span>
                     </li>
                   </ul>
                 </div>

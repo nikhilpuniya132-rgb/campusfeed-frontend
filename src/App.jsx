@@ -1041,8 +1041,19 @@ export default function App() {
     }
   };
 
-  const renderProfilePic = (pic, ava, isPro, ring = 'gold', size = 80) => {
-    const activeAura = isPro ? (AURA_RINGS[ring] || AURA_RINGS.gold) : AURA_RINGS.none;
+  const renderProfilePic = (pic, ava, isPro, ring = 'gold', size = 80, isLegend = false) => {
+    // STRICT RULE: Status perks (Aura Rings and Crown badge) unlock ONLY for Lifetime Legends (>= 25 invites or is_god_mode / is_legend).
+    // Basic God Mode (3 invites) users do NOT receive Aura Rings or Crown badges.
+    const showStatusPerks = Boolean(
+      isLegend === true ||
+      (typeof isPro === 'object' && (isPro?.invites >= 25 || isPro?.recruits >= 25 || isPro?.is_god_mode || isPro?.is_legend)) ||
+      (typeof ring === 'object' && (ring?.invites >= 25 || ring?.recruits >= 25 || ring?.is_god_mode || ring?.is_legend))
+    );
+    const ringName = typeof ring === 'string' ? ring : 'gold';
+    const activeAura = (showStatusPerks && ringName && ringName !== 'none')
+      ? (AURA_RINGS[ringName] || AURA_RINGS.gold)
+      : AURA_RINGS.none;
+
     return (
       <div style={{ position: 'relative', display: 'inline-block' }}>
         {pic ? (
@@ -1065,7 +1076,7 @@ export default function App() {
             {ava || '😎'}
           </div>
         )}
-        {isPro && (
+        {showStatusPerks && (
           <motion.div
             animate={{ rotate: [0, -10, 10, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
@@ -1401,7 +1412,7 @@ export default function App() {
                   {publicProfile ? (
                     <div>
                       <div style={{ marginBottom: '16px' }}>
-                        {renderProfilePic(publicProfile.profile_pic, publicProfile.avatar, publicProfile.is_pro, publicProfile.ring, 100)}
+                        {renderProfilePic(publicProfile.profile_pic, publicProfile.avatar, publicProfile.is_pro, publicProfile.ring, 100, Boolean(publicProfile.invites >= 25 || publicProfile.recruits >= 25 || publicProfile.is_god_mode || publicProfile.is_legend))}
                       </div>
                       <h2 style={{ margin: '0 0 6px 0', fontWeight: '900', color: publicProfile.is_pro ? '#fbbf24' : '#fff' }}>
                         @{publicProfile.handle}
@@ -1675,7 +1686,7 @@ export default function App() {
                     </span>
 
                     <div style={{ margin: '14px 0' }}>
-                      {renderProfilePic(revealData?.voterPic, revealData?.voterAvatar, revealData?.isPro, revealData?.ring || 'gold', 72)}
+                      {renderProfilePic(revealData?.voterPic, revealData?.voterAvatar, revealData?.isPro, revealData?.ring || 'gold', 72, Boolean(revealData?.isLegend))}
                     </div>
 
                     <h3 style={{ fontSize: '24px', fontWeight: '950', color: '#fff', margin: '0 0 4px 0' }}>
@@ -1763,7 +1774,7 @@ export default function App() {
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          {renderProfilePic(req.requester?.profile_pic, req.requester?.avatar, req.requester?.is_pro, req.requester?.ring, 42)}
+                          {renderProfilePic(req.requester?.profile_pic, req.requester?.avatar, req.requester?.is_pro, req.requester?.ring, 42, Boolean(req.requester?.invites >= 25 || req.requester?.recruits >= 25 || req.requester?.is_god_mode || req.requester?.is_legend))}
                           <div>
                             <span style={{ fontWeight: '800', color: '#000000', fontSize: '14px', display: 'block' }}>
                               @{req.requester?.handle}

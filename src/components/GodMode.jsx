@@ -214,16 +214,17 @@ export default function GodMode({
             gap: '6px',
             padding: '4px 14px',
             borderRadius: '20px',
-            background: hasLifetimeLegend ? '#fef3c7' : '#f3f4f6',
-            border: hasLifetimeLegend ? '1px solid #fde68a' : '1px solid #e5e7eb',
-            color: hasLifetimeLegend ? '#92400e' : '#111827',
+            background: hasLifetimeLegend ? '#fef3c7' : hasMonthAccess ? '#d1fae5' : '#f3f4f6',
+            border: hasLifetimeLegend ? '1px solid #fde68a' : hasMonthAccess ? '1px solid #a7f3d0' : '1px solid #e5e7eb',
+            color: hasLifetimeLegend ? '#92400e' : hasMonthAccess ? '#065f46' : '#111827',
             fontSize: '11px',
             fontWeight: '900',
             letterSpacing: '0.04em',
             marginBottom: '8px'
           }}
         >
-          <span>👑</span> {hasLifetimeLegend ? 'LIFETIME LEGEND' : hasMonthAccess ? '1 MONTH ACCESS' : 'PURE INVITE GOD MODE'}
+          <span>{hasLifetimeLegend ? '👑' : hasMonthAccess ? '🔥' : '👤'}</span>{' '}
+          {hasLifetimeLegend ? 'LIFETIME LEGEND' : hasMonthAccess ? 'BASIC GOD MODE (1 MONTH)' : 'NORMAL USER (0-2 INVITES)'}
         </div>
         <h2
           style={{
@@ -234,7 +235,7 @@ export default function GodMode({
             letterSpacing: '-0.5px'
           }}
         >
-          {hasLifetimeLegend ? 'Lifetime Legend Active 👑' : hasMonthAccess ? 'God Mode Active (1 Month)' : 'Unlock God Mode With Friends'}
+          {hasLifetimeLegend ? 'Lifetime Legend Active 👑' : hasMonthAccess ? 'Basic God Mode Active 🔥' : 'Unlock God Mode With Friends'}
         </h2>
         <p
           style={{
@@ -246,29 +247,48 @@ export default function GodMode({
           }}
         >
           {hasLifetimeLegend
-            ? 'You are an official School Legend! Unlimited voting, voter reveals, aura rings, and Legends tab placement are permanently active.'
+            ? 'Official School Legend! Unlimited voting, voter reveals, 150 custom polls, secret profile visitors, aura rings, and Legends tab are permanently active.'
             : hasMonthAccess
-            ? '1 Month God Mode active! Reveal voter identities, cast unlimited votes, and create up to 3 custom polls.'
-            : 'Zero subscriptions. Unlock premium features purely by inviting your classmates.'}
+            ? 'Basic God Mode active! Unlimited votes, voter reveals, and 3 custom polls/month unlocked. Reach 25 invites for vanity perks (Aura Rings, Crown, Profile Visitors).'
+            : 'Normal User: 12 votes per session with 30m cooldown. Invite 3 classmates to unlock unlimited voting & voter reveals!'}
         </p>
       </motion.div>
 
       {/* 3D Showcase Card */}
       <div style={{ width: '100%', marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
         <HolographicCard
-          title={hasLifetimeLegend ? 'LIFETIME LEGEND' : hasMonthAccess ? '1 MONTH ACCESS' : 'INVITE UNLOCK'}
-          subtitle={hasLifetimeLegend ? 'All Perks Permanently Unlocked' : hasMonthAccess ? 'Voter Names Revealed' : 'Invite Friends to Unlock'}
+          title={hasLifetimeLegend ? 'LIFETIME LEGEND' : hasMonthAccess ? 'BASIC GOD MODE' : 'NORMAL USER'}
+          subtitle={hasLifetimeLegend ? 'Status Perks + Utility Unlocked' : hasMonthAccess ? 'Utility Features Unlocked' : 'Invite 3 Friends to Unlock'}
           price={`${effectiveInvites}`}
-          period={hasLifetimeLegend ? '/ 25 Invites (Complete)' : '/ 25 Invites'}
-          perks={[
-            'Instant Voter Reveals (See who voted)',
-            'Profile Visitor Tracking',
-            'Unlimited Votes (No 30m Cooldowns)',
-            'Custom Poll Creation',
-            'Exclusive Aura Rings & Legends Tab'
-          ]}
+          period={hasLifetimeLegend ? '/ 25 Invites (Max Legend)' : hasMonthAccess ? '/ 25 Invites (Next: Legend)' : '/ 3 Invites (Next: Basic)'}
+          perks={
+            hasLifetimeLegend
+              ? [
+                  'Unlimited Votes (No timers ever)',
+                  'Voter Reveal (See who voted for you)',
+                  'Create up to 150 Custom Polls/month',
+                  'Secret Profile Visitor Tracking',
+                  'Exclusive Aura Rings & Crown Badge',
+                  'Prominently Featured in Legends Tab'
+                ]
+              : hasMonthAccess
+              ? [
+                  'Unlimited Votes (No 30m Cooldown)',
+                  'Voter Reveal (See who voted for you)',
+                  'Create up to 3 Custom Polls/month',
+                  '🔒 Secret Profile Visitors (25 invites)',
+                  '🔒 Aura Rings & Crown (25 invites)',
+                  '🔒 Legends Tab Feature (25 invites)'
+                ]
+              : [
+                  '12 Votes per session (30-min cooldown)',
+                  '🔒 Voter Reveal (Requires 3 invites)',
+                  '🔒 Custom Poll Creation (Requires 3 invites)',
+                  '🔒 Status & Vanity Perks (Requires 25 invites)'
+                ]
+          }
           onAction={handleCopyLink}
-          actionText={hasLifetimeLegend ? '👑 Lifetime Legend Active' : 'Copy Invite Link ➔'}
+          actionText={hasLifetimeLegend ? '👑 Lifetime Legend Active' : hasMonthAccess ? 'Invite Friends to Unlock Legend ➔' : 'Copy Invite Link ➔'}
         />
       </div>
 
@@ -325,7 +345,7 @@ export default function GodMode({
       {/* TWO PROMINENT INVITE-ONLY MILESTONE CARDS (LANDING MATCH) */}
       {/* ======================================================== */}
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>
-        {/* MILESTONE 1: 3 Invites (1 Month Access) */}
+        {/* MILESTONE 1: 3 Invites (Basic God Mode - 1 Month Access) */}
         <div
           style={{
             background: '#ffffff',
@@ -357,8 +377,11 @@ export default function GodMode({
           </div>
 
           <h3 style={{ fontSize: '16px', fontWeight: '900', margin: '0 0 4px 0', color: '#000000' }}>
-            Invite 3 Friends (1 Month Access)
+            Basic God Mode (3 Invites for 1 Month)
           </h3>
+          <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#6b7280' }}>
+            Unlocks essential utility features for 1 month:
+          </p>
 
           {/* Progress bar */}
           <div style={{ width: '100%', height: '6px', background: '#f3f4f6', borderRadius: '4px', overflow: 'hidden', margin: '8px 0 12px 0' }}>
@@ -373,24 +396,32 @@ export default function GodMode({
           </div>
 
           {/* Exact Perks Listed */}
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#111827' }}>
               <span style={{ color: hasMonthAccess ? '#10b981' : '#000000', fontWeight: '900' }}>✓</span>
-              <span><strong>See who voted for you</strong></span>
+              <span><strong>Unlimited votes</strong> (cooldown timer permanently disabled for 1 month)</span>
             </li>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#111827' }}>
               <span style={{ color: hasMonthAccess ? '#10b981' : '#000000', fontWeight: '900' }}>✓</span>
-              <span><strong>See who secretly views your profile</strong></span>
+              <span><strong>See who voted for you</strong> (Voter Reveal)</span>
             </li>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#111827' }}>
               <span style={{ color: hasMonthAccess ? '#10b981' : '#000000', fontWeight: '900' }}>✓</span>
-              <span><strong>Cast unlimited votes</strong></span>
-            </li>
-            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#111827' }}>
-              <span style={{ color: hasMonthAccess ? '#10b981' : '#000000', fontWeight: '900' }}>✓</span>
-              <span><strong>Create up to 3 custom polls</strong></span>
+              <span><strong>Create up to 3 custom polls</strong> per month</span>
             </li>
           </ul>
+
+          {/* Strict Restrictions Box */}
+          <div style={{ background: '#f9fafb', border: '1px dashed #d1d5db', borderRadius: '12px', padding: '10px 12px' }}>
+            <span style={{ fontSize: '10.5px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '4px' }}>
+              🔒 Strict Tier Restrictions:
+            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '11.5px', color: '#6b7280' }}>
+              <span>✕ Cannot see secret profile visitors</span>
+              <span>✕ No Aura Rings or Crown badge</span>
+              <span>✕ Not featured in Legends tab</span>
+            </div>
+          </div>
         </div>
 
         {/* MILESTONE 2: 25 Invites (Lifetime Legend) */}
@@ -426,8 +457,11 @@ export default function GodMode({
           </div>
 
           <h3 style={{ fontSize: '16px', fontWeight: '900', margin: '0 0 4px 0', color: '#ffffff' }}>
-            Invite 25 Friends (Lifetime Legend)
+            Lifetime Legend (25 Invites Lifetime)
           </h3>
+          <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#a3a3a3' }}>
+            Unlocks full utility powers plus exclusive elite status & vanity perks:
+          </p>
 
           {/* Progress bar */}
           <div style={{ width: '100%', height: '6px', background: '#262626', borderRadius: '4px', overflow: 'hidden', margin: '8px 0 12px 0' }}>
@@ -445,7 +479,11 @@ export default function GodMode({
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#ffffff' }}>
               <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-              <span><strong>Get featured in the Legends tab</strong></span>
+              <span><strong>Unlimited votes</strong> (no timers ever)</span>
+            </li>
+            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#ffffff' }}>
+              <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
+              <span><strong>See who voted for you</strong> (Voter Reveal)</span>
             </li>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#ffffff' }}>
               <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
@@ -453,19 +491,19 @@ export default function GodMode({
             </li>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#ffffff' }}>
               <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-              <span><strong>Cast unlimited votes</strong></span>
+              <span><strong>See who secretly views your profile</strong></span>
             </li>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#ffffff' }}>
               <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-              <span><strong>See all voters and profile visitors</strong></span>
+              <span><strong>Select and equip custom Aura Rings</strong></span>
             </li>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#ffffff' }}>
               <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-              <span><strong>Unlock preferred aura rings</strong></span>
+              <span><strong>Crown badge under profile picture</strong></span>
             </li>
             <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#ffffff' }}>
               <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-              <span><strong>Get boosted visibility in the feed</strong></span>
+              <span><strong>Prominently featured in the Legends Tab</strong></span>
             </li>
           </ul>
         </div>

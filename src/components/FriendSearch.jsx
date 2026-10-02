@@ -251,8 +251,10 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
               const status = requestedMap[classmate.id] || classmate.friendshipStatus || 'none';
               const isPending = status === 'pending';
               const isAccepted = status === 'accepted';
-              const isIncoming = status === 'incoming';
-              const aura = classmate.is_pro ? (AURA_RINGS[classmate.ring] || AURA_RINGS.gold) : AURA_RINGS.none;
+              const isClassmateLegend = Boolean(classmate.invites >= 25 || classmate.recruits >= 25 || classmate.is_god_mode || classmate.is_legend);
+              const aura = isClassmateLegend && classmate.ring && classmate.ring !== 'none'
+                ? (AURA_RINGS[classmate.ring] || AURA_RINGS.gold)
+                : AURA_RINGS.none;
 
               return (
                 <div
