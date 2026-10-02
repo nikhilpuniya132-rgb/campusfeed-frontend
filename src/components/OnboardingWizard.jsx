@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 import { supabase } from '../supabase';
 import { useNavigate } from '../useNavigate';
-import { MASTER_CLASS_OPTIONS, CLASS_OPTIONS } from '../constants/classes';
+import { MASTER_CLASS_OPTIONS, CLASS_OPTIONS, getGradeFromStream } from '../constants/classes';
 
 export { CLASS_OPTIONS };
 
@@ -62,8 +62,20 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       return '';
     }
   });
-  const [stream, setStream] = useState('Class 11 - Medical');
-  const [grade, setGrade] = useState('11');
+  const [stream, setStream] = useState(() => {
+    try {
+      return localStorage.getItem('campus_stream') || 'Class 11 - Medical';
+    } catch (_) {
+      return 'Class 11 - Medical';
+    }
+  });
+  const [grade, setGrade] = useState(() => {
+    try {
+      return localStorage.getItem('campus_grade') || '11';
+    } catch (_) {
+      return '11';
+    }
+  });
 
   const [handle, setHandle] = useState(initialHandle);
   const [password, setPassword] = useState('');
@@ -267,7 +279,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       }
 
       const finalAvatar = gender === 'girl' ? (avatarEmoji === '😎' ? '🌸' : avatarEmoji) : avatarEmoji;
-      const resolvedGrade = stream.includes('10') ? 10 : stream.includes('12') ? 12 : 11;
+      const resolvedGrade = parseInt(getGradeFromStream(stream), 10) || 11;
       const cleanHandle = handle.trim().replace(/^@/, '').toLowerCase();
       const cleanInstitute = institute.trim();
       const cleanHub = coachingHub || findHubForInstitute(cleanInstitute);
@@ -702,7 +714,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                         const val = e.target.value;
                         if (window.navigator?.vibrate) window.navigator.vibrate(8);
                         setStream(val);
-                        setGrade(val.includes('10') ? '10' : val.includes('12') ? '12' : '11');
+                        setGrade(getGradeFromStream(val));
                       }}
                       style={{
                         width: '100%',

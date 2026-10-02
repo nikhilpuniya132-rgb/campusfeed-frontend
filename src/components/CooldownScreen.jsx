@@ -275,54 +275,6 @@ export default function CooldownScreen({
               Unlocks automatically the moment your friend logs in
             </span>
           </div>
-
-          {/* Button 2: Monetization (₹99/wk and ₹149/mo God Mode) */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', width: '100%' }}>
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              onClick={() => onUpgrade && onUpgrade(99)}
-              style={{
-                width: '100%',
-                padding: '12px 6px',
-                borderRadius: '14px',
-                border: '1px solid #e5e7eb',
-                background: '#f3f4f6',
-                color: '#000000',
-                fontSize: '12.5px',
-                fontWeight: '800',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px',
-                boxShadow: 'none'
-              }}
-            >
-              <span>⚡</span> ₹99 / Wk
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              onClick={() => onUpgrade && onUpgrade(149)}
-              style={{
-                width: '100%',
-                padding: '12px 6px',
-                borderRadius: '14px',
-                border: '1px solid #000000',
-                background: '#000000',
-                color: '#ffffff',
-                fontSize: '12.5px',
-                fontWeight: '800',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px',
-                boxShadow: 'none'
-              }}
-            >
-              <span>👑</span> ₹149 / Mo
-            </motion.button>
-          </div>
         </div>
       </div>
     </div>

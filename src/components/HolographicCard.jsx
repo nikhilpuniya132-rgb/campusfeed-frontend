@@ -4,16 +4,16 @@ import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 export default function HolographicCard({
   title = 'GOD MODE VIP',
   subtitle = 'Reveal Every Secret Voter',
-  price = '₹99',
-  period = '/week',
+  price = '3 Invites',
+  period = 'to unlock',
   perks = [
     'Unlimited Instant Name Reveals',
     'Exclusive 3D Aura Rings',
     'Real-time Batch Alerts',
-    'Class 11 & 12 VIP Badge',
+    'School Legend Status',
   ],
   onAction,
-  actionText = 'Unlock God Mode ➔',
+  actionText = 'Invite Classmates ➔',
 }) {
   const cardRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);

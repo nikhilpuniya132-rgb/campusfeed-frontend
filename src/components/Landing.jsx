@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence, useScroll, useSpring, useTransform } from 'framer-motion';
 import AddToHomeScreenGuide from './AddToHomeScreenGuide';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
-import { MASTER_CLASS_OPTIONS } from '../constants/classes';
+import { MASTER_CLASS_OPTIONS, getGradeFromStream } from '../constants/classes';
 
 const InteractivePollDemo = lazy(() => import('./InteractivePollDemo'));
 const HolographicCard = lazy(() => import('./HolographicCard'));
@@ -14,7 +14,7 @@ const FAQS = [
   },
   {
     q: "How do I see who voted for me?",
-    a: "If you receive a 'Secret Flame', you can reveal the voter's identity either by successfully inviting 3 friends to the app using your unique referral code, or by upgrading to God Mode."
+    a: "If you receive a 'Secret Flame', you can reveal the voter's identity by successfully inviting 3 friends to the app using your unique referral code or link."
   },
   {
     q: "Why do I have to log in with Google?",
@@ -101,6 +101,10 @@ export default function Landing({
   }, []);
 
   const handleGoogleLogin = async () => {
+    if (!stream || !MASTER_CLASS_OPTIONS.includes(stream)) {
+      alert("Please select your Class / Standard first before continuing with Google.");
+      return;
+    }
     const selectedInstitute = (institute || localStorage.getItem('pre_selected_school') || '').trim();
     if (selectedInstitute) {
       try {
@@ -111,6 +115,10 @@ export default function Landing({
         localStorage.removeItem('pre_selected_school');
       } catch (_) {}
     }
+    try {
+      localStorage.setItem('campus_stream', stream);
+      localStorage.setItem('campus_grade', getGradeFromStream(stream));
+    } catch (_) {}
     await loginWithGoogle(selectedInstitute);
   };
 
@@ -242,7 +250,7 @@ export default function Landing({
                 <span className="gas-stat-label" style={{ color: '#6b7280' }}>Anonymous</span>
               </div>
               <div className="gas-stat-card" style={{ background: '#f9fafb', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
-                <span className="gas-stat-number" style={{ color: '#000000', fontSize: '13px' }}>Class 11, 12 & Droppers</span>
+                <span className="gas-stat-number" style={{ color: '#000000', fontSize: '13px' }}>Class 6 to 12 & Droppers</span>
                 <span className="gas-stat-label" style={{ color: '#6b7280' }}>Bathinda Hubs</span>
               </div>
             </div>
@@ -306,15 +314,15 @@ export default function Landing({
               <span className="gas-stat-label" style={{ color: '#6b7280' }}>Anonymous</span>
             </div>
             <div className="gas-stat-card" style={{ background: '#f9fafb', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
-              <span className="gas-stat-number" style={{ color: '#000000', fontSize: '13px' }}>Class 11, 12 & Droppers</span>
+              <span className="gas-stat-number" style={{ color: '#000000', fontSize: '13px' }}>Class 6 to 12 & Droppers</span>
               <span className="gas-stat-label" style={{ color: '#6b7280' }}>Bathinda Hubs</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3. Pricing Section - Side-by-Side ₹99/week and ₹149/month plans */}
-      <section id="pricing-portal" ref={pricingRef} className="pricing-section" style={{ background: '#ffffff' }}>
+      {/* 3. Pure Invite Loop - Zero Paid Subscriptions */}
+      <section id="pricing-portal" ref={pricingRef} className="pricing-section" style={{ background: '#ffffff', padding: '60px 20px' }}>
         <motion.div
           style={{
             opacity: pricingOpacity,
@@ -325,220 +333,212 @@ export default function Landing({
             alignItems: 'center'
           }}
         >
-          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <span className="gas-pill-badge" style={{ border: '1px solid #e5e7eb', background: '#f3f4f6', color: '#4b5563' }}>
-              👑 VIP Access
+          <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+            <span className="gas-pill-badge" style={{ border: '1px solid #e5e7eb', background: '#f3f4f6', color: '#111827', fontWeight: '800' }}>
+              ⚡ 100% FREE • PURE INVITE LOOP
             </span>
-            <h2 style={{ fontSize: 'clamp(28px, 6vw, 42px)', fontWeight: 900, margin: '12px 0', color: '#000000', letterSpacing: '-1px' }}>
-              Unlock God Mode.
+            <h2 style={{ fontSize: 'clamp(28px, 6vw, 42px)', fontWeight: 900, margin: '14px 0 8px 0', color: '#000000', letterSpacing: '-1px' }}>
+              Unlock God Mode With Friends.
             </h2>
-            <p style={{ color: '#6b7280', maxWidth: '440px', margin: '0 auto', fontSize: '14px', lineHeight: 1.5 }}>
-              Stop wondering who voted for you. Reveal real names, equip exclusive aura rings, and dominate the school leaderboard.
+            <p style={{ color: '#6b7280', maxWidth: '520px', margin: '0 auto', fontSize: '14px', lineHeight: 1.5 }}>
+              No subscriptions, no payment gateways, no fees. CenterInsider premium features unlock purely by inviting your classmates into the loop.
             </p>
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: '900px' }}>
-            <div className="gas-pricing-desktop-only">
-              <Suspense fallback={<div style={{ minHeight: '380px' }} />}>
-                <HolographicCard
-                  title="GOD MODE"
-                  subtitle="See Who Voted For You"
-                  price={activePlan === 'weekly' ? '₹99' : activePlan === 'monthly' ? '₹149' : '₹0'}
-                  period={activePlan === 'weekly' ? '/week' : activePlan === 'monthly' ? '/month' : '/forever'}
-                  onAction={() => {
-                    if (activePlan === 'basic') {
-                      document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' });
-                    } else {
-                      handleUpgrade(activePlan === 'weekly' ? 99 : 149);
-                    }
-                  }}
-                  actionText={activePlan === 'basic' ? 'Get Started Free ➔' : `Pay ₹${activePlan === 'weekly' ? '99' : '149'} Instantly ⚡`}
-                />
-              </Suspense>
-            </div>
-
-            <div className="pricing-modal" style={{ background: '#ffffff', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
-              <h3 className="pricing-title" style={{ color: '#000000' }}>Choose Your Access</h3>
-              <p className="pricing-description" style={{ color: '#6b7280' }}>Instantly activates across all Bathinda Coaching Hub polls.</p>
-
-              {/* Side-by-Side Paid Tiers (₹99/week & ₹149/month) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%', marginBottom: '14px' }}>
-                <div
-                  onClick={() => setActivePlan('weekly')}
-                  style={{
-                    padding: '12px 10px',
-                    borderRadius: '14px',
-                    border: activePlan === 'weekly' ? '2px solid #000000' : '1px solid #e5e7eb',
-                    background: activePlan === 'weekly' ? '#f3f4f6' : '#ffffff',
-                    cursor: 'pointer',
-                    textAlign: 'center',
-                    transition: 'all 0.15s ease',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <div style={{ fontSize: '11px', fontWeight: '800', color: activePlan === 'weekly' ? '#000000' : '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Weekly Pass
-                  </div>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#000000', margin: '4px 0' }}>
-                    ₹99
-                    <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>/wk</span>
-                  </div>
-                  <div style={{ fontSize: '10px', color: activePlan === 'weekly' ? '#111827' : '#6b7280', fontWeight: '700' }}>
-                    ⚡ 7 Days Access
-                  </div>
-                </div>
-
-                <div
-                  onClick={() => setActivePlan('monthly')}
-                  style={{
-                    padding: '12px 10px',
-                    borderRadius: '14px',
-                    border: activePlan === 'monthly' ? '2px solid #000000' : '1px solid #e5e7eb',
-                    background: activePlan === 'monthly' ? '#f3f4f6' : '#ffffff',
-                    cursor: 'pointer',
-                    textAlign: 'center',
-                    transition: 'all 0.15s ease',
-                    position: 'relative',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <div style={{
-                    position: 'absolute',
-                    top: '-9px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: '#000000',
-                    color: '#ffffff',
-                    fontSize: '8.5px',
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', width: '100%', maxWidth: '860px' }}>
+            {/* Card 1: 3 Invites (1 Month Access) */}
+            <motion.div
+              whileHover={{ y: -4 }}
+              transition={{ duration: 0.2 }}
+              style={{
+                background: '#ffffff',
+                border: '1.5px solid #000000',
+                borderRadius: '24px',
+                padding: '28px 24px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+                position: 'relative'
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span style={{
+                    background: '#f3f4f6',
+                    border: '1px solid #e5e7eb',
+                    color: '#000000',
+                    fontSize: '11px',
                     fontWeight: '900',
-                    padding: '2px 7px',
-                    borderRadius: '6px',
-                    letterSpacing: '0.03em',
-                    whiteSpace: 'nowrap'
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    letterSpacing: '0.04em'
                   }}>
-                    SAVE 62%
-                  </div>
-                  <div style={{ fontSize: '11px', fontWeight: '800', color: activePlan === 'monthly' ? '#000000' : '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Monthly Pass
-                  </div>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#000000', margin: '4px 0' }}>
-                    ₹149
-                    <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>/mo</span>
-                  </div>
-                  <div style={{ fontSize: '10px', color: activePlan === 'monthly' ? '#000000' : '#6b7280', fontWeight: '700' }}>
-                    👑 Best Value (~₹37/wk)
-                  </div>
+                    🔥 3 INVITES MILESTONE
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '700' }}>1 Month Access</span>
+                </div>
+
+                <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#000000', margin: '0 0 8px 0', letterSpacing: '-0.3px' }}>
+                  Invite 3 Friends (1 Month Access)
+                </h3>
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 20px 0', lineHeight: 1.4 }}>
+                  Invite 3 classmates to instantly unlock 1 Month of full God Mode privileges.
+                </p>
+
+                <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '16px', marginBottom: '24px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '12px' }}>
+                    What You Unlock:
+                  </span>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#111827', fontWeight: '600' }}>
+                      <span style={{ color: '#000000', fontWeight: '900', fontSize: '15px' }}>✓</span>
+                      <span><strong>See who voted for you</strong></span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#111827', fontWeight: '600' }}>
+                      <span style={{ color: '#000000', fontWeight: '900', fontSize: '15px' }}>✓</span>
+                      <span><strong>See who secretly views your profile</strong></span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#111827', fontWeight: '600' }}>
+                      <span style={{ color: '#000000', fontWeight: '900', fontSize: '15px' }}>✓</span>
+                      <span><strong>Cast unlimited votes</strong></span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#111827', fontWeight: '600' }}>
+                      <span style={{ color: '#000000', fontWeight: '900', fontSize: '15px' }}>✓</span>
+                      <span><strong>Create up to 3 custom polls</strong></span>
+                    </li>
+                  </ul>
                 </div>
               </div>
 
-              {/* Pricing Tabs: Basic vs God Mode options */}
-              <div className="tab-container" style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', marginBottom: '14px' }}>
-                <button
-                  className="tab"
-                  data-active={activePlan === 'basic'}
-                  onClick={() => setActivePlan('basic')}
-                  style={{
-                    background: activePlan === 'basic' ? '#ffffff' : 'transparent',
-                    color: activePlan === 'basic' ? '#000000' : '#6b7280',
-                    fontWeight: '800',
-                    border: activePlan === 'basic' ? '1px solid #e5e7eb' : 'none'
-                  }}
-                >
-                  Basic (Free)
-                </button>
-                <button
-                  className="tab"
-                  data-active={activePlan === 'weekly'}
-                  onClick={() => setActivePlan('weekly')}
-                  style={{
-                    background: activePlan === 'weekly' ? '#000000' : 'transparent',
-                    color: activePlan === 'weekly' ? '#ffffff' : '#6b7280',
-                    fontWeight: '800'
-                  }}
-                >
-                  Weekly (₹99)
-                </button>
-                <button
-                  className="tab"
-                  data-active={activePlan === 'monthly'}
-                  onClick={() => setActivePlan('monthly')}
-                  style={{
-                    background: activePlan === 'monthly' ? '#000000' : 'transparent',
-                    color: activePlan === 'monthly' ? '#ffffff' : '#6b7280',
-                    fontWeight: '800'
-                  }}
-                >
-                  Monthly (₹149)
-                </button>
+              <button
+                type="button"
+                onClick={() => document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' })}
+                style={{
+                  width: '100%',
+                  padding: '13px',
+                  borderRadius: '14px',
+                  border: '1.5px solid #000000',
+                  background: '#f9fafb',
+                  color: '#000000',
+                  fontWeight: '800',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Join & Invite 3 Friends ➔
+              </button>
+            </motion.div>
+
+            {/* Card 2: 25 Invites (Lifetime Legend) */}
+            <motion.div
+              whileHover={{ y: -4 }}
+              transition={{ duration: 0.2 }}
+              style={{
+                background: '#000000',
+                border: '1.5px solid #000000',
+                borderRadius: '24px',
+                padding: '28px 24px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                boxShadow: '0 8px 30px rgba(0,0,0,0.14)',
+                color: '#ffffff',
+                position: 'relative'
+              }}
+            >
+              <div style={{
+                position: 'absolute',
+                top: '-11px',
+                right: '24px',
+                background: '#fbbf24',
+                color: '#000000',
+                fontSize: '10px',
+                fontWeight: '900',
+                padding: '3px 10px',
+                borderRadius: '12px',
+                letterSpacing: '0.04em'
+              }}>
+                👑 ELITE STATUS
               </div>
 
-              <div className="benefits" style={{ borderTop: '1px solid #e5e7eb' }}>
-                <span style={{ color: '#6b7280' }}>What's included</span>
-                <ul style={{ padding: 0, margin: '8px 0 0 0', listStyle: 'none' }}>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#374151', fontSize: '13px', margin: '8px 0' }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    <span>Unlimited Poll Votes (No 30m Cooldowns)</span>
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#374151', fontSize: '13px', margin: '8px 0' }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    <span>Instant Real Name Reveals (Bypass 3 Recruits)</span>
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#374151', fontSize: '13px', margin: '8px 0' }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    <span>Exclusive Verified VIP Crown Badge</span>
-                  </li>
-                  {activePlan !== 'basic' && (
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#374151', fontSize: '13px', margin: '8px 0' }}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                      <span>Equip Clean Minimal God Mode Aura Rings</span>
-                    </li>
-                  )}
-                  {activePlan === 'monthly' && (
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#000000', fontSize: '13px', margin: '8px 0' }}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                      <span style={{ fontWeight: '700' }}>Save 62% vs Weekly Pass (~₹37/week)</span>
-                    </li>
-                  )}
-                </ul>
-              </div>
-
-              <div className="modal--footer" style={{ borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
-                <div className="price" style={{ color: '#000000' }}>
-                  <sup style={{ color: '#6b7280' }}>₹</sup>{activePlan === 'basic' ? '0' : activePlan === 'weekly' ? '99' : '149'}
-                  <sub style={{ color: '#6b7280' }}>/{activePlan === 'basic' ? 'forever' : activePlan === 'weekly' ? 'week' : 'month'}</sub>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span style={{
+                    background: '#262626',
+                    border: '1px solid #404040',
+                    color: '#fbbf24',
+                    fontSize: '11px',
+                    fontWeight: '900',
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    letterSpacing: '0.04em'
+                  }}>
+                    👑 25 INVITES MILESTONE
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#a3a3a3', fontWeight: '700' }}>Lifetime Legend</span>
                 </div>
 
-                {activePlan === 'basic' ? (
-                  <button
-                    className="upgrade-btn"
-                    style={{ background: '#f3f4f6', color: '#000000', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '12px 20px', fontWeight: '800', cursor: 'pointer' }}
-                    onClick={() => document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' })}
-                  >
-                    Start Free
-                  </button>
-                ) : (
-                  <button
-                    className="upgrade-btn"
-                    style={{
-                      background: '#000000',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '12px',
-                      padding: '12px 20px',
-                      fontWeight: '800',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => handleUpgrade(activePlan === 'weekly' ? 99 : 149)}
-                  >
-                    Pay ₹{activePlan === 'weekly' ? '99' : '149'} {activePlan === 'monthly' ? '/ Month' : '/ Week'} ⚡
-                  </button>
-                )}
+                <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff', margin: '0 0 8px 0', letterSpacing: '-0.3px' }}>
+                  Invite 25 Friends (Lifetime Legend)
+                </h3>
+                <p style={{ fontSize: '13px', color: '#a3a3a3', margin: '0 0 20px 0', lineHeight: 1.4 }}>
+                  Invite 25 classmates to permanently cement your status as an official School & Coaching Legend.
+                </p>
+
+                <div style={{ borderTop: '1px solid #262626', paddingTop: '16px', marginBottom: '24px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '800', color: '#737373', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '12px' }}>
+                    Lifetime Superpowers:
+                  </span>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
+                      <span><strong>Get featured in the Legends tab</strong></span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
+                      <span><strong>Create up to 150 custom polls/month</strong></span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
+                      <span><strong>Cast unlimited votes</strong></span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
+                      <span><strong>See all voters and profile visitors</strong></span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
+                      <span><strong>Unlock preferred aura rings</strong></span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
+                      <span><strong>Get boosted visibility in the feed</strong></span>
+                    </li>
+                  </ul>
+                </div>
               </div>
-            </div>
+
+              <button
+                type="button"
+                onClick={() => document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' })}
+                style={{
+                  width: '100%',
+                  padding: '13px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  background: '#ffffff',
+                  color: '#000000',
+                  fontWeight: '900',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Become a Lifetime Legend ⚡
+              </button>
+            </motion.div>
           </div>
         </motion.div>
       </section>
@@ -646,24 +646,32 @@ export default function Landing({
 
             {/* Standard Dropdown Selector */}
             <div style={{ marginBottom: '18px', textAlign: 'left' }}>
-              <label htmlFor="standard-selector" style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
-                Select Standard
-              </label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <label htmlFor="standard-selector" style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Select Class / Standard
+                </label>
+                <span style={{ fontSize: '10px', color: '#10b981', fontWeight: '800' }}>REQUIRED</span>
+              </div>
               <div style={{ position: 'relative' }}>
                 <select
                   id="standard-selector"
-                  value={MASTER_CLASS_OPTIONS.includes(stream) ? stream : 'Class 11 - Medical'}
+                  value={MASTER_CLASS_OPTIONS.includes(stream) ? stream : (stream || 'Class 11 - Medical')}
                   onChange={(e) => {
                     const s = e.target.value;
                     if (window.navigator?.vibrate) window.navigator.vibrate(8);
                     setStream(s);
-                    setGrade(s.includes('10') ? '10' : s.includes('12') ? '12' : '11');
+                    const resolvedGrade = getGradeFromStream(s);
+                    setGrade(resolvedGrade);
+                    try {
+                      localStorage.setItem('campus_stream', s);
+                      localStorage.setItem('campus_grade', resolvedGrade);
+                    } catch (_) {}
                   }}
                   style={{
                     width: '100%',
                     padding: '13px 40px 13px 14px',
                     background: '#f9fafb',
-                    border: '1px solid #e5e7eb',
+                    border: '1.5px solid #000000',
                     borderRadius: '14px',
                     color: '#000000',
                     fontSize: '14px',
@@ -677,13 +685,22 @@ export default function Landing({
                     transition: 'all 0.15s ease'
                   }}
                   onFocus={(e) => { e.target.style.borderColor = '#000000'; }}
-                  onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; }}
+                  onBlur={(e) => { e.target.style.borderColor = '#000000'; }}
                 >
-                  {MASTER_CLASS_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt} style={{ color: '#000000', background: '#ffffff', fontWeight: '600' }}>
-                      {opt}
-                    </option>
-                  ))}
+                  <optgroup label="Junior School (Classes 6-9)">
+                    {MASTER_CLASS_OPTIONS.filter(o => ['Class 6', 'Class 7', 'Class 8', 'Class 9'].includes(o)).map((opt) => (
+                      <option key={opt} value={opt} style={{ color: '#000000', background: '#ffffff', fontWeight: '600' }}>
+                        {opt}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Senior School & Coaching (Classes 10-12+)">
+                    {MASTER_CLASS_OPTIONS.filter(o => !['Class 6', 'Class 7', 'Class 8', 'Class 9'].includes(o)).map((opt) => (
+                      <option key={opt} value={opt} style={{ color: '#000000', background: '#ffffff', fontWeight: '600' }}>
+                        {opt}
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
                 <span
                   style={{

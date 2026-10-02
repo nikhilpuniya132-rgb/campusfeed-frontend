@@ -22,6 +22,7 @@ import AddToHomeScreenGuide from './components/AddToHomeScreenGuide';
 import InstituteCombobox, { findHubForInstitute } from './components/InstituteCombobox';
 import Landing from './components/Landing';
 import { handleShare } from './utils/share';
+import { isJuniorUser } from './constants/classes';
 
 // --- INITIALIZE CONFIGURED SUPABASE CLIENT & NAVIGATION ---
 import { supabase } from './supabase';
@@ -209,13 +210,6 @@ export default function App() {
     } catch (e) {
       console.error('Ref parameter capture error:', e);
     }
-
-    if (!document.getElementById('razorpay-sdk')) {
-      const script = document.createElement('script');
-      script.id = 'razorpay-sdk';
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      document.body.appendChild(script);
-    }
   }, []);
 
   useEffect(() => {
@@ -347,6 +341,16 @@ export default function App() {
           selected_ring: userRing
         };
         localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
+
+        const chosenStream = localStorage.getItem('campus_stream');
+        const chosenGrade = localStorage.getItem('campus_grade');
+        if (chosenStream && (!data.stream || chosenStream !== data.stream)) {
+          fullUser.stream = chosenStream;
+          fullUser.grade = chosenGrade ? parseInt(chosenGrade, 10) : fullUser.grade;
+          try {
+            supabase.from('users').update({ stream: chosenStream, grade: fullUser.grade }).eq('id', currentSessionId).then().catch(console.warn);
+          } catch (_) {}
+        }
 
         setProfileData(fullUser);
         setUser(fullUser);
@@ -727,8 +731,12 @@ export default function App() {
       }
 
       setCurrentPoll(pollItem);
-      // Strictly isolated options for current user's institute
-      const finalFiltered = pollOptions.filter(o => !user?.institute || o.institute === user.institute);
+      // Strictly isolated options for current user's institute and cohort (Junior vs Senior)
+      const isJunior = isJuniorUser(user);
+      const finalFiltered = pollOptions.filter(o => {
+        if (user?.institute && o.institute !== user.institute) return false;
+        return isJunior ? isJuniorUser(o) : !isJuniorUser(o);
+      });
       const shuffled = [...finalFiltered].sort(() => 0.5 - Math.random());
       setOptions(shuffled);
       setCooldownUntil(cooldownTime);
@@ -962,60 +970,9 @@ export default function App() {
     }
   };
 
-  const handleUpgrade = async (amount = 99) => {
-    try {
-      const amountInPaise = amount * 100;
-      const orderRes = await fetch(`${API}/pay/order`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id || 'guest', amount: amountInPaise })
-      });
-      const orderData = await orderRes.json();
-      if (!orderRes.ok) throw new Error(orderData.error);
-
-      const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY || import.meta.env.VITE_RAZORPAY_KEY_ID,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: 'CenterInsider',
-        description: 'Unlock God Mode',
-        order_id: orderData.id,
-        handler: async (response) => {
-          if (!user) return alert('Payment successful, but please log in first to activate!');
-
-          const verifyRes = await fetch(`${API}/pay/verify`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
-              userId: user.id
-            })
-          });
-
-          const verifyData = await verifyRes.json();
-          if (verifyData.success) {
-            alert('👑 God Mode Unlocked!');
-            setUser({ ...user, is_pro: true, ring: 'gold' });
-            setCooldownUntil(null);
-            handleNav('inbox');
-          } else {
-            alert('Payment verification failed: ' + verifyData.error);
-          }
-        },
-        theme: { color: '#ff6200' }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function (response) {
-        alert('Payment Failed: ' + response.error.description);
-      });
-      rzp.open();
-    } catch (e) {
-      alert('Checkout error. Ensure backend is running.');
-      console.error(e);
-    }
+  const handleUpgrade = () => {
+    // Pure invite loop: No paid subscriptions. Guide user to invite friends.
+    handleNav('pro');
   };
 
   const handleInviteShare = async () => {
@@ -1634,92 +1591,38 @@ export default function App() {
                     </h4>
 
                     <p style={{ color: '#6b7280', fontSize: '13.5px', lineHeight: '1.4', margin: '0 0 16px 0', padding: '0 8px' }}>
-                      Invite <strong style={{ color: '#000000', fontSize: '15px' }}>{revealData.remaining}</strong> more {revealData.remaining === 1 ? 'friend' : 'friends'} to unlock voter identities, or upgrade to God Mode.
+                      Invite <strong style={{ color: '#000000', fontSize: '15px' }}>{revealData.remaining}</strong> more {revealData.remaining === 1 ? 'friend' : 'friends'} to unlock voter identities for 1 month.
                     </p>
 
-                    {/* Minimalist Share Icon Button */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
+                    {/* Invite Share Action Button */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', width: '100%' }}>
                       <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={handleInviteShare}
-                        aria-label="Share Link"
-                        title="Share Invite Link"
-                        style={{
-                          width: '46px',
-                          height: '46px',
-                          borderRadius: '50%',
-                          border: '1px solid #e5e7eb',
-                          background: '#f3f4f6',
-                          color: '#000000',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          boxShadow: 'none'
-                        }}
-                      >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="22" y1="2" x2="11" y2="13"></line>
-                          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                        </svg>
-                      </motion.button>
-                      <span style={{ fontSize: '11px', color: '#6b7280' }}>Tap icon to share invite link</span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0', color: '#6b7280', fontSize: '11px', fontWeight: 'bold' }}>
-                      <hr style={{ flex: 1, borderColor: '#e5e7eb' }} /> OR UNLOCK WITH GOD MODE <hr style={{ flex: 1, borderColor: '#e5e7eb' }} />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', width: '100%' }}>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="magic-btn"
-                        style={{
-                          width: '100%',
-                          background: '#f3f4f6',
-                          color: '#000000',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '14px',
-                          margin: 0,
-                          padding: '12px 6px',
-                          fontSize: '12.5px',
-                          fontWeight: '800',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px',
-                          boxShadow: 'none'
-                        }}
-                        onClick={() => handleUpgrade(99)}
-                      >
-                        <span>⚡</span> ₹99 / Wk
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="magic-btn"
                         style={{
                           width: '100%',
                           background: '#000000',
                           color: '#ffffff',
-                          border: '1px solid #000000',
+                          border: 'none',
                           borderRadius: '14px',
-                          margin: 0,
-                          padding: '12px 6px',
-                          fontSize: '12.5px',
-                          fontWeight: '900',
+                          padding: '12px 16px',
+                          fontSize: '13px',
+                          fontWeight: '800',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '4px',
-                          boxShadow: 'none'
+                          gap: '6px',
+                          cursor: 'pointer'
                         }}
-                        onClick={() => handleUpgrade(149)}
                       >
-                        <span>👑</span> ₹149 / Mo
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="22" y1="2" x2="11" y2="13"></line>
+                          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                        <span>Share Invite Link</span>
                       </motion.button>
+                      <span style={{ fontSize: '11px', color: '#6b7280' }}>Unlocks automatically when friends join</span>
                     </div>
                   </div>
                 ) : (

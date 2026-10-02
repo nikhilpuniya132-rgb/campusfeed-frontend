@@ -4,10 +4,25 @@ import SkeletonPollCard from './SkeletonPollCard';
 import CooldownScreen from './CooldownScreen';
 import SponsorBanner from './SponsorBanner';
 import { handleShare } from '../utils/share';
-import { MASTER_CLASS_OPTIONS } from '../constants/classes';
+import { MASTER_CLASS_OPTIONS, JUNIOR_CLASS_OPTIONS, SENIOR_CLASS_OPTIONS, isJuniorUser } from '../constants/classes';
 import { supabase } from '../supabase';
 
-const FALLBACK_POLLS = [
+const JUNIOR_FALLBACK_POLLS = [
+  { id: 101, question: "Brings the best lunchbox that everyone attacks at recess?", is_crush_poll: false },
+  { id: 102, question: "Always reminds the teacher about yesterday's homework?", is_crush_poll: false },
+  { id: 103, question: "Draws the best doodles on the last page of their notebook?", is_crush_poll: false },
+  { id: 104, question: "Fastest runner during the sports period?", is_crush_poll: false },
+  { id: 105, question: "Carries the heaviest school bag with 10 different gel pens?", is_crush_poll: false },
+  { id: 106, question: "Class clown who always makes the teacher smile?", is_crush_poll: false },
+  { id: 107, question: "Secret crush in the junior wing", is_crush_poll: true },
+  { id: 108, question: "Best handwriting on the blackboard during monitor duty?", is_crush_poll: false },
+  { id: 109, question: "Always loses their sharpener or eraser by second period?", is_crush_poll: false },
+  { id: 110, question: "First to finish their tiffin box before the recess bell rings?", is_crush_poll: false },
+  { id: 111, question: "Most likely to represent the school in the Science Olympiad?", is_crush_poll: false },
+  { id: 112, question: "Can solve the hardest Maths questions without hesitation?", is_crush_poll: false }
+];
+
+const SENIOR_FALLBACK_POLLS = [
   { id: 1, question: "Always sleeps through 5 PM Physics?", is_crush_poll: false },
   { id: 2, question: "Most likely to crack NEET on the first attempt?", is_crush_poll: false },
   { id: 3, question: "Spends more time at the Maggi point than in class?", is_crush_poll: false },
@@ -22,24 +37,57 @@ const FALLBACK_POLLS = [
   { id: 12, question: "Always asks the hardest doubts to confuse the teacher?", is_crush_poll: false }
 ];
 
-const filterCandidates = (candidates, gradeFilter) => {
-  if (!gradeFilter || gradeFilter === 'all' || gradeFilter === 'All Classes') {
-    return candidates || [];
+const filterPollsByAudience = (pollsList, isJunior) => {
+  const fallback = isJunior ? JUNIOR_FALLBACK_POLLS : SENIOR_FALLBACK_POLLS;
+  if (!pollsList || pollsList.length === 0) return fallback;
+
+  const filtered = pollsList.filter(p => {
+    if (p.audience === 'junior' || p.category === 'junior' || p.target_group === 'junior') {
+      return isJunior;
+    }
+    if (p.audience === 'senior' || p.category === 'senior' || p.target_group === 'senior') {
+      return !isJunior;
+    }
+    const q = (p.question || '').toLowerCase();
+    const isSeniorPoll = q.includes('neet') || q.includes('jee') || q.includes('allen') || q.includes('aakash') || q.includes('hc verma') || q.includes('physics') || q.includes('chemistry') || q.includes('coaching batch');
+    const isJuniorPoll = q.includes('tiffin') || q.includes('lunchbox') || q.includes('sports period') || q.includes('junior') || q.includes('blackboard') || q.includes('pencil') || q.includes('recess');
+    
+    if (isJunior) {
+      return isJuniorPoll || !isSeniorPoll;
+    } else {
+      return isSeniorPoll || !isJuniorPoll;
+    }
+  });
+
+  return filtered.length >= 4 ? filtered : fallback;
+};
+
+const filterCandidates = (candidates, gradeFilter, isJunior = false) => {
+  // First, enforce strict cohort isolation (Juniors never see Seniors, Seniors never see Juniors)
+  const cohortCandidates = (candidates || []).filter(c => {
+    const cIsJunior = isJuniorUser(c);
+    return isJunior ? cIsJunior : !cIsJunior;
+  });
+
+  if (!gradeFilter || gradeFilter === 'all' || gradeFilter === 'All Classes' || gradeFilter.startsWith('All')) {
+    return cohortCandidates;
   }
+
   const f = gradeFilter.toLowerCase().trim();
-  return (candidates || []).filter(c => {
+  const subFiltered = cohortCandidates.filter(c => {
     const s = (c.stream || '').toLowerCase();
     const g = (c.grade || '').toString().toLowerCase();
     return s.includes(f) || g === f || f.includes(g);
   });
+
+  return subFiltered.length >= 4 ? subFiltered : cohortCandidates;
 };
 
-const buildPollBatch = (pollsList, candidatesList, targetGrade, count = 12) => {
-  const polls = (pollsList && pollsList.length > 0) ? pollsList : FALLBACK_POLLS;
-  const filteredCandidates = filterCandidates(candidatesList, targetGrade);
-  const eligibleCandidates = filteredCandidates.length >= 4 ? filteredCandidates : (candidatesList || []);
+const buildPollBatch = (pollsList, candidatesList, targetGrade, count = 12, isJunior = false) => {
+  const appropriatePolls = filterPollsByAudience(pollsList, isJunior);
+  const eligibleCandidates = filterCandidates(candidatesList, targetGrade, isJunior);
 
-  const shuffledPolls = [...polls].sort(() => 0.5 - Math.random());
+  const shuffledPolls = [...appropriatePolls].sort(() => 0.5 - Math.random());
   const batch = [];
 
   for (let i = 0; i < count; i++) {
@@ -59,28 +107,31 @@ const buildPollBatch = (pollsList, candidatesList, targetGrade, count = 12) => {
   return batch;
 };
 
-const fetchPollsFromSupabase = async (limit = 30) => {
-  if (!supabase) return FALLBACK_POLLS;
+const fetchPollsFromSupabase = async (limit = 30, isJunior = false) => {
+  const fallback = isJunior ? JUNIOR_FALLBACK_POLLS : SENIOR_FALLBACK_POLLS;
+  if (!supabase) return fallback;
   try {
     const { data, error } = await supabase
       .from('polls')
       .select('*')
       .limit(limit);
     if (error) throw error;
-    if (data && data.length > 0) return data;
+    if (data && data.length > 0) {
+      return filterPollsByAudience(data, isJunior);
+    }
   } catch (err) {
     console.warn('Supabase fetch polls warning:', err);
   }
-  return FALLBACK_POLLS;
+  return fallback;
 };
 
-const fetchCandidatesFromSupabase = async (institute, excludeUserId) => {
+const fetchCandidatesFromSupabase = async (institute, excludeUserId, isJunior = false) => {
   if (!supabase) return [];
   try {
     let query = supabase
       .from('users')
       .select('id, handle, name, avatar, profile_pic, grade, stream, institute, coaching_hub, is_pro, ring, selected_ring')
-      .limit(60);
+      .limit(80);
 
     if (institute) {
       query = query.eq('institute', institute);
@@ -91,7 +142,12 @@ const fetchCandidatesFromSupabase = async (institute, excludeUserId) => {
 
     const { data, error } = await query;
     if (error) throw error;
-    return data || [];
+
+    // Filter strictly by Junior vs Senior cohort
+    return (data || []).filter(c => {
+      const cIsJunior = isJuniorUser(c);
+      return isJunior ? cIsJunior : !cIsJunior;
+    });
   } catch (err) {
     console.warn('Supabase fetch candidates warning:', err);
     return [];
@@ -140,6 +196,8 @@ export default function Feed({
 
   const userId = user?.id;
   const userInstitute = (user?.institute || user?.school || '').trim();
+  const isJunior = isJuniorUser(user);
+  const availableClassOptions = isJunior ? JUNIOR_CLASS_OPTIONS : SENIOR_CLASS_OPTIONS;
 
   // Synchronize grade filter prop if parent changes it
   useEffect(() => {
@@ -201,18 +259,19 @@ export default function Feed({
 
     try {
       const [polls, candidates] = await Promise.all([
-        fetchPollsFromSupabase(30),
-        fetchCandidatesFromSupabase(institute, voterId)
+        fetchPollsFromSupabase(30, isJunior),
+        fetchCandidatesFromSupabase(institute, voterId, isJunior)
       ]);
 
       pollsPoolRef.current = polls;
       candidatesPoolRef.current = candidates;
 
-      const batch = buildPollBatch(polls, candidates, grade, 12);
+      const batch = buildPollBatch(polls, candidates, grade, 12, isJunior);
       setPollQueue(batch);
     } catch (err) {
       console.error('Initial batch fetch failed:', err);
-      const fallbackBatch = buildPollBatch(FALLBACK_POLLS, candidatesPoolRef.current || [], grade, 12);
+      const fallbackList = isJunior ? JUNIOR_FALLBACK_POLLS : SENIOR_FALLBACK_POLLS;
+      const fallbackBatch = buildPollBatch(fallbackList, candidatesPoolRef.current || [], grade, 12, isJunior);
       setPollQueue(fallbackBatch);
     } finally {
       setIsInitialLoading(false);
@@ -228,17 +287,17 @@ export default function Feed({
     try {
       let polls = pollsPoolRef.current;
       if (!polls || polls.length === 0) {
-        polls = await fetchPollsFromSupabase(30);
+        polls = await fetchPollsFromSupabase(30, isJunior);
         pollsPoolRef.current = polls;
       }
 
       let candidates = candidatesPoolRef.current;
       if (!candidates || candidates.length === 0) {
-        candidates = await fetchCandidatesFromSupabase(userInstitute, userId);
+        candidates = await fetchCandidatesFromSupabase(userInstitute, userId, isJunior);
         candidatesPoolRef.current = candidates;
       }
 
-      const nextBatch = buildPollBatch(polls, candidates, grade, 10);
+      const nextBatch = buildPollBatch(polls, candidates, grade, 10, isJunior);
       setPollQueue(prev => [...prev, ...nextBatch]);
     } catch (err) {
       console.warn('Background refill error:', err);
@@ -260,8 +319,8 @@ export default function Feed({
   };
 
   const currentClassLabel = !activeGradeFilter || activeGradeFilter === 'all'
-    ? 'All Classes'
-    : (MASTER_CLASS_OPTIONS.find(c => c.toLowerCase() === activeGradeFilter.toLowerCase()) || activeGradeFilter);
+    ? (isJunior ? 'All Junior Classes (6-9)' : 'All Senior Classes')
+    : (availableClassOptions.find(c => c.toLowerCase() === activeGradeFilter.toLowerCase()) || activeGradeFilter);
 
   // Check if active cooldown is in the future
   const isCooldownActive = Boolean(
@@ -289,8 +348,9 @@ export default function Feed({
     }
 
     if (candidatesPoolRef.current && candidatesPoolRef.current.length >= 4) {
-      const filtered = filterCandidates(candidatesPoolRef.current, activeGradeFilter);
-      const eligible = filtered.length >= 4 ? filtered : candidatesPoolRef.current;
+      const filtered = filterCandidates(candidatesPoolRef.current, activeGradeFilter, isJunior);
+      const cohortPool = (candidatesPoolRef.current || []).filter(c => isJunior ? isJuniorUser(c) : !isJuniorUser(c));
+      const eligible = filtered.length >= 4 ? filtered : cohortPool;
       const shuffledOptions = [...eligible].sort(() => 0.5 - Math.random()).slice(0, 4);
 
       setPollQueue(prev => {
@@ -548,13 +608,13 @@ export default function Feed({
                     transition: 'background 0.12s ease'
                   }}
                 >
-                  <span>🏫 All Classes (Institute)</span>
+                  <span>🏫 {isJunior ? 'All Junior Classes (6-9)' : 'All Senior Classes (10-12+)'}</span>
                   {(!activeGradeFilter || activeGradeFilter === 'all') && <span>✓</span>}
                 </button>
 
                 <div style={{ height: '1px', background: '#f3f4f6', margin: '4px 0' }} />
 
-                {MASTER_CLASS_OPTIONS.map((c) => {
+                {availableClassOptions.map((c) => {
                   const isSelected = activeGradeFilter?.toLowerCase() === c.toLowerCase();
                   return (
                     <button
@@ -1101,7 +1161,7 @@ export default function Feed({
       )}
 
       {/* Dynamic Academic Sponsorship Banner */}
-      <SponsorBanner city="Bathinda" hub={user?.coaching_hub || user?.hub || 'Ajit Road Hub'} />
+      <SponsorBanner isJunior={isJunior} user={user} city="Bathinda" hub={user?.coaching_hub || user?.hub || 'Ajit Road Hub'} />
     </div>
   );
 }

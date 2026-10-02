@@ -10,25 +10,22 @@ import confetti from 'canvas-confetti';
  * and displays automated AI Safety Moderator review status in real-time.
  */
 export default function CustomPollSubmit({ user, API, supabase, onPollCreated }) {
-  // Safe Guard: ONLY render if user's is_god_mode status is true
-  const isGodMode = Boolean(
-    user?.is_god_mode || user?.is_pro || (user?.invites || 0) >= 25
-  );
-
-  if (!isGodMode) {
-    return null;
-  }
+  const currentInvites = user?.invites || user?.recruits || 0;
+  const isLegend = Boolean(user?.is_god_mode || currentInvites >= 25);
+  const hasPollAccess = Boolean(isLegend || user?.is_pro || currentInvites >= 3);
+  const maxLimit = isLegend ? 150 : 3;
 
   const [question, setQuestion] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [moderationStep, setModerationStep] = useState('idle'); // 'idle' | 'checking' | 'approved' | 'rejected'
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [remainingLimit, setRemainingLimit] = useState(3);
+  const [remainingLimit, setRemainingLimit] = useState(maxLimit);
   const [monthlyCount, setMonthlyCount] = useState(0);
 
   // Fetch monthly rate limit count
   useEffect(() => {
+    if (!hasPollAccess) return;
     let isMounted = true;
     const fetchStatus = async () => {
       if (!user?.id) return;
@@ -39,7 +36,7 @@ export default function CustomPollSubmit({ user, API, supabase, onPollCreated })
           const data = await res.json();
           if (isMounted) {
             setMonthlyCount(data.count || 0);
-            setRemainingLimit(data.remaining !== undefined ? data.remaining : Math.max(0, 3 - (data.count || 0)));
+            setRemainingLimit(data.remaining !== undefined ? data.remaining : Math.max(0, maxLimit - (data.count || 0)));
           }
         }
       } catch (_) {
@@ -54,7 +51,7 @@ export default function CustomPollSubmit({ user, API, supabase, onPollCreated })
               .gte('created_at', startOfMonth);
             if (isMounted && count !== null) {
               setMonthlyCount(count);
-              setRemainingLimit(Math.max(0, 3 - count));
+              setRemainingLimit(Math.max(0, maxLimit - count));
             }
           } catch (e) {}
         }
@@ -62,7 +59,32 @@ export default function CustomPollSubmit({ user, API, supabase, onPollCreated })
     };
     fetchStatus();
     return () => { isMounted = false; };
-  }, [user?.id, API, supabase]);
+  }, [user?.id, API, supabase, hasPollAccess, maxLimit]);
+
+  if (!hasPollAccess) {
+    return (
+      <div
+        style={{
+          width: '100%',
+          background: '#f9fafb',
+          border: '1px solid #e5e7eb',
+          borderRadius: '20px',
+          padding: '18px 16px',
+          marginBottom: '16px',
+          boxSizing: 'border-box',
+          textAlign: 'center'
+        }}
+      >
+        <span style={{ fontSize: '24px' }}>🔒</span>
+        <h4 style={{ margin: '8px 0 4px 0', fontSize: '15px', fontWeight: '900', color: '#000000' }}>
+          Custom Poll Creation Locked
+        </h4>
+        <p style={{ margin: 0, fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
+          Invite 3 friends to create up to 3 custom polls/month, or 25 friends (Lifetime Legend) for up to 150 polls/month!
+        </p>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -189,7 +211,7 @@ export default function CustomPollSubmit({ user, API, supabase, onPollCreated })
           fontSize: '11px',
           fontWeight: '800'
         }}>
-          {remainingLimit} / 3 left this month
+          {remainingLimit} / {maxLimit} left this month
         </div>
       </div>
 
