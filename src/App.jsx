@@ -1257,87 +1257,88 @@ export default function App() {
           </div>
         )}
 
-        <header className="gas-app-header">
+        {view !== 'poll' && (
+          <header className="gas-app-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="gas-header-votes">
+                <span>🔥</span>
+                <span>{user.total_votes || 0}</span>
+              </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div className="gas-header-votes">
-              <span>🔥</span>
-              <span>{user.total_votes || 0}</span>
-            </div>
-
-            {user.is_pro && (
-              <span style={{ fontSize: '15px' }}>👑</span>
-            )}
-
-            <button
-              onClick={() => {
-                setView('captains');
-                navigate('/captains');
-              }}
-              style={{
-                background: view === 'captains' ? '#000000' : '#f3f4f6',
-                border: view === 'captains' ? '1px solid #000000' : '1px solid #e5e7eb',
-                color: view === 'captains' ? '#ffffff' : '#374151',
-                borderRadius: '12px',
-                padding: '0 10px',
-                height: '36px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                cursor: 'pointer',
-                fontSize: '11.5px',
-                fontWeight: '800'
-              }}
-              title="Batch Captains Leaderboard"
-            >
-              <span>👑</span>
-              <span>Captains</span>
-            </button>
-
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              style={{
-                position: 'relative',
-                background: '#f3f4f6',
-                border: '1px solid #e5e7eb',
-                color: '#000000',
-                borderRadius: '12px',
-                width: '36px',
-                height: '36px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                fontSize: '15px'
-              }}
-              title="Friend Requests"
-            >
-              🔔
-              {pendingRequests.length > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '-4px',
-                    right: '-4px',
-                    background: '#000000',
-                    color: '#ffffff',
-                    borderRadius: '50%',
-                    width: '18px',
-                    height: '18px',
-                    fontSize: '10px',
-                    fontWeight: '900',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: 'none'
-                  }}
-                >
-                  {pendingRequests.length}
-                </span>
+              {user.is_pro && (
+                <span style={{ fontSize: '15px' }}>👑</span>
               )}
-            </button>
-          </div>
-        </header>
+
+              <button
+                onClick={() => {
+                  setView('captains');
+                  navigate('/captains');
+                }}
+                style={{
+                  background: view === 'captains' ? '#000000' : '#f3f4f6',
+                  border: view === 'captains' ? '1px solid #000000' : '1px solid #e5e7eb',
+                  color: view === 'captains' ? '#ffffff' : '#374151',
+                  borderRadius: '12px',
+                  padding: '0 10px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  cursor: 'pointer',
+                  fontSize: '11.5px',
+                  fontWeight: '800'
+                }}
+                title="Batch Captains Leaderboard"
+              >
+                <span>👑</span>
+                <span>Captains</span>
+              </button>
+
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                style={{
+                  position: 'relative',
+                  background: '#f3f4f6',
+                  border: '1px solid #e5e7eb',
+                  color: '#000000',
+                  borderRadius: '12px',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontSize: '15px'
+                }}
+                title="Friend Requests"
+              >
+                🔔
+                {pendingRequests.length > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      background: '#000000',
+                      color: '#ffffff',
+                      borderRadius: '50%',
+                      width: '18px',
+                      height: '18px',
+                      fontSize: '10px',
+                      fontWeight: '900',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: 'none'
+                    }}
+                  >
+                    {pendingRequests.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          </header>
+        )}
 
         <main className="gas-app-body">
           <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '340px', width: '100%' }}><HamsterLoader message="Loading..." /></div>}>
@@ -1359,6 +1360,12 @@ export default function App() {
                     onUpgrade={(amount) => handleUpgrade(amount || 99)}
                     onSkipCooldown={handleCooldownUnlocked}
                     onCooldownUnlocked={handleCooldownUnlocked}
+                    onOpenCaptains={() => {
+                      setView('captains');
+                      navigate('/captains');
+                    }}
+                    onToggleNotifications={() => setShowNotifications(prev => !prev)}
+                    pendingRequestsCount={pendingRequests.length}
                   />
                 </motion.div>
               )}

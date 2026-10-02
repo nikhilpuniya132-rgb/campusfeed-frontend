@@ -112,7 +112,10 @@ export default function Feed({
   renderProfilePic,
   onUpgrade,
   onSkipCooldown,
-  onCooldownUnlocked
+  onCooldownUnlocked,
+  onOpenCaptains,
+  onToggleNotifications,
+  pendingRequestsCount = 0
 }) {
   // Local Batch Queue State
   const [pollQueue, setPollQueue] = useState([]);
@@ -122,8 +125,10 @@ export default function Feed({
   const [optimisticVoted, setOptimisticVoted] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [isClassesOpen, setIsClassesOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const classesDropdownRef = useRef(null);
+  const menuRef = useRef(null);
   const pollsPoolRef = useRef([]);
   const candidatesPoolRef = useRef([]);
   const isFetchingRef = useRef(false);
@@ -149,8 +154,11 @@ export default function Feed({
       if (classesDropdownRef.current && !classesDropdownRef.current.contains(e.target)) {
         setIsClassesOpen(false);
       }
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setIsMenuOpen(false);
+      }
     };
-    if (isClassesOpen) {
+    if (isClassesOpen || isMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('touchstart', handleClickOutside);
     }
@@ -158,7 +166,7 @@ export default function Feed({
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
     };
-  }, [isClassesOpen]);
+  }, [isClassesOpen, isMenuOpen]);
 
   // Clean up auto advance timer
   useEffect(() => {
@@ -391,6 +399,22 @@ export default function Feed({
     });
   };
 
+  const handleCaptainsClick = () => {
+    setIsMenuOpen(false);
+    if (onOpenCaptains) {
+      onOpenCaptains();
+    } else if (typeof window !== 'undefined') {
+      window.location.hash = '#/captains';
+    }
+  };
+
+  const handleNotificationsClick = () => {
+    setIsMenuOpen(false);
+    if (onToggleNotifications) {
+      onToggleNotifications();
+    }
+  };
+
   // If in cooldown, show CooldownScreen
   if (isCooldownActive) {
     return (
@@ -426,9 +450,21 @@ export default function Feed({
         background: '#ffffff'
       }}
     >
-      {/* 2. Refactored Classes Dropdown (Vertical & Scrollable) */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px', position: 'relative', zIndex: 40 }}>
-        <div ref={classesDropdownRef} style={{ position: 'relative', width: '100%', maxWidth: '290px' }}>
+      {/* Top Header Controls: Classes Filter & Top-Right Hamburger Menu */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '14px',
+          position: 'relative',
+          zIndex: 40,
+          width: '100%',
+          gap: '8px'
+        }}
+      >
+        {/* Classes Dropdown */}
+        <div ref={classesDropdownRef} style={{ position: 'relative', flex: 1, maxWidth: '320px' }}>
           <motion.button
             whileTap={{ scale: 0.97 }}
             type="button"
@@ -548,6 +584,217 @@ export default function Feed({
                     </button>
                   );
                 })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Top-Right Hamburger Menu Dropdown Trigger */}
+        <div ref={menuRef} style={{ position: 'relative', flexShrink: 0 }}>
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            type="button"
+            onClick={() => setIsMenuOpen(prev => !prev)}
+            aria-label="Open navigation menu"
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '14px',
+              border: '1.5px solid #000000',
+              background: isMenuOpen ? '#000000' : '#f9fafb',
+              color: isMenuOpen ? '#ffffff' : '#000000',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              position: 'relative',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            {/* Hamburger Icon: 3 horizontal lines */}
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+
+            {/* Notification Badge indicator on Hamburger */}
+            {pendingRequestsCount > 0 && !isMenuOpen && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  borderRadius: '50%',
+                  width: '16px',
+                  height: '16px',
+                  fontSize: '9.5px',
+                  fontWeight: '900',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid #ffffff'
+                }}
+              >
+                {pendingRequestsCount}
+              </span>
+            )}
+          </motion.button>
+
+          {/* Sub-menu Dropdown */}
+          <AnimatePresence>
+            {isMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -6, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 8px)',
+                  right: 0,
+                  width: '220px',
+                  background: '#ffffff',
+                  border: '1.5px solid #000000',
+                  borderRadius: '18px',
+                  boxShadow: '0 12px 36px rgba(0, 0, 0, 0.16)',
+                  zIndex: 100,
+                  padding: '8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px 2px 8px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', color: '#9ca3af', letterSpacing: '0.05em' }}>
+                    Quick Menu
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsMenuOpen(false)}
+                    aria-label="Close menu"
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#9ca3af',
+                      fontSize: '13px',
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                      padding: '2px 4px'
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* 1. Flame Icon / Score */}
+                <div
+                  className="gas-header-votes"
+                  style={{
+                    width: '100%',
+                    justifyContent: 'space-between',
+                    boxSizing: 'border-box',
+                    padding: '8px 12px',
+                    borderRadius: '12px',
+                    background: '#f3f4f6',
+                    border: '1px solid #e5e7eb'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '15px' }}>🔥</span>
+                    <span style={{ fontWeight: '800', fontSize: '12px', color: '#111827' }}>Flames</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ fontWeight: '900', fontSize: '13px', color: '#000000' }}>{user?.total_votes || 0}</span>
+                    {user?.is_pro && <span style={{ fontSize: '13px' }}>👑</span>}
+                  </div>
+                </div>
+
+                {/* 2. Captains Button */}
+                <button
+                  type="button"
+                  onClick={handleCaptainsClick}
+                  style={{
+                    background: '#f3f4f6',
+                    border: '1px solid #e5e7eb',
+                    color: '#374151',
+                    borderRadius: '12px',
+                    padding: '8px 12px',
+                    height: '38px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '800',
+                    width: '100%',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Batch Captains Leaderboard"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '14px' }}>👑</span>
+                    <span>Captains</span>
+                  </div>
+                  <span style={{ fontSize: '11px', color: '#6b7280' }}>➔</span>
+                </button>
+
+                {/* 3. Bell (Notifications) Button */}
+                <button
+                  type="button"
+                  onClick={handleNotificationsClick}
+                  style={{
+                    position: 'relative',
+                    background: '#f3f4f6',
+                    border: '1px solid #e5e7eb',
+                    color: '#000000',
+                    borderRadius: '12px',
+                    padding: '8px 12px',
+                    height: '38px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '800',
+                    width: '100%',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Friend Requests"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '14px' }}>🔔</span>
+                    <span>Notifications</span>
+                  </div>
+                  {pendingRequestsCount > 0 ? (
+                    <span
+                      style={{
+                        background: '#000000',
+                        color: '#ffffff',
+                        borderRadius: '10px',
+                        padding: '1px 7px',
+                        fontSize: '10px',
+                        fontWeight: '900'
+                      }}
+                    >
+                      {pendingRequestsCount}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '600' }}>0</span>
+                  )}
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
