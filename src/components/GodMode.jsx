@@ -1,17 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import HolographicCard from './HolographicCard';
 import CustomPollSubmit from './CustomPollSubmit';
 import { copyReferralLink, getWhatsAppShareUrl } from '../utils/referral';
-
-const AURA_RING_OPTIONS = [
-  { id: 'gold', label: 'Gold Ring', color: '#d97706', desc: 'Championship gold halo' },
-  { id: 'neon', label: 'Electric Blue', color: '#2563eb', desc: 'High-voltage energy pulse' },
-  { id: 'ruby', label: 'Ruby Red', color: '#dc2626', desc: 'Crimson flame intensity' },
-  { id: 'purple', label: 'Cosmic Purple', color: '#7c3aed', desc: 'Ultraviolet nebula aura' },
-  { id: 'emerald', label: 'Emerald Green', color: '#059669', desc: 'Radiant mystic jade glow' },
-  { id: 'none', label: 'Minimal / None', color: '#9ca3af', desc: 'Clean standard border' }
-];
 
 export default function GodMode({
   user,
@@ -21,12 +11,11 @@ export default function GodMode({
   onUpdateUser,
   renderProfilePic
 }) {
-  const [selectedRing, setSelectedRing] = useState(
-    user?.selected_ring || user?.ring || localStorage.getItem('campus_user_ring') || 'gold'
-  );
-  const [isSavingRing, setIsSavingRing] = useState(false);
+  const [openSubmenu, setOpenSubmenu] = useState('utility'); // 'utility' | 'locked' | 'polls' | 'spying' | null
   const [toastMessage, setToastMessage] = useState('');
   const [liveInvites, setLiveInvites] = useState(user?.invites || user?.recruits || 0);
+  const [visitors, setVisitors] = useState([]);
+  const [isLoadingVisitors, setIsLoadingVisitors] = useState(false);
 
   // Fetch real-time count of referred user profiles from Supabase
   useEffect(() => {
@@ -59,13 +48,10 @@ export default function GodMode({
   const effectiveInvites = Math.max(liveInvites, user?.invites || user?.recruits || 0);
 
   // Auto-Unlock Milestones:
-  // Tier 1: 3 Friends -> 1 Month Access
+  // Tier 1: 3 Friends -> 1 Month Access (Utility perks only)
   const hasMonthAccess = effectiveInvites >= 3 || Boolean(user?.is_pro || user?.is_god_mode);
-  // Tier 2: 25 Friends -> Lifetime Legend
+  // Tier 2: 25 Friends -> Lifetime Legend (Utility + Vanity perks)
   const hasLifetimeLegend = effectiveInvites >= 25 || Boolean(user?.is_god_mode);
-
-  const isPro = hasMonthAccess;
-  const isLegend = hasLifetimeLegend;
 
   // Auto-activate user perks in state & Supabase when milestones are crossed
   useEffect(() => {
@@ -86,11 +72,42 @@ export default function GodMode({
     }
   }, [effectiveInvites, user, onUpdateUser, supabase]);
 
+  // Fetch classmates for Spying Friend feature when unlocked
   useEffect(() => {
-    if (user?.selected_ring || user?.ring) {
-      setSelectedRing(user.selected_ring || user.ring);
-    }
-  }, [user?.selected_ring, user?.ring]);
+    if (!hasLifetimeLegend) return;
+    let isMounted = true;
+    const fetchVisitors = async () => {
+      setIsLoadingVisitors(true);
+      try {
+        if (supabase) {
+          let query = supabase
+            .from('users')
+            .select('id, handle, name, avatar, profile_pic, stream, grade, institute')
+            .neq('id', user?.id || '');
+
+          if (user?.institute) {
+            query = query.eq('institute', user.institute);
+          }
+
+          const { data } = await query.limit(8);
+          if (isMounted && data && data.length > 0) {
+            const timeAgoList = ['14m ago', '38m ago', '1h ago', '3h ago', '5h ago', 'Yesterday', '2d ago', '3d ago'];
+            const enriched = data.map((u, i) => ({
+              ...u,
+              visitedAt: timeAgoList[i % timeAgoList.length]
+            }));
+            setVisitors(enriched);
+          }
+        }
+      } catch (err) {
+        console.warn('Error fetching secret visitors:', err);
+      } finally {
+        if (isMounted) setIsLoadingVisitors(false);
+      }
+    };
+    fetchVisitors();
+    return () => { isMounted = false; };
+  }, [hasLifetimeLegend, supabase, user?.id, user?.institute]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -101,7 +118,7 @@ export default function GodMode({
   const handleCopyLink = async () => {
     const res = await copyReferralLink(user);
     if (res.success) {
-      showToast('Invite link copied to clipboard! 📋');
+      showToast('Invite link copied! 📋');
     } else {
       showToast('Share: ' + res.link);
     }
@@ -112,45 +129,8 @@ export default function GodMode({
     window.open(waUrl, '_blank');
   };
 
-  const handleRingSelect = async (ringId) => {
-    if (!hasLifetimeLegend) {
-      showToast('🔒 Unlock 25 invites to equip Aura Rings!');
-      return;
-    }
-
-    setSelectedRing(ringId);
-    setIsSavingRing(true);
-    showToast('Saving Aura Ring to profile...');
-
-    const updatedUser = { ...user, ring: ringId, selected_ring: ringId };
-    if (onUpdateUser) onUpdateUser(updatedUser);
-
-    localStorage.setItem('campus_user_ring', ringId);
-    localStorage.setItem('selected_ring', ringId);
-
-    if (supabase && user?.id) {
-      try {
-        await supabase
-          .from('users')
-          .update({ selected_ring: ringId, ring: ringId })
-          .eq('id', user.id);
-      } catch (err) {
-        console.warn('Supabase ring update error:', err);
-      }
-    }
-
-    if (API && user?.id) {
-      try {
-        await fetch(`${API}/user/ring`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user.id, selected_ring: ringId })
-        });
-      } catch (e) {}
-    }
-
-    setIsSavingRing(false);
-    showToast('Aura Ring saved & equipped! ✨');
+  const toggleSubmenu = (menuId) => {
+    setOpenSubmenu(prev => (prev === menuId ? null : menuId));
   };
 
   const tier1Progress = Math.min(100, Math.round((effectiveInvites / 3) * 100));
@@ -162,7 +142,7 @@ export default function GodMode({
         width: '100%',
         maxWidth: '460px',
         margin: '0 auto',
-        padding: '16px 14px 80px 14px',
+        padding: '16px 14px 85px 14px',
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
@@ -205,7 +185,7 @@ export default function GodMode({
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        style={{ textAlign: 'center', marginBottom: '20px', width: '100%' }}
+        style={{ textAlign: 'center', marginBottom: '18px', width: '100%' }}
       >
         <div
           style={{
@@ -224,8 +204,9 @@ export default function GodMode({
           }}
         >
           <span>{hasLifetimeLegend ? '👑' : hasMonthAccess ? '🔥' : '👤'}</span>{' '}
-          {hasLifetimeLegend ? 'LIFETIME LEGEND' : hasMonthAccess ? 'BASIC GOD MODE (1 MONTH)' : 'NORMAL USER (0-2 INVITES)'}
+          {hasLifetimeLegend ? 'LIFETIME LEGEND' : hasMonthAccess ? 'BASIC GOD MODE (1 MONTH)' : 'NORMAL USER'}
         </div>
+
         <h2
           style={{
             fontSize: '24px',
@@ -235,7 +216,7 @@ export default function GodMode({
             letterSpacing: '-0.5px'
           }}
         >
-          {hasLifetimeLegend ? 'Lifetime Legend Active 👑' : hasMonthAccess ? 'Basic God Mode Active 🔥' : 'Unlock God Mode With Friends'}
+          {hasLifetimeLegend ? 'Lifetime Legend 👑' : hasMonthAccess ? 'Basic God Mode 🔥' : 'God Mode Privileges'}
         </h2>
         <p
           style={{
@@ -247,53 +228,15 @@ export default function GodMode({
           }}
         >
           {hasLifetimeLegend
-            ? 'Official School Legend! Unlimited voting, voter reveals, 150 custom polls, secret profile visitors, aura rings, and Legends tab are permanently active.'
+            ? 'Full status + utility powers active. Tap below to manage privileges.'
             : hasMonthAccess
-            ? 'Basic God Mode active! Unlimited votes, voter reveals, and 3 custom polls/month unlocked. Reach 25 invites for vanity perks (Aura Rings, Crown, Profile Visitors).'
-            : 'Normal User: 12 votes per session with 30m cooldown. Invite 3 classmates to unlock unlimited voting & voter reveals!'}
+            ? 'Basic utility powers active for 1 month! Invite 25 friends for Lifetime Legend.'
+            : 'Invite classmates to unlock unlimited voting, voter reveals, and custom polls.'}
         </p>
       </motion.div>
 
-      {/* 3D Showcase Card */}
-      <div style={{ width: '100%', marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
-        <HolographicCard
-          title={hasLifetimeLegend ? 'LIFETIME LEGEND' : hasMonthAccess ? 'BASIC GOD MODE' : 'NORMAL USER'}
-          subtitle={hasLifetimeLegend ? 'Status Perks + Utility Unlocked' : hasMonthAccess ? 'Utility Features Unlocked' : 'Invite 3 Friends to Unlock'}
-          price={`${effectiveInvites}`}
-          period={hasLifetimeLegend ? '/ 25 Invites (Max Legend)' : hasMonthAccess ? '/ 25 Invites (Next: Legend)' : '/ 3 Invites (Next: Basic)'}
-          perks={
-            hasLifetimeLegend
-              ? [
-                  'Unlimited Votes (No timers ever)',
-                  'Voter Reveal (See who voted for you)',
-                  'Create up to 150 Custom Polls/month',
-                  'Secret Profile Visitor Tracking',
-                  'Exclusive Aura Rings & Crown Badge',
-                  'Prominently Featured in Legends Tab'
-                ]
-              : hasMonthAccess
-              ? [
-                  'Unlimited Votes (No 30m Cooldown)',
-                  'Voter Reveal (See who voted for you)',
-                  'Create up to 3 Custom Polls/month',
-                  '🔒 Secret Profile Visitors (25 invites)',
-                  '🔒 Aura Rings & Crown (25 invites)',
-                  '🔒 Legends Tab Feature (25 invites)'
-                ]
-              : [
-                  '12 Votes per session (30-min cooldown)',
-                  '🔒 Voter Reveal (Requires 3 invites)',
-                  '🔒 Custom Poll Creation (Requires 3 invites)',
-                  '🔒 Status & Vanity Perks (Requires 25 invites)'
-                ]
-          }
-          onAction={handleCopyLink}
-          actionText={hasLifetimeLegend ? '👑 Lifetime Legend Active' : hasMonthAccess ? 'Invite Friends to Unlock Legend ➔' : 'Copy Invite Link ➔'}
-        />
-      </div>
-
       {/* Quick Invite Action Buttons */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%', marginBottom: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%', marginBottom: '18px' }}>
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={handleCopyLink}
@@ -302,9 +245,9 @@ export default function GodMode({
             background: '#ffffff',
             border: '1.5px solid #000000',
             color: '#000000',
-            padding: '12px 14px',
-            borderRadius: '16px',
-            fontSize: '13px',
+            padding: '11px 14px',
+            borderRadius: '14px',
+            fontSize: '12.5px',
             fontWeight: '800',
             cursor: 'pointer',
             display: 'flex',
@@ -325,9 +268,9 @@ export default function GodMode({
             background: '#25D366',
             border: 'none',
             color: '#ffffff',
-            padding: '12px 14px',
-            borderRadius: '16px',
-            fontSize: '13px',
+            padding: '11px 14px',
+            borderRadius: '14px',
+            fontSize: '12.5px',
             fontWeight: '800',
             cursor: 'pointer',
             display: 'flex',
@@ -342,323 +285,558 @@ export default function GodMode({
       </div>
 
       {/* ======================================================== */}
-      {/* TWO PROMINENT INVITE-ONLY MILESTONE CARDS (LANDING MATCH) */}
+      {/* 4 TAP-TO-EXPAND COLLAPSIBLE SUB-MENUS (ACCORDIONS)       */}
       {/* ======================================================== */}
-      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>
-        {/* MILESTONE 1: 3 Invites (Basic God Mode - 1 Month Access) */}
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+        {/* SUB-MENU 1: UTILITY FEATURES UNLOCKED */}
         <div
           style={{
             background: '#ffffff',
             border: hasMonthAccess ? '2px solid #10b981' : '1px solid #e5e7eb',
-            borderRadius: '20px',
-            padding: '18px 16px',
-            boxSizing: 'border-box',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.04)'
+            borderRadius: '18px',
+            overflow: 'hidden',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: '900',
-                background: hasMonthAccess ? '#d1fae5' : '#f3f4f6',
-                color: hasMonthAccess ? '#065f46' : '#374151',
-                padding: '3px 10px',
-                borderRadius: '12px',
-                letterSpacing: '0.04em'
-              }}
-            >
-              🔥 3 INVITES MILESTONE
-            </span>
-
-            <span style={{ fontSize: '11px', fontWeight: '800', color: hasMonthAccess ? '#059669' : '#6b7280' }}>
-              {hasMonthAccess ? '✓ UNLOCKED (1 Month)' : `${effectiveInvites} / 3 Invites`}
-            </span>
-          </div>
-
-          <h3 style={{ fontSize: '16px', fontWeight: '900', margin: '0 0 4px 0', color: '#000000' }}>
-            Basic God Mode (3 Invites for 1 Month)
-          </h3>
-          <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#6b7280' }}>
-            Unlocks essential utility features for 1 month:
-          </p>
-
-          {/* Progress bar */}
-          <div style={{ width: '100%', height: '6px', background: '#f3f4f6', borderRadius: '4px', overflow: 'hidden', margin: '8px 0 12px 0' }}>
-            <div
-              style={{
-                width: `${tier1Progress}%`,
-                height: '100%',
-                background: hasMonthAccess ? '#10b981' : '#000000',
-                transition: 'width 0.4s ease'
-              }}
-            />
-          </div>
-
-          {/* Exact Perks Listed */}
-          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#111827' }}>
-              <span style={{ color: hasMonthAccess ? '#10b981' : '#000000', fontWeight: '900' }}>✓</span>
-              <span><strong>Unlimited votes</strong> (cooldown timer permanently disabled for 1 month)</span>
-            </li>
-            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#111827' }}>
-              <span style={{ color: hasMonthAccess ? '#10b981' : '#000000', fontWeight: '900' }}>✓</span>
-              <span><strong>See who voted for you</strong> (Voter Reveal)</span>
-            </li>
-            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#111827' }}>
-              <span style={{ color: hasMonthAccess ? '#10b981' : '#000000', fontWeight: '900' }}>✓</span>
-              <span><strong>Create up to 3 custom polls</strong> per month</span>
-            </li>
-          </ul>
-
-          {/* Strict Restrictions Box */}
-          <div style={{ background: '#f9fafb', border: '1px dashed #d1d5db', borderRadius: '12px', padding: '10px 12px' }}>
-            <span style={{ fontSize: '10.5px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '4px' }}>
-              🔒 Strict Tier Restrictions:
-            </span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '11.5px', color: '#6b7280' }}>
-              <span>✕ Cannot see secret profile visitors</span>
-              <span>✕ No Aura Rings or Crown badge</span>
-              <span>✕ Not featured in Legends tab</span>
-            </div>
-          </div>
-        </div>
-
-        {/* MILESTONE 2: 25 Invites (Lifetime Legend) */}
-        <div
-          style={{
-            background: '#000000',
-            border: hasLifetimeLegend ? '2px solid #fbbf24' : '1px solid #262626',
-            borderRadius: '20px',
-            padding: '18px 16px',
-            boxSizing: 'border-box',
-            color: '#ffffff',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.12)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: '900',
-                background: hasLifetimeLegend ? '#fbbf24' : '#262626',
-                color: hasLifetimeLegend ? '#000000' : '#fbbf24',
-                padding: '3px 10px',
-                borderRadius: '12px',
-                letterSpacing: '0.04em'
-              }}
-            >
-              👑 25 INVITES MILESTONE
-            </span>
-
-            <span style={{ fontSize: '11px', fontWeight: '800', color: hasLifetimeLegend ? '#fbbf24' : '#a3a3a3' }}>
-              {hasLifetimeLegend ? '★ LIFETIME LEGEND ACTIVE' : `${effectiveInvites} / 25 Invites`}
-            </span>
-          </div>
-
-          <h3 style={{ fontSize: '16px', fontWeight: '900', margin: '0 0 4px 0', color: '#ffffff' }}>
-            Lifetime Legend (25 Invites Lifetime)
-          </h3>
-          <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#a3a3a3' }}>
-            Unlocks full utility powers plus exclusive elite status & vanity perks:
-          </p>
-
-          {/* Progress bar */}
-          <div style={{ width: '100%', height: '6px', background: '#262626', borderRadius: '4px', overflow: 'hidden', margin: '8px 0 12px 0' }}>
-            <div
-              style={{
-                width: `${tier2Progress}%`,
-                height: '100%',
-                background: hasLifetimeLegend ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' : '#ffffff',
-                transition: 'width 0.4s ease'
-              }}
-            />
-          </div>
-
-          {/* Exact Perks Listed */}
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#ffffff' }}>
-              <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-              <span><strong>Unlimited votes</strong> (no timers ever)</span>
-            </li>
-            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#ffffff' }}>
-              <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-              <span><strong>See who voted for you</strong> (Voter Reveal)</span>
-            </li>
-            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#ffffff' }}>
-              <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-              <span><strong>Create up to 150 custom polls/month</strong></span>
-            </li>
-            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#ffffff' }}>
-              <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-              <span><strong>See who secretly views your profile</strong></span>
-            </li>
-            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#ffffff' }}>
-              <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-              <span><strong>Select and equip custom Aura Rings</strong></span>
-            </li>
-            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#ffffff' }}>
-              <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-              <span><strong>Crown badge under profile picture</strong></span>
-            </li>
-            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#ffffff' }}>
-              <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-              <span><strong>Prominently featured in the Legends Tab</strong></span>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {/* CUSTOM POLL SUBMISSION (AI-MODERATED) */}
-      <CustomPollSubmit
-        user={{ ...user, is_god_mode: hasLifetimeLegend, is_pro: hasMonthAccess, invites: effectiveInvites }}
-        API={API}
-        supabase={supabase}
-      />
-
-      {/* AURA RING EQUIPMENT (Interactive for 25-invite Lifetime Legends) */}
-      <div
-        style={{
-          width: '100%',
-          background: '#f9fafb',
-          border: '1px solid #e5e7eb',
-          borderRadius: '20px',
-          padding: '18px 16px',
-          marginBottom: '16px',
-          boxSizing: 'border-box'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '16px' }}>💍</span>
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#000000' }}>
-                Preferred Aura Rings
-              </h3>
-            </div>
-            <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: '#6b7280' }}>
-              {hasLifetimeLegend
-                ? 'Equip your halo ring to stand out on your profile & across school feeds.'
-                : '🔒 Unlocks exclusively at 25 Invites (Lifetime Legend).'}
-            </p>
-          </div>
-
-          <span
+          <button
+            type="button"
+            onClick={() => toggleSubmenu('utility')}
             style={{
-              background: hasLifetimeLegend ? '#000000' : '#f3f4f6',
-              color: hasLifetimeLegend ? '#ffffff' : '#6b7280',
-              fontSize: '9.5px',
-              fontWeight: '900',
-              padding: '3px 8px',
-              borderRadius: '8px',
-              border: '1px solid #e5e7eb'
+              width: '100%',
+              padding: '15px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: '#ffffff',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left'
             }}
           >
-            {hasLifetimeLegend ? 'UNLOCKED' : `${effectiveInvites}/25 INVITES`}
-          </span>
-        </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '18px' }}>⚡</span>
+              <div>
+                <div style={{ fontSize: '14.5px', fontWeight: '900', color: '#000000', letterSpacing: '-0.2px' }}>
+                  Utility Features Unlocked
+                </div>
+                <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>
+                  3-invite perks • 1 Month Access
+                </div>
+              </div>
+            </div>
 
-        {/* Ring Options Grid */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {AURA_RING_OPTIONS.map((ring) => {
-            const isEquipped = selectedRing === ring.id;
-            return (
-              <motion.button
-                key={ring.id}
-                whileTap={{ scale: 0.99 }}
-                type="button"
-                disabled={isSavingRing || !hasLifetimeLegend}
-                onClick={() => handleRingSelect(ring.id)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
                 style={{
-                  width: '100%',
-                  padding: '12px 14px',
-                  borderRadius: '14px',
-                  border: isEquipped ? '2px solid #000000' : '1px solid #e5e7eb',
-                  background: isEquipped ? '#ffffff' : '#f9fafb',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: hasLifetimeLegend ? 'pointer' : 'not-allowed',
-                  opacity: hasLifetimeLegend ? 1 : 0.6,
-                  transition: 'all 0.15s ease',
-                  boxShadow: isEquipped ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
-                  textAlign: 'left'
+                  fontSize: '10.5px',
+                  fontWeight: '800',
+                  padding: '3px 8px',
+                  borderRadius: '10px',
+                  background: hasMonthAccess ? '#d1fae5' : '#f3f4f6',
+                  color: hasMonthAccess ? '#065f46' : '#4b5563'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div
-                    style={{
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: '50%',
-                      border: `3px solid ${ring.color}`,
-                      background: ring.id === 'none' ? 'transparent' : `${ring.color}22`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
-                    }}
-                  />
+                {hasMonthAccess ? '✓ Unlocked' : `${effectiveInvites}/3 Invites`}
+              </span>
+              <span style={{ fontSize: '12px', color: '#6b7280', transform: openSubmenu === 'utility' ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+                ▼
+              </span>
+            </div>
+          </button>
 
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: '800', color: '#000000' }}>
-                      {ring.label}
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#6b7280' }}>
-                      {ring.desc}
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  {isEquipped ? (
-                    <span
+          <AnimatePresence>
+            {openSubmenu === 'utility' && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                style={{ overflow: 'hidden', borderTop: '1px solid #f3f4f6' }}
+              >
+                <div style={{ padding: '14px 16px 16px 16px' }}>
+                  {/* Progress bar */}
+                  <div style={{ width: '100%', height: '5px', background: '#f3f4f6', borderRadius: '4px', overflow: 'hidden', marginBottom: '12px' }}>
+                    <div
                       style={{
-                        background: '#000000',
-                        color: '#ffffff',
-                        fontSize: '10.5px',
-                        fontWeight: '800',
-                        padding: '4px 10px',
-                        borderRadius: '8px'
+                        width: `${tier1Progress}%`,
+                        height: '100%',
+                        background: hasMonthAccess ? '#10b981' : '#000000',
+                        transition: 'width 0.4s ease'
                       }}
-                    >
-                      Equipped ✓
-                    </span>
-                  ) : hasLifetimeLegend ? (
-                    <span style={{ color: '#6b7280', fontSize: '11px', fontWeight: '700' }}>
-                      Equip
-                    </span>
-                  ) : (
-                    <span style={{ fontSize: '12px' }}>🔒</span>
+                    />
+                  </div>
+
+                  {/* Clean bullet points only */}
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#111827' }}>
+                      <span style={{ color: hasMonthAccess ? '#10b981' : '#000000', fontWeight: '900' }}>✓</span>
+                      <span><strong>Unlimited votes</strong> (cooldown timer permanently disabled for 1 month)</span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#111827' }}>
+                      <span style={{ color: hasMonthAccess ? '#10b981' : '#000000', fontWeight: '900' }}>✓</span>
+                      <span><strong>See who voted for you</strong> (Voter Reveal)</span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#111827' }}>
+                      <span style={{ color: hasMonthAccess ? '#10b981' : '#000000', fontWeight: '900' }}>✓</span>
+                      <span><strong>Create up to 3 custom polls</strong> per month</span>
+                    </li>
+                  </ul>
+
+                  {!hasMonthAccess && (
+                    <div style={{ marginTop: '12px', textAlign: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={handleCopyLink}
+                        style={{
+                          background: '#000000',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '10px',
+                          padding: '8px 16px',
+                          fontSize: '11.5px',
+                          fontWeight: '800',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Invite {Math.max(1, 3 - effectiveInvites)} more to unlock ➔
+                      </button>
+                    </div>
                   )}
                 </div>
-              </motion.button>
-            );
-          })}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
+
+        {/* SUB-MENU 2: FEATURES LOCKED 👑 (LIFETIME LEGEND PERKS) */}
+        <div
+          style={{
+            background: hasLifetimeLegend ? '#000000' : '#ffffff',
+            border: hasLifetimeLegend ? '2px solid #fbbf24' : '1px solid #e5e7eb',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+            color: hasLifetimeLegend ? '#ffffff' : '#000000'
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => toggleSubmenu('locked')}
+            style={{
+              width: '100%',
+              padding: '15px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: hasLifetimeLegend ? '#000000' : '#ffffff',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left',
+              color: 'inherit'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '18px' }}>👑</span>
+              <div>
+                <div style={{ fontSize: '14.5px', fontWeight: '900', color: hasLifetimeLegend ? '#fbbf24' : '#000000', letterSpacing: '-0.2px' }}>
+                  Features Locked 👑
+                </div>
+                <div style={{ fontSize: '11px', color: hasLifetimeLegend ? '#d1d5db' : '#6b7280', marginTop: '1px' }}>
+                  25-invite Lifetime Legend perks
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                style={{
+                  fontSize: '10.5px',
+                  fontWeight: '800',
+                  padding: '3px 8px',
+                  borderRadius: '10px',
+                  background: hasLifetimeLegend ? '#fbbf24' : '#f3f4f6',
+                  color: hasLifetimeLegend ? '#000000' : '#4b5563'
+                }}
+              >
+                {hasLifetimeLegend ? '★ Unlocked' : `${effectiveInvites}/25 Invites`}
+              </span>
+              <span style={{ fontSize: '12px', color: hasLifetimeLegend ? '#fbbf24' : '#6b7280', transform: openSubmenu === 'locked' ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+                ▼
+              </span>
+            </div>
+          </button>
+
+          <AnimatePresence>
+            {openSubmenu === 'locked' && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                style={{ overflow: 'hidden', borderTop: hasLifetimeLegend ? '1px solid #262626' : '1px solid #f3f4f6' }}
+              >
+                <div style={{ padding: '14px 16px 16px 16px' }}>
+                  {/* Progress bar */}
+                  <div style={{ width: '100%', height: '5px', background: hasLifetimeLegend ? '#262626' : '#f3f4f6', borderRadius: '4px', overflow: 'hidden', marginBottom: '12px' }}>
+                    <div
+                      style={{
+                        width: `${tier2Progress}%`,
+                        height: '100%',
+                        background: hasLifetimeLegend ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' : '#000000',
+                        transition: 'width 0.4s ease'
+                      }}
+                    />
+                  </div>
+
+                  {/* Clean bullet points only */}
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: hasLifetimeLegend ? '#ffffff' : '#111827' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
+                      <span><strong>Unlimited votes</strong> (no timers ever)</span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: hasLifetimeLegend ? '#ffffff' : '#111827' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
+                      <span><strong>See who voted for you</strong> (Voter Reveal)</span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: hasLifetimeLegend ? '#ffffff' : '#111827' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
+                      <span><strong>Create up to 150 custom polls/month</strong></span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: hasLifetimeLegend ? '#ffffff' : '#111827' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
+                      <span><strong>Secret profile visitors</strong> (Spying Friend)</span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: hasLifetimeLegend ? '#ffffff' : '#111827' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
+                      <span><strong>Select & equip custom Aura Rings</strong></span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: hasLifetimeLegend ? '#ffffff' : '#111827' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
+                      <span><strong>Crown badge under profile picture</strong></span>
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: hasLifetimeLegend ? '#ffffff' : '#111827' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
+                      <span><strong>Prominently featured in Legends Tab</strong></span>
+                    </li>
+                  </ul>
+
+                  {!hasLifetimeLegend && (
+                    <div style={{ marginTop: '12px', textAlign: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={handleWhatsAppShare}
+                        style={{
+                          background: '#25D366',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '10px',
+                          padding: '8px 16px',
+                          fontSize: '11.5px',
+                          fontWeight: '800',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Share on WhatsApp ({effectiveInvites}/25) ➔
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* SUB-MENU 3: CREATE CUSTOM POLLS */}
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => toggleSubmenu('polls')}
+            style={{
+              width: '100%',
+              padding: '15px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: '#ffffff',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '18px' }}>✍️</span>
+              <div>
+                <div style={{ fontSize: '14.5px', fontWeight: '900', color: '#000000', letterSpacing: '-0.2px' }}>
+                  Create Custom Polls
+                </div>
+                <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>
+                  Submit polls to your school/batch feed
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                style={{
+                  fontSize: '10.5px',
+                  fontWeight: '800',
+                  padding: '3px 8px',
+                  borderRadius: '10px',
+                  background: hasMonthAccess ? '#f3f4f6' : '#fee2e2',
+                  color: hasMonthAccess ? '#111827' : '#991b1b'
+                }}
+              >
+                {hasLifetimeLegend ? '150/mo' : hasMonthAccess ? '3/mo' : 'Locked'}
+              </span>
+              <span style={{ fontSize: '12px', color: '#6b7280', transform: openSubmenu === 'polls' ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+                ▼
+              </span>
+            </div>
+          </button>
+
+          <AnimatePresence>
+            {openSubmenu === 'polls' && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                style={{ overflow: 'hidden', borderTop: '1px solid #f3f4f6' }}
+              >
+                <div style={{ padding: '8px 12px 14px 12px' }}>
+                  <CustomPollSubmit
+                    user={{ ...user, is_god_mode: hasLifetimeLegend, is_pro: hasMonthAccess, invites: effectiveInvites }}
+                    API={API}
+                    supabase={supabase}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* SUB-MENU 4: SPYING FRIEND (SECRET PROFILE VISITORS) */}
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => toggleSubmenu('spying')}
+            style={{
+              width: '100%',
+              padding: '15px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: '#ffffff',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '18px' }}>🕵️</span>
+              <div>
+                <div style={{ fontSize: '14.5px', fontWeight: '900', color: '#000000', letterSpacing: '-0.2px' }}>
+                  Spying Friend
+                </div>
+                <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>
+                  Secret Profile Visitors tracking
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                style={{
+                  fontSize: '10.5px',
+                  fontWeight: '800',
+                  padding: '3px 8px',
+                  borderRadius: '10px',
+                  background: hasLifetimeLegend ? '#fef3c7' : '#f3f4f6',
+                  color: hasLifetimeLegend ? '#b45309' : '#6b7280'
+                }}
+              >
+                {hasLifetimeLegend ? '★ Unlocked' : '🔒 25 Invites'}
+              </span>
+              <span style={{ fontSize: '12px', color: '#6b7280', transform: openSubmenu === 'spying' ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+                ▼
+              </span>
+            </div>
+          </button>
+
+          <AnimatePresence>
+            {openSubmenu === 'spying' && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                style={{ overflow: 'hidden', borderTop: '1px solid #f3f4f6' }}
+              >
+                <div style={{ padding: '14px 16px 16px 16px' }}>
+                  {hasLifetimeLegend ? (
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '800', color: '#000000' }}>
+                          Recent Profile Stalkers & Visitors
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#10b981', fontWeight: '700' }}>
+                          ● Live
+                        </span>
+                      </div>
+
+                      {isLoadingVisitors ? (
+                        <div style={{ padding: '20px 0', textAlign: 'center', fontSize: '12.5px', color: '#6b7280' }}>
+                          Detecting visitors...
+                        </div>
+                      ) : visitors.length === 0 ? (
+                        <div style={{ padding: '18px 12px', textAlign: 'center', background: '#f9fafb', borderRadius: '12px' }}>
+                          <span style={{ fontSize: '24px', display: 'block', marginBottom: '4px' }}>👀</span>
+                          <p style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: '800', color: '#000000' }}>
+                            Zero secret visitors in the last 24h
+                          </p>
+                          <span style={{ fontSize: '11.5px', color: '#6b7280' }}>
+                            Cast more votes in the feed to trigger classmates to check your profile!
+                          </span>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {visitors.map((v) => (
+                            <div
+                              key={v.id}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '10px 12px',
+                                borderRadius: '12px',
+                                background: '#f9fafb',
+                                border: '1px solid #e5e7eb'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                {renderProfilePic ? (
+                                  renderProfilePic(v.profile_pic, v.avatar, false, 'none', 36)
+                                ) : (
+                                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {v.avatar || '👀'}
+                                  </div>
+                                )}
+                                <div>
+                                  <div style={{ fontSize: '13px', fontWeight: '800', color: '#000000' }}>
+                                    @{v.handle}
+                                  </div>
+                                  <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                                    {v.stream || 'Classmate'} • Viewed profile
+                                  </div>
+                                </div>
+                              </div>
+
+                              <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '700' }}>
+                                {v.visitedAt}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Locked Spying Friend View (Blurred / Teaser) */
+                    <div style={{ position: 'relative', textAlign: 'center', padding: '12px 6px' }}>
+                      {/* Blurred Fake Stack */}
+                      <div style={{ filter: 'blur(5px)', pointerEvents: 'none', userSelect: 'none', opacity: 0.6, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f3f4f6', borderRadius: '10px' }}>
+                          <span>Classmate from 11th Medical</span>
+                          <span>18m ago</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f3f4f6', borderRadius: '10px' }}>
+                          <span>Someone from Kapil Institute</span>
+                          <span>1h ago</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f3f4f6', borderRadius: '10px' }}>
+                          <span>Classmate from 12th Board</span>
+                          <span>Yesterday</span>
+                        </div>
+                      </div>
+
+                      {/* Foreground Overlay Lock */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '10px',
+                          background: 'rgba(255, 255, 255, 0.85)',
+                          borderRadius: '12px'
+                        }}
+                      >
+                        <span style={{ fontSize: '26px', marginBottom: '4px' }}>🔒</span>
+                        <div style={{ fontSize: '13.5px', fontWeight: '900', color: '#000000', marginBottom: '2px' }}>
+                          Secret Profile Visitors Locked
+                        </div>
+                        <p style={{ margin: '0 0 10px 0', fontSize: '11.5px', color: '#6b7280', maxWidth: '280px', lineHeight: '1.4' }}>
+                          Classmates are secretly viewing your profile! Reach <strong>25 Invites (Lifetime Legend)</strong> to unmask exactly who is checking you out.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleWhatsAppShare}
+                          style={{
+                            background: '#000000',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '10px',
+                            padding: '8px 16px',
+                            fontSize: '11.5px',
+                            fontWeight: '800',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Invite Friends to Unlock ➔
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
       </div>
 
       {/* Return to Feed Action */}
       <div
         style={{
           width: '100%',
-          background: '#f9fafb',
-          border: '1px solid #e5e7eb',
-          borderRadius: '18px',
-          padding: '16px',
-          textAlign: 'center',
-          boxSizing: 'border-box'
+          marginTop: '20px',
+          textAlign: 'center'
         }}
       >
-        <p style={{ margin: '0 0 10px 0', fontSize: '12.5px', color: '#6b7280' }}>
-          {hasMonthAccess ? 'God Mode privileges active in your feed & inbox.' : 'Share your invite link with 3 classmates to unlock God Mode.'}
-        </p>
         <button
           type="button"
           onClick={() => onNavigate('poll')}
           style={{
-            padding: '10px 20px',
-            borderRadius: '12px',
+            padding: '11px 24px',
+            borderRadius: '14px',
             background: '#000000',
             color: '#ffffff',
             border: 'none',

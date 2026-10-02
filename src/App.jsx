@@ -1334,6 +1334,9 @@ export default function App() {
                     }}
                     onToggleNotifications={() => setShowNotifications(prev => !prev)}
                     pendingRequestsCount={pendingRequests.length}
+                    onUpdateUser={setUser}
+                    supabase={supabase}
+                    API={API}
                   />
                 </motion.div>
               )}

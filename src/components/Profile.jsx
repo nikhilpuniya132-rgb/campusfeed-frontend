@@ -2,17 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 import { handleShare } from '../utils/share';
-import ReferralInviteSnippet from './ReferralInviteSnippet';
 import { MASTER_CLASS_OPTIONS, CLASS_OPTIONS } from '../constants/classes';
-
-const AURA_OPTIONS = [
-  { id: 'none', label: 'None (Default)', color: '#9ca3af', desc: 'No special aura ring' },
-  { id: 'gold', label: 'Gold Ring', color: '#d97706', desc: 'Classic championship aura' },
-  { id: 'neon', label: 'Blue Ring', color: '#2563eb', desc: 'Electric energy pulse' },
-  { id: 'ruby', label: 'Ruby Red Ring', color: '#dc2626', desc: 'Crimson flame intensity' },
-  { id: 'purple', label: 'Cosmic Purple Ring', color: '#7c3aed', desc: 'Ultraviolet nebula ring' },
-  { id: 'emerald', label: 'Emerald Green Ring', color: '#059669', desc: 'Radiant mystic jade aura' }
-];
 
 export default function Profile({
   user,
@@ -45,10 +35,9 @@ export default function Profile({
   // Friends Modal
   const [showFriendsModal, setShowFriendsModal] = useState(false);
 
-  // Aura Ring state
-  const [selectedRing, setSelectedRing] = useState(user?.selected_ring || user?.ring || 'gold');
-  const [ringSavedToast, setRingSavedToast] = useState(false);
-  const [isSavingRing, setIsSavingRing] = useState(false);
+  // Ring display
+  const selectedRing = user?.selected_ring || user?.ring || 'gold';
+
 
   // Invite state & Tier checks
   const [copySuccess, setCopySuccess] = useState(false);
@@ -60,11 +49,6 @@ export default function Profile({
   );
   const isLifetimeLegend = effectiveInvites >= 25 || user?.is_god_mode === true || user?.is_legend === true;
 
-  useEffect(() => {
-    if (user?.selected_ring || user?.ring) {
-      setSelectedRing(user.selected_ring || user.ring);
-    }
-  }, [user?.selected_ring, user?.ring]);
 
   // Close 3-dots menu on outside click
   useEffect(() => {
@@ -122,53 +106,6 @@ export default function Profile({
     reader.readAsDataURL(file);
   };
 
-  const handleRingSelect = async (ringId) => {
-    if (!isLifetimeLegend) {
-      alert('🔒 Aura Rings unlock exclusively for Lifetime Legends (25+ invites)! Basic God Mode does not include Aura Rings.');
-      return;
-    }
-    setSelectedRing(ringId);
-    setIsSavingRing(true);
-
-    const updatedUser = { ...user, ring: ringId, selected_ring: ringId };
-    if (onUpdateUser) {
-      onUpdateUser(updatedUser);
-    }
-
-    localStorage.setItem('campus_user_ring', ringId);
-    localStorage.setItem('selected_ring', ringId);
-
-    setRingSavedToast(true);
-    setTimeout(() => setRingSavedToast(false), 2200);
-
-    if (supabase && user?.id) {
-      try {
-        await supabase
-          .from('users')
-          .update({ selected_ring: ringId, ring: ringId })
-          .eq('id', user.id);
-      } catch (err) {
-        try {
-          await supabase
-            .from('users')
-            .update({ ring: ringId })
-            .eq('id', user.id);
-        } catch (_) {}
-      }
-    }
-
-    try {
-      await fetch(`${API}/user/ring`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id, selected_ring: ringId })
-      });
-    } catch (err) {
-      console.warn('API ring update fallback error:', err);
-    } finally {
-      setIsSavingRing(false);
-    }
-  };
 
   const saveProfile = async () => {
     setIsSaving(true);
@@ -470,70 +407,6 @@ export default function Profile({
         </div>
       </div>
 
-      {/* SECRET PROFILE VISITORS STATUS PERK */}
-      <div
-        style={{
-          background: '#ffffff',
-          border: isLifetimeLegend ? '1.5px solid #000000' : '1px dashed #d1d5db',
-          borderRadius: '20px',
-          padding: '16px',
-          marginBottom: '20px',
-          textAlign: 'left'
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isLifetimeLegend ? '12px' : '4px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '18px' }}>👀</span>
-            <div>
-              <span style={{ fontSize: '14px', fontWeight: '900', color: '#000000', display: 'block' }}>
-                Secret Profile Visitors
-              </span>
-              <span style={{ fontSize: '11px', color: '#6b7280' }}>
-                {isLifetimeLegend
-                  ? 'Lifetime Legend: See who checks out your campus profile'
-                  : '🔒 Restricted: Reserved exclusively for Lifetime Legends (25+ invites)'}
-              </span>
-            </div>
-          </div>
-          <span
-            style={{
-              fontSize: '10px',
-              fontWeight: '900',
-              padding: '3px 8px',
-              borderRadius: '8px',
-              background: isLifetimeLegend ? '#fef3c7' : '#f3f4f6',
-              color: isLifetimeLegend ? '#92400e' : '#6b7280',
-              border: isLifetimeLegend ? '1px solid #fde68a' : '1px solid #e5e7eb'
-            }}
-          >
-            {isLifetimeLegend ? '👑 UNLOCKED' : `${effectiveInvites}/25 INVITES`}
-          </span>
-        </div>
-
-        {isLifetimeLegend ? (
-          <div style={{ background: '#f9fafb', borderRadius: '14px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '22px' }}>🤫</span>
-              <div>
-                <span style={{ fontSize: '12.5px', fontWeight: '800', color: '#111827', display: 'block' }}>
-                  {Math.max(12, (user.total_votes || 0) * 2 + effectiveInvites * 3)} Secret Profile Views This Week
-                </span>
-                <span style={{ fontSize: '11px', color: '#6b7280' }}>
-                  Classmates from {user.institute || 'your campus'} are actively viewing your profile!
-                </span>
-              </div>
-            </div>
-            <span style={{ fontSize: '11.5px', color: '#059669', fontWeight: '800' }}>
-              Active ✓
-            </span>
-          </div>
-        ) : (
-          <div style={{ background: '#f9fafb', borderRadius: '12px', padding: '10px 12px', marginTop: '8px', fontSize: '12px', color: '#6b7280', lineHeight: 1.4 }}>
-            <span>Basic God Mode (3 invites) includes voter reveals, but profile visitor tracking is strictly reserved for Lifetime Legends. Invite 25 friends to unlock this perk!</span>
-          </div>
-        )}
-      </div>
-
       {/* 3. FRIENDS POPUP MODAL (Clean, Minimalist Sheet) */}
       <AnimatePresence>
         {showFriendsModal && (
@@ -656,113 +529,6 @@ export default function Profile({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* 4. AURA RINGS (Exclusive to Lifetime Legends - 25+ Invites) */}
-      <div
-        style={{
-          background: '#ffffff',
-          border: isLifetimeLegend ? '1px solid #e5e7eb' : '1px dashed #d1d5db',
-          borderRadius: '20px',
-          padding: '16px',
-          marginBottom: '20px',
-          textAlign: 'left'
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '16px' }}>💍</span>
-              <span style={{ fontSize: '14px', fontWeight: '900', color: '#000000' }}>
-                Aura Ring Equipment
-              </span>
-            </div>
-            <span style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginTop: '2px' }}>
-              {isLifetimeLegend
-                ? 'Lifetime Legend: Pick your halo ring for your profile & feed'
-                : '🔒 Locked: Aura Rings are reserved exclusively for Lifetime Legends (25+ invites)'}
-            </span>
-          </div>
-          {isLifetimeLegend && ringSavedToast && (
-            <span style={{ fontSize: '11.5px', color: '#059669', fontWeight: '800' }}>
-              ✓ Equipped!
-            </span>
-          )}
-          {!isLifetimeLegend && (
-            <span style={{ fontSize: '10px', fontWeight: '900', background: '#f3f4f6', color: '#6b7280', padding: '3px 8px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-              🔒 25 INVITES
-            </span>
-          )}
-        </div>
-
-        {/* Clean Vertical Ring List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {AURA_OPTIONS.map((r) => {
-            const isSelected = isLifetimeLegend && selectedRing === r.id;
-            return (
-              <motion.button
-                key={r.id}
-                type="button"
-                whileTap={isLifetimeLegend ? { scale: 0.98 } : {}}
-                disabled={isSavingRing || !isLifetimeLegend}
-                onClick={() => handleRingSelect(r.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '10px 14px',
-                  borderRadius: '14px',
-                  border: isSelected ? '2px solid #000000' : '1px solid #e5e7eb',
-                  background: isSelected ? '#f3f4f6' : '#ffffff',
-                  color: '#000000',
-                  cursor: isLifetimeLegend ? 'pointer' : 'not-allowed',
-                  opacity: isLifetimeLegend ? 1 : 0.55,
-                  textAlign: 'left'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{
-                    width: '22px',
-                    height: '22px',
-                    borderRadius: '50%',
-                    border: `2.5px solid ${r.color}`,
-                    background: 'transparent',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }} />
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: '800', color: '#000000' }}>
-                      {r.label}
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#6b7280' }}>
-                      {r.desc}
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  {isLifetimeLegend ? (
-                    isSelected ? (
-                      <span style={{ fontSize: '11px', fontWeight: '900', color: '#000000' }}>
-                        Equipped ✓
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: '11px', fontWeight: '700', color: '#9ca3af' }}>
-                        Equip
-                      </span>
-                    )
-                  ) : (
-                    <span style={{ fontSize: '12px' }}>🔒</span>
-                  )}
-                </div>
-              </motion.button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 5. REFERRAL DASHBOARD SNIPPET */}
-      <ReferralInviteSnippet user={user} />
 
       {/* 6. EDIT PROFILE MODAL / DRAWER */}
       {isEditing && (
