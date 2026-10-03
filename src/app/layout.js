@@ -3,16 +3,16 @@ export const metadata = {
   description: 'Stop guessing. Start knowing. CenterInsider is the 100% anonymous school voting network for 11th, 12th, and dropper coaching students in Bathinda.',
   icons: {
     icon: [
-      { url: '/favicon.ico?v=2' },
-      { url: '/favicon-96x96.png?v=2', sizes: '96x96', type: 'image/png' },
-      { url: '/favicon.svg?v=2', type: 'image/svg+xml' }
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+      { url: '/favicon.ico' }
     ],
-    shortcut: ['/favicon.ico?v=2'],
+    shortcut: ['/favicon.ico'],
     apple: [
-      { url: '/apple-touch-icon.png?v=2', sizes: '180x180' }
+      { url: '/apple-touch-icon.png', sizes: '180x180' }
     ]
   },
-  manifest: '/manifest.json?v=2',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({ children }) {
