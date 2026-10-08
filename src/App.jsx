@@ -21,8 +21,10 @@ const GodMode = lazy(() => import('./components/GodMode'));
 import AddToHomeScreenGuide from './components/AddToHomeScreenGuide';
 import InstituteCombobox, { findHubForInstitute } from './components/InstituteCombobox';
 import Landing from './components/Landing';
+import CustomPollSubmit from './components/CustomPollSubmit';
 import { handleShare } from './utils/share';
 import { isJuniorUser } from './constants/classes';
+import { Plus, Heart, Home, Search, Crown, User } from 'lucide-react';
 
 // --- INITIALIZE CONFIGURED SUPABASE CLIENT & NAVIGATION ---
 import { supabase } from './supabase';
@@ -79,6 +81,7 @@ export default function App() {
   const [showFriendSearch, setShowFriendSearch] = useState(false);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showAddPollModal, setShowAddPollModal] = useState(false);
   const [acceptedFriends, setAcceptedFriends] = useState([]);
   const [legalView, setLegalView] = useState(null);
   const [activePlan, setActivePlan] = useState('weekly'); 
@@ -1225,88 +1228,106 @@ export default function App() {
           </div>
         )}
 
-        {view !== 'poll' && (
-          <header className="gas-app-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div className="gas-header-votes">
-                <span>🔥</span>
-                <span>{user.total_votes || 0}</span>
-              </div>
+        <header
+          className="gas-app-header"
+          style={{
+            position: 'relative',
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 16px',
+            height: '52px',
+            background: '#ffffff',
+            borderBottom: '1px solid #e5e7eb',
+            boxSizing: 'border-box',
+            flexShrink: 0,
+            zIndex: 30
+          }}
+        >
+          {/* Top-Left Element: thin outline + (Plus) icon */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowAddPollModal(true)}
+            aria-label="Add Poll"
+            title="Add Poll"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#000000',
+              borderRadius: '10px'
+            }}
+          >
+            <Plus size={24} strokeWidth={1.8} />
+          </motion.button>
 
-              {user.is_pro && (
-                <span style={{ fontSize: '15px' }}>👑</span>
-              )}
+          {/* Center Brand */}
+          <div
+            style={{
+              fontSize: '18px',
+              fontWeight: '900',
+              letterSpacing: '-0.03em',
+              color: '#000000',
+              userSelect: 'none'
+            }}
+          >
+            CenterInsider
+          </div>
 
-              <button
-                onClick={() => {
-                  setView('captains');
-                  navigate('/captains');
-                }}
+          {/* Top-Right Element: thin outline Heart icon (no text) with red dot badge */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowNotifications(prev => !prev)}
+            aria-label="Notifications"
+            title="Notifications"
+            style={{
+              position: 'relative',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#000000',
+              borderRadius: '10px'
+            }}
+          >
+            <Heart size={23} strokeWidth={1.8} />
+            {pendingRequests.length > 0 && (
+              <span
                 style={{
-                  background: view === 'captains' ? '#000000' : '#f3f4f6',
-                  border: view === 'captains' ? '1px solid #000000' : '1px solid #e5e7eb',
-                  color: view === 'captains' ? '#ffffff' : '#374151',
-                  borderRadius: '12px',
-                  padding: '0 10px',
-                  height: '36px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  cursor: 'pointer',
-                  fontSize: '11.5px',
-                  fontWeight: '800'
-                }}
-                title="Batch Captains Leaderboard"
-              >
-                <span>👑</span>
-                <span>Captains</span>
-              </button>
-
-              <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                style={{
-                  position: 'relative',
-                  background: '#f3f4f6',
-                  border: '1px solid #e5e7eb',
-                  color: '#000000',
-                  borderRadius: '12px',
-                  width: '36px',
-                  height: '36px',
+                  position: 'absolute',
+                  bottom: '2px',
+                  right: '2px',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  borderRadius: '50%',
+                  minWidth: '15px',
+                  height: '15px',
+                  padding: '0 3px',
+                  fontSize: '9px',
+                  fontWeight: '900',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: 'pointer',
-                  fontSize: '15px'
+                  border: '1.5px solid #ffffff',
+                  boxSizing: 'border-box',
+                  lineHeight: 1
                 }}
-                title="Friend Requests"
               >
-                🔔
-                {pendingRequests.length > 0 && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: '-4px',
-                      right: '-4px',
-                      background: '#000000',
-                      color: '#ffffff',
-                      borderRadius: '50%',
-                      width: '18px',
-                      height: '18px',
-                      fontSize: '10px',
-                      fontWeight: '900',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: 'none'
-                    }}
-                  >
-                    {pendingRequests.length}
-                  </span>
-                )}
-              </button>
-            </div>
-          </header>
-        )}
+                {pendingRequests.length}
+              </span>
+            )}
+          </motion.button>
+        </header>
 
         <main className="gas-app-body">
           <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '340px', width: '100%' }}><HamsterLoader message="Loading..." /></div>}>
@@ -1456,27 +1477,103 @@ export default function App() {
           </Suspense>
         </main>
 
-        <nav className="gas-bottom-dock">
-          {[
-            { id: 'poll', label: 'Feed', icon: '🔥' },
-            { id: 'inbox', label: 'Inbox', icon: '📬' },
-            { id: 'pro', label: 'God Mode', icon: '👑' },
-            { id: 'explore', label: 'Explore', icon: '🧭' },
-            { id: 'profile', label: 'Profile', icon: '👤' }
-          ].map(tab => (
-            <motion.div
-              key={tab.id}
-              whileTap={{ scale: 0.85 }}
-              onClick={() => handleNav(tab.id)}
-              className={`gas-dock-item ${view === tab.id ? 'active' : ''}`}
+        <nav className="gas-bottom-dock" aria-label="Main Navigation">
+          {/* a) Home (Outline Icon) -> Feed */}
+          <motion.div
+            whileTap={{ scale: 0.86 }}
+            onClick={() => handleNav('poll')}
+            className={`gas-dock-item ${view === 'poll' ? 'active' : ''}`}
+            aria-label="Feed"
+            role="button"
+          >
+            <Home size={24} strokeWidth={view === 'poll' ? 2.4 : 1.8} color={view === 'poll' ? '#000000' : '#8e8e93'} />
+            {view === 'poll' && (
+              <motion.div layoutId="activeDockGlow" className="gas-dock-glow-pill" />
+            )}
+          </motion.div>
+
+          {/* b) Magnifying Glass (Outline Icon) -> Explore */}
+          <motion.div
+            whileTap={{ scale: 0.86 }}
+            onClick={() => handleNav('explore')}
+            className={`gas-dock-item ${view === 'explore' ? 'active' : ''}`}
+            aria-label="Explore"
+            role="button"
+          >
+            <Search size={24} strokeWidth={view === 'explore' ? 2.4 : 1.8} color={view === 'explore' ? '#000000' : '#8e8e93'} />
+            {view === 'explore' && (
+              <motion.div layoutId="activeDockGlow" className="gas-dock-glow-pill" />
+            )}
+          </motion.div>
+
+          {/* c) Crown (Outline Icon) -> God Mode */}
+          <motion.div
+            whileTap={{ scale: 0.86 }}
+            onClick={() => handleNav('pro')}
+            className={`gas-dock-item ${view === 'pro' ? 'active' : ''}`}
+            aria-label="God Mode"
+            role="button"
+          >
+            <Crown size={24} strokeWidth={view === 'pro' ? 2.4 : 1.8} color={view === 'pro' ? '#000000' : '#8e8e93'} />
+            {view === 'pro' && (
+              <motion.div layoutId="activeDockGlow" className="gas-dock-glow-pill" />
+            )}
+          </motion.div>
+
+          {/* d) Profile Avatar (Circular Image wrapper) -> Profile */}
+          <motion.div
+            whileTap={{ scale: 0.86 }}
+            onClick={() => handleNav('profile')}
+            className={`gas-dock-item ${view === 'profile' ? 'active' : ''}`}
+            aria-label="Profile"
+            role="button"
+          >
+            <div
+              style={{
+                width: '27px',
+                height: '27px',
+                borderRadius: '50%',
+                padding: '1.5px',
+                border: view === 'profile' ? '2px solid #000000' : '2px solid transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.15s ease'
+              }}
             >
-              <span className="gas-dock-icon">{tab.icon}</span>
-              <span className="gas-dock-label">{tab.label}</span>
-              {view === tab.id && (
-                <motion.div layoutId="activeDockGlow" className="gas-dock-glow-pill" />
+              {user?.profile_pic ? (
+                <img
+                  src={user.profile_pic}
+                  alt="Profile"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '50%',
+                    objectFit: 'cover'
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '50%',
+                    background: '#f3f4f6',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '13px'
+                  }}
+                >
+                  {user?.avatar || <User size={15} strokeWidth={1.8} color={view === 'profile' ? '#000000' : '#8e8e93'} />}
+                </div>
               )}
-            </motion.div>
-          ))}
+            </div>
+            {view === 'profile' && (
+              <motion.div layoutId="activeDockGlow" className="gas-dock-glow-pill" />
+            )}
+          </motion.div>
         </nav>
 
         <AnimatePresence>
@@ -1827,6 +1924,81 @@ export default function App() {
                     ))}
                   </div>
                 )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showAddPollModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="gas-modal-overlay"
+              onClick={() => setShowAddPollModal(false)}
+              style={{ zIndex: 1000 }}
+            >
+              <motion.div
+                initial={{ y: 50, opacity: 0, scale: 0.95 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 50, opacity: 0, scale: 0.95 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 260 }}
+                className="gas-modal-sheet"
+                style={{
+                  maxWidth: '420px',
+                  margin: 'auto',
+                  borderRadius: '28px',
+                  padding: '20px 18px',
+                  background: '#ffffff',
+                  border: '1px solid #e5e7eb',
+                  boxShadow: '0 25px 60px rgba(0,0,0,0.25)',
+                  maxHeight: '88vh',
+                  overflowY: 'auto'
+                }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '18px' }}>✍️</span>
+                    <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#000000' }}>
+                      Add New Poll
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddPollModal(false)}
+                    aria-label="Close modal"
+                    style={{
+                      background: '#f3f4f6',
+                      border: 'none',
+                      color: '#6b7280',
+                      borderRadius: '50%',
+                      width: '30px',
+                      height: '30px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '13px'
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <CustomPollSubmit
+                  user={user}
+                  API={API}
+                  supabase={supabase}
+                  onPollCreated={() => {
+                    setShowAddPollModal(false);
+                    if (view === 'poll') {
+                      loadNextPoll();
+                    }
+                  }}
+                />
               </motion.div>
             </motion.div>
           )}

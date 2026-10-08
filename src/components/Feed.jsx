@@ -4,6 +4,7 @@ import SkeletonPollCard from './SkeletonPollCard';
 import CooldownScreen from './CooldownScreen';
 import SponsorBanner from './SponsorBanner';
 import { handleShare } from '../utils/share';
+import { Share2 } from 'lucide-react';
 import { MASTER_CLASS_OPTIONS, JUNIOR_CLASS_OPTIONS, SENIOR_CLASS_OPTIONS, isJuniorUser } from '../constants/classes';
 import { supabase } from '../supabase';
 
@@ -194,10 +195,8 @@ export default function Feed({
   const [optimisticVoted, setOptimisticVoted] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [isClassesOpen, setIsClassesOpen] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const classesDropdownRef = useRef(null);
-  const menuRef = useRef(null);
   const pollsPoolRef = useRef([]);
   const candidatesPoolRef = useRef([]);
   const isFetchingRef = useRef(false);
@@ -225,11 +224,8 @@ export default function Feed({
       if (classesDropdownRef.current && !classesDropdownRef.current.contains(e.target)) {
         setIsClassesOpen(false);
       }
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setIsMenuOpen(false);
-      }
     };
-    if (isClassesOpen || isMenuOpen) {
+    if (isClassesOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('touchstart', handleClickOutside);
     }
@@ -237,7 +233,7 @@ export default function Feed({
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
     };
-  }, [isClassesOpen, isMenuOpen]);
+  }, [isClassesOpen]);
 
   // Clean up auto advance timer
   useEffect(() => {
@@ -472,22 +468,6 @@ export default function Feed({
     });
   };
 
-  const handleCaptainsClick = () => {
-    setIsMenuOpen(false);
-    if (onOpenCaptains) {
-      onOpenCaptains();
-    } else if (typeof window !== 'undefined') {
-      window.location.hash = '#/captains';
-    }
-  };
-
-  const handleNotificationsClick = () => {
-    setIsMenuOpen(false);
-    if (onToggleNotifications) {
-      onToggleNotifications();
-    }
-  };
-
   // If in cooldown, show CooldownScreen
   if (isCooldownActive) {
     return (
@@ -518,26 +498,24 @@ export default function Feed({
         width: '100%',
         maxWidth: '440px',
         margin: '0 auto',
-        padding: '6px 14px 75px 14px',
+        padding: '6px 14px 20px 14px',
         boxSizing: 'border-box',
         background: '#ffffff'
       }}
     >
-      {/* Top Header Controls: Classes Filter & Top-Right Hamburger Menu */}
+      {/* Classes Filter */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '14px',
+          marginBottom: '10px',
           position: 'relative',
           zIndex: 40,
-          width: '100%',
-          gap: '8px'
+          width: '100%'
         }}
       >
         {/* Classes Dropdown */}
-        <div ref={classesDropdownRef} style={{ position: 'relative', flex: 1, maxWidth: '320px' }}>
+        <div ref={classesDropdownRef} style={{ position: 'relative', width: '100%' }}>
           <motion.button
             whileTap={{ scale: 0.97 }}
             type="button"
@@ -661,218 +639,6 @@ export default function Feed({
             )}
           </AnimatePresence>
         </div>
-
-        {/* Top-Right Hamburger Menu Dropdown Trigger */}
-        <div ref={menuRef} style={{ position: 'relative', flexShrink: 0 }}>
-          <motion.button
-            whileTap={{ scale: 0.92 }}
-            type="button"
-            onClick={() => setIsMenuOpen(prev => !prev)}
-            aria-label="Open navigation menu"
-            style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '14px',
-              border: '1.5px solid #000000',
-              background: isMenuOpen ? '#000000' : '#f9fafb',
-              color: isMenuOpen ? '#ffffff' : '#000000',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              position: 'relative',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            {/* Hamburger Icon: 3 horizontal lines */}
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-
-            {/* Notification Badge indicator on Hamburger */}
-            {pendingRequestsCount > 0 && !isMenuOpen && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '-4px',
-                  right: '-4px',
-                  background: '#ef4444',
-                  color: '#ffffff',
-                  borderRadius: '50%',
-                  width: '16px',
-                  height: '16px',
-                  fontSize: '9.5px',
-                  fontWeight: '900',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px solid #ffffff'
-                }}
-              >
-                {pendingRequestsCount}
-              </span>
-            )}
-          </motion.button>
-
-          {/* Sub-menu Dropdown */}
-          <AnimatePresence>
-            {isMenuOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -6, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -6, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 8px)',
-                  right: 0,
-                  width: '220px',
-                  background: '#ffffff',
-                  border: '1.5px solid #000000',
-                  borderRadius: '18px',
-                  boxShadow: '0 12px 36px rgba(0, 0, 0, 0.16)',
-                  zIndex: 100,
-                  padding: '8px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '6px'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px 2px 8px' }}>
-                  <span style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', color: '#9ca3af', letterSpacing: '0.05em' }}>
-                    Quick Menu
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setIsMenuOpen(false)}
-                    aria-label="Close menu"
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#9ca3af',
-                      fontSize: '13px',
-                      fontWeight: '800',
-                      cursor: 'pointer',
-                      padding: '2px 4px'
-                    }}
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                {/* 1. Flame Icon / Score */}
-                <div
-                  className="gas-header-votes"
-                  style={{
-                    width: '100%',
-                    justifyContent: 'space-between',
-                    boxSizing: 'border-box',
-                    padding: '8px 12px',
-                    borderRadius: '12px',
-                    background: '#f3f4f6',
-                    border: '1px solid #e5e7eb'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '15px' }}>🔥</span>
-                    <span style={{ fontWeight: '800', fontSize: '12px', color: '#111827' }}>Flames</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ fontWeight: '900', fontSize: '13px', color: '#000000' }}>{user?.total_votes || 0}</span>
-                    {user?.is_pro && <span style={{ fontSize: '13px' }}>👑</span>}
-                  </div>
-                </div>
-
-                {/* 2. Captains Button */}
-                <button
-                  type="button"
-                  onClick={handleCaptainsClick}
-                  style={{
-                    background: '#f3f4f6',
-                    border: '1px solid #e5e7eb',
-                    color: '#374151',
-                    borderRadius: '12px',
-                    padding: '8px 12px',
-                    height: '38px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    fontWeight: '800',
-                    width: '100%',
-                    transition: 'all 0.15s ease'
-                  }}
-                  title="Batch Captains Leaderboard"
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '14px' }}>👑</span>
-                    <span>Captains</span>
-                  </div>
-                  <span style={{ fontSize: '11px', color: '#6b7280' }}>➔</span>
-                </button>
-
-                {/* 3. Bell (Notifications) Button */}
-                <button
-                  type="button"
-                  onClick={handleNotificationsClick}
-                  style={{
-                    position: 'relative',
-                    background: '#f3f4f6',
-                    border: '1px solid #e5e7eb',
-                    color: '#000000',
-                    borderRadius: '12px',
-                    padding: '8px 12px',
-                    height: '38px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    fontWeight: '800',
-                    width: '100%',
-                    transition: 'all 0.15s ease'
-                  }}
-                  title="Friend Requests"
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '14px' }}>🔔</span>
-                    <span>Notifications</span>
-                  </div>
-                  {pendingRequestsCount > 0 ? (
-                    <span
-                      style={{
-                        background: '#000000',
-                        color: '#ffffff',
-                        borderRadius: '10px',
-                        padding: '1px 7px',
-                        fontSize: '10px',
-                        fontWeight: '900'
-                      }}
-                    >
-                      {pendingRequestsCount}
-                    </span>
-                  ) : (
-                    <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '600' }}>0</span>
-                  )}
-                </button>
-              </motion.div>
-            )}
-
-          </AnimatePresence>
-        </div>
       </div>
 
       {isLoading ? (
@@ -944,11 +710,11 @@ export default function Feed({
             style={{
               background: '#ffffff',
               border: '1px solid #e5e7eb',
-              borderRadius: '24px',
-              padding: '22px 18px',
+              borderRadius: '22px',
+              padding: '16px 14px',
               textAlign: 'center',
-              marginBottom: '14px',
-              minHeight: '105px',
+              marginBottom: '10px',
+              minHeight: '84px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -963,8 +729,8 @@ export default function Feed({
               aria-label="Share Question"
               style={{
                 position: 'absolute',
-                top: '12px',
-                right: '12px',
+                top: '10px',
+                right: '10px',
                 background: '#f3f4f6',
                 border: '1px solid #e5e7eb',
                 borderRadius: '10px',
@@ -978,15 +744,12 @@ export default function Feed({
                 transition: 'all 0.15s ease'
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
+              <Share2 size={15} strokeWidth={2} />
             </motion.button>
 
             <h3
               style={{
-                fontSize: 'clamp(16px, 4.2vw, 20px)',
+                fontSize: 'clamp(15px, 4vw, 18px)',
                 fontWeight: '800',
                 color: '#000000',
                 lineHeight: '1.35',
@@ -1010,24 +773,24 @@ export default function Feed({
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '36px 16px',
+                padding: '28px 16px',
                 textAlign: 'center',
                 background: '#ffffff',
                 border: '1px solid #e5e7eb',
                 borderRadius: '20px',
-                marginBottom: '16px',
+                marginBottom: '12px',
                 boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
               }}
             >
-              <div style={{ fontSize: '36px', marginBottom: '12px' }}>👥</div>
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>👥</div>
               <p
                 style={{
-                  fontSize: '14px',
+                  fontSize: '13.5px',
                   fontWeight: '600',
                   color: '#111827',
-                  lineHeight: '1.5',
-                  maxWidth: '320px',
-                  margin: '0 0 16px 0'
+                  lineHeight: '1.4',
+                  maxWidth: '300px',
+                  margin: '0 0 14px 0'
                 }}
               >
                 Not enough members in {user?.institute || 'your institute'} to unlock polls. Invite more students to start voting.
@@ -1040,8 +803,8 @@ export default function Feed({
                   color: '#ffffff',
                   border: '1px solid #000000',
                   borderRadius: '12px',
-                  padding: '10px 20px',
-                  fontSize: '13px',
+                  padding: '9px 18px',
+                  fontSize: '12.5px',
                   fontWeight: '800',
                   cursor: 'pointer',
                   display: 'inline-flex',
@@ -1049,12 +812,12 @@ export default function Feed({
                   gap: '6px'
                 }}
               >
-                <span>🚀</span>
+                <Share2 size={14} strokeWidth={2} />
                 <span>Invite Classmates</span>
               </motion.button>
             </motion.div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
               {displayOptions.map((opt) => (
                 <motion.button
                   key={opt.id}
@@ -1064,8 +827,8 @@ export default function Feed({
                   style={{
                     background: '#ffffff',
                     border: '1px solid #e5e7eb',
-                    borderRadius: '20px',
-                    padding: '14px 8px',
+                    borderRadius: '18px',
+                    padding: '10px 6px',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -1073,7 +836,7 @@ export default function Feed({
                     color: '#000000',
                     cursor: 'pointer',
                     outline: 'none',
-                    minHeight: '100px',
+                    minHeight: '86px',
                     boxSizing: 'border-box',
                     userSelect: 'none',
                     transition: 'all 0.15s ease',
@@ -1089,18 +852,18 @@ export default function Feed({
                   }}
                 >
                   {renderProfilePic
-                    ? renderProfilePic(opt.profile_pic, opt.avatar, opt.is_pro, opt.selected_ring || opt.ring, 48, Boolean(opt.invites >= 25 || opt.recruits >= 25 || opt.is_god_mode || opt.is_legend))
+                    ? renderProfilePic(opt.profile_pic, opt.avatar, opt.is_pro, opt.selected_ring || opt.ring, 42, Boolean(opt.invites >= 25 || opt.recruits >= 25 || opt.is_god_mode || opt.is_legend))
                     : (
-                      <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
+                      <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
                         {opt.avatar || '😎'}
                       </div>
                     )}
                   <span
                     style={{
-                      fontSize: '13px',
+                      fontSize: '12.5px',
                       fontWeight: '800',
                       color: '#000000',
-                      marginTop: '6px',
+                      marginTop: '4px',
                       textAlign: 'center',
                       lineHeight: '1.2',
                       overflow: 'hidden',
@@ -1113,7 +876,7 @@ export default function Feed({
                     @{opt.handle}
                   </span>
                   {opt.stream && (
-                    <span style={{ fontSize: '9.5px', color: '#6b7280', fontWeight: '600', marginTop: '2px' }}>
+                    <span style={{ fontSize: '9px', color: '#6b7280', fontWeight: '600', marginTop: '1px' }}>
                       {opt.stream}
                     </span>
                   )}
@@ -1123,7 +886,7 @@ export default function Feed({
           )}
 
           {/* Bottom Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: displayOptions.length < 4 ? 'flex-end' : 'space-between', marginTop: 'auto', paddingTop: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: displayOptions.length < 4 ? 'flex-end' : 'space-between', marginTop: 'auto', paddingTop: '2px' }}>
             {displayOptions.length >= 4 && (
               <motion.button
                 whileTap={{ scale: 0.94 }}
@@ -1133,9 +896,9 @@ export default function Feed({
                   background: shuffleCount >= 3 ? '#f3f4f6' : '#f9fafb',
                   border: '1px solid #e5e7eb',
                   color: shuffleCount >= 3 ? '#9ca3af' : '#374151',
-                  padding: '10px 16px',
-                  borderRadius: '16px',
-                  fontSize: '12.5px',
+                  padding: '8px 14px',
+                  borderRadius: '14px',
+                  fontSize: '12px',
                   fontWeight: '700',
                   cursor: shuffleCount >= 3 ? 'not-allowed' : 'pointer',
                   display: 'flex',
@@ -1146,7 +909,7 @@ export default function Feed({
               >
                 <span>🔀</span>
                 <span>
-                  {shuffleCount >= 3 ? 'No shuffles left' : `Shuffle (${3 - shuffleCount} left)`}
+                  {shuffleCount >= 3 ? 'No shuffles' : `Shuffle (${3 - shuffleCount})`}
                 </span>
               </motion.button>
             )}
@@ -1158,9 +921,9 @@ export default function Feed({
                 background: '#f9fafb',
                 border: '1px solid #e5e7eb',
                 color: '#374151',
-                padding: '10px 16px',
-                borderRadius: '16px',
-                fontSize: '12.5px',
+                padding: '8px 14px',
+                borderRadius: '14px',
+                fontSize: '12px',
                 fontWeight: '700',
                 cursor: 'pointer',
                 display: 'flex',

@@ -6,43 +6,44 @@ export function JuniorSponsorBanner({ city = 'Bathinda', hub = 'Bathinda Schools
   return (
     <div
       style={{
-        marginTop: '20px',
+        marginTop: '8px',
         width: '100%',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        flexShrink: 0
       }}
     >
       <motion.div
-        initial={{ opacity: 0, y: 6 }}
+        initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
         style={{
           position: 'relative',
-          borderRadius: '18px',
+          borderRadius: '16px',
           background: '#ffffff',
           border: '1.5px solid #000000',
-          padding: '18px 18px',
+          padding: '10px 14px',
           boxSizing: 'border-box',
           color: '#000000',
           display: 'flex',
           flexDirection: 'column',
-          gap: '10px',
-          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)'
+          gap: '6px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)'
         }}
       >
         {/* Header Tag & Title */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '18px' }}>🏫</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '15px' }}>🏫</span>
             <h3
               style={{
                 margin: 0,
-                fontSize: '15px',
+                fontSize: '13px',
                 fontWeight: '900',
                 color: '#000000',
                 letterSpacing: '-0.01em',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '5px'
               }}
             >
               Feature your School Admissions here
@@ -51,14 +52,14 @@ export function JuniorSponsorBanner({ city = 'Bathinda', hub = 'Bathinda Schools
 
           <span
             style={{
-              fontSize: '10px',
+              fontSize: '9px',
               fontWeight: '800',
               textTransform: 'uppercase',
-              letterSpacing: '0.06em',
+              letterSpacing: '0.05em',
               background: '#f3f4f6',
               color: '#374151',
-              padding: '3px 8px',
-              borderRadius: '6px',
+              padding: '2px 6px',
+              borderRadius: '5px',
               border: '1px solid #e5e7eb'
             }}
           >
@@ -70,28 +71,28 @@ export function JuniorSponsorBanner({ city = 'Bathinda', hub = 'Bathinda Schools
         <p
           style={{
             margin: 0,
-            fontSize: '12.5px',
+            fontSize: '11px',
             color: '#6b7280',
-            lineHeight: 1.45,
+            lineHeight: 1.35,
             fontWeight: '500'
           }}
         >
-          Reach students and parents across Classes 6 to 9 in {city}. Promote admissions, scholarship exams, and foundation batches.
+          Reach students across Classes 6 to 9 in {city}. Promote admissions & scholarship exams.
         </p>
 
         {/* CTA Button Action */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginTop: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginTop: '2px' }}>
           <a
             href="mailto:nikhilpuniya132@gmail.com?subject=School%20Admissions%20Sponsorship"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '5px',
               background: '#000000',
               color: '#ffffff',
-              padding: '8px 16px',
-              borderRadius: '12px',
-              fontSize: '12.5px',
+              padding: '6px 12px',
+              borderRadius: '10px',
+              fontSize: '11.5px',
               fontWeight: '800',
               textDecoration: 'none',
               cursor: 'pointer',
@@ -112,43 +113,44 @@ export function SeniorSponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub' }
   return (
     <div
       style={{
-        marginTop: '20px',
+        marginTop: '8px',
         width: '100%',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        flexShrink: 0
       }}
     >
       <motion.div
-        initial={{ opacity: 0, y: 6 }}
+        initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
         style={{
           position: 'relative',
-          borderRadius: '18px',
+          borderRadius: '16px',
           background: '#ffffff',
           border: '1.5px solid #000000',
-          padding: '18px 18px',
+          padding: '10px 14px',
           boxSizing: 'border-box',
           color: '#000000',
           display: 'flex',
           flexDirection: 'column',
-          gap: '10px',
-          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)'
+          gap: '6px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)'
         }}
       >
         {/* Header Tag & Title */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '18px' }}>🚀</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '15px' }}>🚀</span>
             <h3
               style={{
                 margin: 0,
-                fontSize: '15px',
+                fontSize: '13px',
                 fontWeight: '900',
                 color: '#000000',
                 letterSpacing: '-0.01em',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '5px'
               }}
             >
               Feature your Coaching Institute here
@@ -157,14 +159,14 @@ export function SeniorSponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub' }
 
           <span
             style={{
-              fontSize: '10px',
+              fontSize: '9px',
               fontWeight: '800',
               textTransform: 'uppercase',
-              letterSpacing: '0.06em',
+              letterSpacing: '0.05em',
               background: '#f3f4f6',
               color: '#374151',
-              padding: '3px 8px',
-              borderRadius: '6px',
+              padding: '2px 6px',
+              borderRadius: '5px',
               border: '1px solid #e5e7eb'
             }}
           >
@@ -176,28 +178,28 @@ export function SeniorSponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub' }
         <p
           style={{
             margin: 0,
-            fontSize: '12.5px',
+            fontSize: '11px',
             color: '#6b7280',
-            lineHeight: 1.45,
+            lineHeight: 1.35,
             fontWeight: '500'
           }}
         >
-          Want to feature your {city} institute directly to 10th, 11th & 12th graders? Secure an exclusive CenterInsider B2B Retainer.
+          Feature your {city} institute directly to 10th-12th graders. Secure an exclusive B2B Retainer.
         </p>
 
         {/* CTA Button Action */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginTop: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginTop: '2px' }}>
           <a
             href="mailto:nikhilpuniya132@gmail.com?subject=Coaching%20Institute%20Sponsorship"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '5px',
               background: '#000000',
               color: '#ffffff',
-              padding: '8px 16px',
-              borderRadius: '12px',
-              fontSize: '12.5px',
+              padding: '6px 12px',
+              borderRadius: '10px',
+              fontSize: '11.5px',
               fontWeight: '800',
               textDecoration: 'none',
               cursor: 'pointer',

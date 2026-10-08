@@ -52,7 +52,7 @@ export const showShareToast = (message = 'Link copied to clipboard!') => {
 
 export const handleShare = async (data = {}) => {
   const sharePayload = {
-    title: 'CenterInsider',
+    title: data.title || 'CenterInsider',
     text: data.text || 'Check this out on CenterInsider!',
     url: data.url || (typeof window !== 'undefined' ? window.location.href : ''),
   };
@@ -62,41 +62,33 @@ export const handleShare = async (data = {}) => {
       await navigator.share(sharePayload);
       return { success: true, method: 'native' };
     } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.error('Share failed:', err);
-        // Fallback to clipboard if share threw an unexpected error
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(sharePayload.url);
-            showShareToast('Link copied to clipboard!');
-            return { success: true, method: 'clipboard' };
-          }
-        } catch (clipboardErr) {
-          console.error('Clipboard copy failed:', clipboardErr);
-        }
+      if (err.name === 'AbortError') {
+        return { success: false, aborted: true };
       }
-      return { success: false, aborted: true };
+      console.error('Native share failed, attempting clipboard fallback:', err);
     }
-  } else {
-    try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(sharePayload.url);
-      } else if (typeof document !== 'undefined') {
-        const textArea = document.createElement('textarea');
-        textArea.value = sharePayload.url;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-9999px';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-      }
-      showShareToast('Link copied to clipboard!');
-      return { success: true, method: 'clipboard' };
-    } catch (clipboardErr) {
-      console.error('Clipboard copy failed:', clipboardErr);
-      return { success: false, error: clipboardErr };
+  }
+
+  // Fallback to clipboard if Web Share API is not supported or failed
+  try {
+    const copyContent = sharePayload.url || sharePayload.text;
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(copyContent);
+    } else if (typeof document !== 'undefined') {
+      const textArea = document.createElement('textarea');
+      textArea.value = copyContent;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
     }
+    showShareToast('Link copied to clipboard!');
+    return { success: true, method: 'clipboard' };
+  } catch (clipboardErr) {
+    console.error('Clipboard fallback failed:', clipboardErr);
+    return { success: false, error: clipboardErr };
   }
 };

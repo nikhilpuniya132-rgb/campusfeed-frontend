@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CustomPollSubmit from './CustomPollSubmit';
 import { copyReferralLink, getWhatsAppShareUrl } from '../utils/referral';
+import { handleShare } from '../utils/share';
+import { Share2 } from 'lucide-react';
 
 export default function GodMode({
   user,
@@ -124,9 +126,21 @@ export default function GodMode({
     }
   };
 
+  const handleNativeShare = async () => {
+    const referralCode = (user?.invite_code || user?.handle || user?.id || 'friend').replace(/^@/, '').trim();
+    const shareUrl = `${window.location.origin}/?ref=${encodeURIComponent(referralCode)}`;
+    const streamText = user?.stream || user?.grade || 'your coaching batch';
+    const shareText = `Someone from ${streamText} voted for you on CenterInsider! Join to see who: ${shareUrl}`;
+
+    await handleShare({
+      title: 'CenterInsider',
+      text: shareText,
+      url: shareUrl
+    });
+  };
+
   const handleWhatsAppShare = () => {
-    const waUrl = getWhatsAppShareUrl(user);
-    window.open(waUrl, '_blank');
+    handleNativeShare();
   };
 
   const toggleSubmenu = (menuId) => {
@@ -525,19 +539,23 @@ export default function GodMode({
                     <div style={{ marginTop: '12px', textAlign: 'center' }}>
                       <button
                         type="button"
-                        onClick={handleWhatsAppShare}
+                        onClick={handleNativeShare}
+                        title="Share / Invite Friends"
+                        aria-label="Share / Invite Friends"
                         style={{
-                          background: '#25D366',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '10px',
-                          padding: '8px 16px',
-                          fontSize: '11.5px',
-                          fontWeight: '800',
-                          cursor: 'pointer'
+                          background: 'transparent',
+                          color: hasLifetimeLegend ? '#ffffff' : '#000000',
+                          border: hasLifetimeLegend ? '1.5px solid #ffffff' : '1.5px solid #000000',
+                          borderRadius: '12px',
+                          padding: '8px 14px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
                         }}
                       >
-                        Share on WhatsApp ({effectiveInvites}/25) ➔
+                        <Share2 size={16} strokeWidth={1.8} />
                       </button>
                     </div>
                   )}
@@ -798,19 +816,23 @@ export default function GodMode({
                         </p>
                         <button
                           type="button"
-                          onClick={handleWhatsAppShare}
+                          onClick={handleNativeShare}
+                          title="Share / Invite Friends"
+                          aria-label="Share / Invite Friends"
                           style={{
                             background: '#000000',
                             color: '#ffffff',
-                            border: 'none',
-                            borderRadius: '10px',
-                            padding: '8px 16px',
-                            fontSize: '11.5px',
-                            fontWeight: '800',
-                            cursor: 'pointer'
+                            border: '1.5px solid #000000',
+                            borderRadius: '12px',
+                            padding: '8px 14px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
                           }}
                         >
-                          Invite Friends to Unlock ➔
+                          <Share2 size={16} strokeWidth={1.8} />
                         </button>
                       </div>
                     </div>

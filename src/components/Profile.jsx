@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 import { handleShare } from '../utils/share';
+import { Share2 } from 'lucide-react';
 import { MASTER_CLASS_OPTIONS, CLASS_OPTIONS } from '../constants/classes';
 
 const AURA_RING_OPTIONS = [
@@ -190,18 +191,14 @@ export default function Profile({
   const my_invite_code = (user?.invite_code || user?.handle || referralUserId).replace(/^@/, '').trim();
   const inviteLink = `${window.location.origin}/signup?ref=${encodeURIComponent(referralUserId)}`;
 
-  const handleWhatsAppInvite = async () => {
-    if (onInviteShare) {
-      onInviteShare();
-    } else {
-      const hubText = user?.stream || 'your coaching batch';
-      const shareText = `Someone from ${hubText} voted for you on CenterInsider! Join to see who: ${inviteLink} (Code: ${my_invite_code})`;
-      await handleShare({
-        title: 'CenterInsider',
-        text: shareText,
-        url: inviteLink
-      });
-    }
+  const handleNativeShare = async () => {
+    const hubText = user?.stream || 'your coaching batch';
+    const shareText = `Someone from ${hubText} voted for you on CenterInsider! Join to see who: ${inviteLink} (Code: ${my_invite_code})`;
+    await handleShare({
+      title: 'CenterInsider',
+      text: shareText,
+      url: inviteLink
+    });
   };
 
   const handleImageUpload = (e) => {
@@ -321,7 +318,7 @@ export default function Profile({
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', position: 'relative', marginBottom: '8px' }} ref={settingsMenuRef}>
         <motion.button
           whileTap={{ scale: 0.92 }}
-          onClick={handleWhatsAppInvite}
+          onClick={handleNativeShare}
           aria-label="Share Profile"
           title="Share Profile / Invite"
           style={{
@@ -338,10 +335,7 @@ export default function Profile({
             transition: 'border-color 0.15s ease'
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="22" y1="2" x2="11" y2="13"></line>
-            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-          </svg>
+          <Share2 size={16} strokeWidth={2} />
         </motion.button>
 
         <motion.button
