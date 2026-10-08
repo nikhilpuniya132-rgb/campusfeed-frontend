@@ -702,13 +702,13 @@ export default function Feed({
         </motion.div>
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          {/* Question Card (60% Vertical Ratio) */}
+          {/* Question Card (40% Vertical Ratio) */}
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
             style={{
-              flex: 6,
+              flex: 4,
               minHeight: 0,
               background: '#ffffff',
               border: '1px solid #e5e7eb',
@@ -751,21 +751,21 @@ export default function Feed({
 
             <h3
               style={{
-                fontSize: 'clamp(16px, 4.2vw, 20px)',
+                fontSize: 'clamp(21px, 5.4vw, 26px)',
                 fontWeight: '900',
                 color: '#000000',
-                lineHeight: '1.35',
+                lineHeight: '1.25',
                 margin: 0,
-                padding: '0 20px',
-                letterSpacing: '-0.01em'
+                padding: '0 16px',
+                letterSpacing: '-0.02em'
               }}
             >
               "{currentPoll?.question || 'Who is most likely to crack NEET on the first attempt?'}"
             </h3>
           </motion.div>
 
-          {/* Bottom Area (40% Vertical Ratio: Candidates, Profile Pics, Actions) */}
-          <div style={{ flex: 4, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 0 }}>
+          {/* Bottom Area (60% Vertical Ratio: Candidates, Profile Pics, Actions) */}
+          <div style={{ flex: 6, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 0 }}>
             {/* 4 Classmate Candidate Buttons or Empty State */}
             {displayOptions.length < 4 ? (
               <motion.div
