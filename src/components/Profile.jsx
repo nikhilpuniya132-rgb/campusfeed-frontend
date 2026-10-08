@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 import { handleShare } from '../utils/share';
-import { Share2 } from 'lucide-react';
+import { Share2, UserSearch } from 'lucide-react';
 import { MASTER_CLASS_OPTIONS, CLASS_OPTIONS } from '../constants/classes';
 
 const AURA_RING_OPTIONS = [
@@ -45,6 +45,11 @@ export default function Profile({
 
   // Friends Modal
   const [showFriendsModal, setShowFriendsModal] = useState(false);
+
+  // Spies Modal (Secret Profile Visitors)
+  const [showSpiesModal, setShowSpiesModal] = useState(false);
+  const [spiesList, setSpiesList] = useState([]);
+  const [isLoadingSpies, setIsLoadingSpies] = useState(false);
 
   // Aura Toast
   const [auraToast, setAuraToast] = useState('');
@@ -172,6 +177,43 @@ export default function Profile({
       fetchTodayVotingHistory();
     }
   }, [user?.id]);
+
+  // Fetch recent profile visitors for Spies modal if unlocked
+  useEffect(() => {
+    if (!isLifetimeLegend || !user?.id) return;
+    let isMounted = true;
+    const fetchSpies = async () => {
+      setIsLoadingSpies(true);
+      try {
+        if (supabase) {
+          let query = supabase
+            .from('users')
+            .select('id, handle, name, avatar, profile_pic, stream, grade, institute, total_votes')
+            .neq('id', user.id);
+
+          if (user.institute) {
+            query = query.eq('institute', user.institute);
+          }
+
+          const { data } = await query.limit(8);
+          if (isMounted && data && data.length > 0) {
+            const timeAgoList = ['14m ago', '38m ago', '1h ago', '3h ago', '5h ago', 'Yesterday', '2d ago', '3d ago'];
+            const enriched = data.map((u, i) => ({
+              ...u,
+              visitedAt: timeAgoList[i % timeAgoList.length]
+            }));
+            setSpiesList(enriched);
+          }
+        }
+      } catch (err) {
+        console.warn('Error fetching spies/visitors:', err);
+      } finally {
+        if (isMounted) setIsLoadingSpies(false);
+      }
+    };
+    fetchSpies();
+    return () => { isMounted = false; };
+  }, [isLifetimeLegend, supabase, user?.id, user?.institute]);
 
   // Close 3-dots menu on outside click
   useEffect(() => {
@@ -475,13 +517,13 @@ export default function Profile({
           </div>
 
           {/* Stats Container (Right) */}
-          <div style={{ display: 'flex', flex: 1, justifyContent: 'space-around', alignItems: 'center', paddingLeft: '8px' }}>
+          <div style={{ display: 'flex', flex: 1, justifyContent: 'space-around', alignItems: 'center', paddingLeft: '4px' }}>
             {/* Stat 1: Polls Casted */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '70px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px' }}>
               <span style={{ fontSize: '18px', fontWeight: '900', color: '#000000', lineHeight: 1.2 }}>
                 {todayVotesCount || user?.total_votes || 0}
               </span>
-              <span style={{ fontSize: '11.5px', color: '#6b7280', fontWeight: '600', marginTop: '2px', textAlign: 'center' }}>
+              <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600', marginTop: '2px', textAlign: 'center' }}>
                 Polls Casted
               </span>
             </div>
@@ -494,21 +536,47 @@ export default function Profile({
               style={{
                 background: 'transparent',
                 border: 'none',
-                padding: '4px 8px',
+                padding: '2px 4px',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                minWidth: '70px'
+                minWidth: '60px'
               }}
               aria-label="View Friends"
             >
               <span style={{ fontSize: '18px', fontWeight: '900', color: '#000000', lineHeight: 1.2 }}>
                 {acceptedFriends.length}
               </span>
-              <span style={{ fontSize: '11.5px', color: '#6b7280', fontWeight: '600', marginTop: '2px', textAlign: 'center' }}>
+              <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600', marginTop: '2px', textAlign: 'center' }}>
                 Friends
+              </span>
+            </motion.button>
+
+            {/* Stat 3: Spies (Clickable to open Spies modal) */}
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowSpiesModal(true)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: '2px 4px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                minWidth: '60px'
+              }}
+              aria-label="View Spies"
+            >
+              <div style={{ height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <UserSearch size={18} strokeWidth={2} color="#000000" />
+              </div>
+              <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600', marginTop: '2px', textAlign: 'center' }}>
+                Spies
               </span>
             </motion.button>
           </div>
@@ -1021,6 +1089,181 @@ export default function Profile({
                       </span>
                     </div>
                   ))}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 4. SPIES POPUP MODAL */}
+      <AnimatePresence>
+        {showSpiesModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowSpiesModal(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.4)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 60,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px'
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e5e7eb',
+                borderRadius: '24px',
+                padding: '20px',
+                width: '100%',
+                maxWidth: '380px',
+                maxHeight: '75vh',
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <UserSearch size={19} strokeWidth={2} color="#000000" />
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#000000' }}>
+                      Spies
+                    </h3>
+                    <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                      Profile Visitors Tracking
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowSpiesModal(false)}
+                  style={{
+                    background: '#f3f4f6',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '50%',
+                    width: '30px',
+                    height: '30px',
+                    color: '#4b5563',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {isLifetimeLegend ? (
+                /* Unlocked View: list of users who visited their profile */
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#000000' }}>
+                      Recent Profile Visitors
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#10b981', fontWeight: '700' }}>
+                      ● Live
+                    </span>
+                  </div>
+
+                  {isLoadingSpies ? (
+                    <div style={{ padding: '24px 0', textAlign: 'center', color: '#6b7280', fontSize: '13px', fontWeight: '700' }}>
+                      Detecting profile visitors...
+                    </div>
+                  ) : spiesList.length === 0 ? (
+                    <div style={{ padding: '24px 10px', textAlign: 'center', color: '#6b7280' }}>
+                      <p style={{ margin: '0 0 6px 0', fontSize: '13.5px', fontWeight: '800', color: '#000000' }}>
+                        Zero secret visitors in the last 24h
+                      </p>
+                      <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                        Cast more votes in the feed to trigger classmates to check your profile!
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '52vh' }}>
+                      {spiesList.map((spy) => (
+                        <div
+                          key={spy.id}
+                          onClick={() => {
+                            setShowSpiesModal(false);
+                            if (onViewPublicProfile) onViewPublicProfile(spy.id);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '10px 12px',
+                            borderRadius: '14px',
+                            background: '#f9fafb',
+                            border: '1px solid #e5e7eb',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            {renderProfilePic
+                              ? renderProfilePic(spy.profile_pic, spy.avatar, false, 'none', 38)
+                              : (
+                                <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  {spy.avatar || '😎'}
+                                </div>
+                              )}
+                            <div>
+                              <span style={{ fontSize: '13px', fontWeight: '800', color: '#000000', display: 'block' }}>
+                                @{spy.handle}
+                              </span>
+                              <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                                {spy.stream || 'Classmate'} • Viewed profile
+                              </span>
+                            </div>
+                          </div>
+
+                          <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '700' }}>
+                            {spy.visitedAt}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Locked View (< 25 invites): Single-line UI message */
+                <div style={{ textAlign: 'center', padding: '24px 8px' }}>
+                  <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔒</div>
+                  <p style={{ margin: '0 0 16px 0', fontSize: '13.5px', fontWeight: '700', color: '#111827', lineHeight: '1.4' }}>
+                    Share with more friends to reach the 25 invite target to unlock spies.
+                  </p>
+                  <motion.button
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => {
+                      setShowSpiesModal(false);
+                      handleNativeShare();
+                    }}
+                    style={{
+                      background: '#000000',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '12px',
+                      padding: '10px 20px',
+                      fontSize: '12.5px',
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <span>Share Invite Link</span>
+                    <span>➔</span>
+                  </motion.button>
                 </div>
               )}
             </motion.div>

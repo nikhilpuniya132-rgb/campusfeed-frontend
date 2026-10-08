@@ -498,7 +498,7 @@ export default function Feed({
         width: '100%',
         maxWidth: '440px',
         margin: '0 auto',
-        padding: '6px 14px 20px 14px',
+        padding: '4px 12px 62px 12px',
         boxSizing: 'border-box',
         background: '#ffffff'
       }}
@@ -508,7 +508,7 @@ export default function Feed({
         style={{
           display: 'flex',
           alignItems: 'center',
-          marginBottom: '10px',
+          marginBottom: '6px',
           position: 'relative',
           zIndex: 40,
           width: '100%'
@@ -701,25 +701,27 @@ export default function Feed({
           </motion.button>
         </motion.div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {/* Question Card */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          {/* Question Card (60% Vertical Ratio) */}
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
             style={{
+              flex: 6,
+              minHeight: 0,
               background: '#ffffff',
               border: '1px solid #e5e7eb',
-              borderRadius: '22px',
+              borderRadius: '20px',
               padding: '16px 14px',
               textAlign: 'center',
-              marginBottom: '10px',
-              minHeight: '84px',
+              marginBottom: '6px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-              position: 'relative'
+              position: 'relative',
+              boxSizing: 'border-box'
             }}
           >
             <motion.button
@@ -749,12 +751,12 @@ export default function Feed({
 
             <h3
               style={{
-                fontSize: 'clamp(15px, 4vw, 18px)',
-                fontWeight: '800',
+                fontSize: 'clamp(16px, 4.2vw, 20px)',
+                fontWeight: '900',
                 color: '#000000',
                 lineHeight: '1.35',
                 margin: 0,
-                padding: '0 24px',
+                padding: '0 20px',
                 letterSpacing: '-0.01em'
               }}
             >
@@ -762,177 +764,180 @@ export default function Feed({
             </h3>
           </motion.div>
 
-          {/* 4 Classmate Candidate Buttons or Empty State */}
-          {displayOptions.length < 4 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '28px 16px',
-                textAlign: 'center',
-                background: '#ffffff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '20px',
-                marginBottom: '12px',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
-              }}
-            >
-              <div style={{ fontSize: '32px', marginBottom: '8px' }}>👥</div>
-              <p
+          {/* Bottom Area (40% Vertical Ratio: Candidates, Profile Pics, Actions) */}
+          <div style={{ flex: 4, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 0 }}>
+            {/* 4 Classmate Candidate Buttons or Empty State */}
+            {displayOptions.length < 4 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
                 style={{
-                  fontSize: '13.5px',
-                  fontWeight: '600',
-                  color: '#111827',
-                  lineHeight: '1.4',
-                  maxWidth: '300px',
-                  margin: '0 0 14px 0'
-                }}
-              >
-                Not enough members in {user?.institute || 'your institute'} to unlock polls. Invite more students to start voting.
-              </p>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={handleSharePoll}
-                style={{
-                  background: '#000000',
-                  color: '#ffffff',
-                  border: '1px solid #000000',
-                  borderRadius: '12px',
-                  padding: '9px 18px',
-                  fontSize: '12.5px',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '6px'
+                  justifyContent: 'center',
+                  padding: '14px 10px',
+                  textAlign: 'center',
+                  background: '#ffffff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '16px',
+                  marginBottom: '4px',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
                 }}
               >
-                <Share2 size={14} strokeWidth={2} />
-                <span>Invite Classmates</span>
-              </motion.button>
-            </motion.div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
-              {displayOptions.map((opt) => (
-                <motion.button
-                  key={opt.id}
-                  whileTap={{ scale: 0.96 }}
-                  transition={{ duration: 0.1 }}
-                  onClick={() => handleVoteClick(opt)}
+                <div style={{ fontSize: '24px', marginBottom: '4px' }}>👥</div>
+                <p
                   style={{
-                    background: '#ffffff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '18px',
-                    padding: '10px 6px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#000000',
-                    cursor: 'pointer',
-                    outline: 'none',
-                    minHeight: '86px',
-                    boxSizing: 'border-box',
-                    userSelect: 'none',
-                    transition: 'all 0.15s ease',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#d1d5db';
-                    e.currentTarget.style.background = '#f9fafb';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#e5e7eb';
-                    e.currentTarget.style.background = '#ffffff';
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#111827',
+                    lineHeight: '1.3',
+                    maxWidth: '280px',
+                    margin: '0 0 8px 0'
                   }}
                 >
-                  {renderProfilePic
-                    ? renderProfilePic(opt.profile_pic, opt.avatar, opt.is_pro, opt.selected_ring || opt.ring, 42, Boolean(opt.invites >= 25 || opt.recruits >= 25 || opt.is_god_mode || opt.is_legend))
-                    : (
-                      <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
-                        {opt.avatar || '😎'}
-                      </div>
-                    )}
-                  <span
+                  Not enough members in {user?.institute || 'your institute'} to unlock polls. Invite more students to start voting.
+                </p>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleSharePoll}
+                  style={{
+                    background: '#000000',
+                    color: '#ffffff',
+                    border: '1px solid #000000',
+                    borderRadius: '10px',
+                    padding: '6px 14px',
+                    fontSize: '11.5px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}
+                >
+                  <Share2 size={13} strokeWidth={2} />
+                  <span>Invite Classmates</span>
+                </motion.button>
+              </motion.div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '4px', flex: 1 }}>
+                {displayOptions.map((opt) => (
+                  <motion.button
+                    key={opt.id}
+                    whileTap={{ scale: 0.96 }}
+                    transition={{ duration: 0.1 }}
+                    onClick={() => handleVoteClick(opt)}
                     style={{
-                      fontSize: '12.5px',
-                      fontWeight: '800',
+                      background: '#ffffff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '14px',
+                      padding: '6px 4px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       color: '#000000',
-                      marginTop: '4px',
-                      textAlign: 'center',
-                      lineHeight: '1.2',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      maxWidth: '100%',
-                      padding: '0 4px',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      minHeight: 0,
+                      boxSizing: 'border-box',
+                      userSelect: 'none',
+                      transition: 'all 0.15s ease',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#d1d5db';
+                      e.currentTarget.style.background = '#f9fafb';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#e5e7eb';
+                      e.currentTarget.style.background = '#ffffff';
                     }}
                   >
-                    @{opt.handle}
-                  </span>
-                  {opt.stream && (
-                    <span style={{ fontSize: '9px', color: '#6b7280', fontWeight: '600', marginTop: '1px' }}>
-                      {opt.stream}
+                    {renderProfilePic
+                      ? renderProfilePic(opt.profile_pic, opt.avatar, opt.is_pro, opt.selected_ring || opt.ring, 36, Boolean(opt.invites >= 25 || opt.recruits >= 25 || opt.is_god_mode || opt.is_legend))
+                      : (
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
+                          {opt.avatar || '😎'}
+                        </div>
+                      )}
+                    <span
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: '800',
+                        color: '#000000',
+                        marginTop: '2px',
+                        textAlign: 'center',
+                        lineHeight: '1.15',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        maxWidth: '100%',
+                        padding: '0 4px',
+                      }}
+                    >
+                      @{opt.handle}
                     </span>
-                  )}
-                </motion.button>
-              ))}
-            </div>
-          )}
-
-          {/* Bottom Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: displayOptions.length < 4 ? 'flex-end' : 'space-between', marginTop: 'auto', paddingTop: '2px' }}>
-            {displayOptions.length >= 4 && (
-              <motion.button
-                whileTap={{ scale: 0.94 }}
-                disabled={shuffleCount >= 3}
-                onClick={handleShuffleClick}
-                style={{
-                  background: shuffleCount >= 3 ? '#f3f4f6' : '#f9fafb',
-                  border: '1px solid #e5e7eb',
-                  color: shuffleCount >= 3 ? '#9ca3af' : '#374151',
-                  padding: '8px 14px',
-                  borderRadius: '14px',
-                  fontSize: '12px',
-                  fontWeight: '700',
-                  cursor: shuffleCount >= 3 ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  opacity: shuffleCount >= 3 ? 0.6 : 1,
-                }}
-              >
-                <span>🔀</span>
-                <span>
-                  {shuffleCount >= 3 ? 'No shuffles' : `Shuffle (${3 - shuffleCount})`}
-                </span>
-              </motion.button>
+                    {opt.stream && (
+                      <span style={{ fontSize: '8.5px', color: '#6b7280', fontWeight: '600', marginTop: '1px' }}>
+                        {opt.stream}
+                      </span>
+                    )}
+                  </motion.button>
+                ))}
+              </div>
             )}
 
-            <motion.button
-              whileTap={{ scale: 0.94 }}
-              onClick={handleSkipClick}
-              style={{
-                background: '#f9fafb',
-                border: '1px solid #e5e7eb',
-                color: '#374151',
-                padding: '8px 14px',
-                borderRadius: '14px',
-                fontSize: '12px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              Skip ⏭️
-            </motion.button>
+            {/* Bottom Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: displayOptions.length < 4 ? 'flex-end' : 'space-between', paddingTop: '2px' }}>
+              {displayOptions.length >= 4 && (
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
+                  disabled={shuffleCount >= 3}
+                  onClick={handleShuffleClick}
+                  style={{
+                    background: shuffleCount >= 3 ? '#f3f4f6' : '#f9fafb',
+                    border: '1px solid #e5e7eb',
+                    color: shuffleCount >= 3 ? '#9ca3af' : '#374151',
+                    padding: '6px 12px',
+                    borderRadius: '10px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    cursor: shuffleCount >= 3 ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    opacity: shuffleCount >= 3 ? 0.6 : 1,
+                  }}
+                >
+                  <span>🔀</span>
+                  <span>
+                    {shuffleCount >= 3 ? 'No shuffles' : `Shuffle (${3 - shuffleCount})`}
+                  </span>
+                </motion.button>
+              )}
+
+              <motion.button
+                whileTap={{ scale: 0.94 }}
+                onClick={handleSkipClick}
+                style={{
+                  background: '#f9fafb',
+                  border: '1px solid #e5e7eb',
+                  color: '#374151',
+                  padding: '6px 12px',
+                  borderRadius: '10px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                Skip ⏭️
+              </motion.button>
+            </div>
           </div>
         </div>
       )}

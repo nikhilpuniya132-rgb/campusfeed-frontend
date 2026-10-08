@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Users, School } from 'lucide-react';
 import { useNavigate } from '../useNavigate';
 import ReferralInviteSnippet from './ReferralInviteSnippet';
 
@@ -429,40 +430,6 @@ export default function Explore({
           </AnimatePresence>
         </div>
 
-        {/* 3. Batch Captains Hub Spotlight Banner (Bold Gen-Z Upgrade) */}
-        <motion.div
-          whileTap={{ scale: 0.98 }}
-          onClick={() => navigate('/captains')}
-          style={{
-            background: '#000000',
-            border: '2px solid #000000',
-            borderRadius: '20px',
-            padding: '14px 16px',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.08)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left' }}>
-            <span style={{ fontSize: '26px' }}>👑</span>
-            <div>
-              <div style={{ color: '#ffffff', fontSize: '14.5px', fontWeight: '950', display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '-0.3px' }}>
-                <span>BATCH CAPTAINS HUB</span>
-                <span style={{ background: '#fbbf24', color: '#000000', fontSize: '9.5px', fontWeight: '950', padding: '2px 7px', borderRadius: '6px' }}>
-                  APPLY
-                </span>
-              </div>
-              <div style={{ color: '#d1d5db', fontSize: '11.5px', marginTop: '2px', fontWeight: '600' }}>
-                Invite 25 classmates to claim hub crown & moderation
-              </div>
-            </div>
-          </div>
-          <span style={{ color: '#fbbf24', fontSize: '18px', fontWeight: '900' }}>➔</span>
-        </motion.div>
-
         {/* ======================================================== */}
         {/* 4. COLLAPSIBLE ACCORDIONS (80% FOCUS / GEN-Z TYPOGRAPHY) */}
         {/* ======================================================== */}
@@ -633,11 +600,12 @@ export default function Explore({
           {/* ACCORDION 3: CLASS RANK (STRICTLY LOGGED-IN INSTITUTE & CLASS) */}
           <div
             style={{
-              background: '#ffffff',
-              border: '2px solid #000000',
-              borderRadius: '20px',
-              overflow: 'hidden',
-              boxShadow: '0 3px 12px rgba(0, 0, 0, 0.05)'
+              background: 'transparent',
+              border: 'none',
+              borderBottom: '1px solid #e5e7eb',
+              borderRadius: 0,
+              boxShadow: 'none',
+              overflow: 'hidden'
             }}
           >
             <button
@@ -645,11 +613,11 @@ export default function Explore({
               onClick={() => toggleAccordion('classRank')}
               style={{
                 width: '100%',
-                padding: '16px',
+                padding: '14px 4px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                background: '#ffffff',
+                background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
                 textAlign: 'left'
@@ -657,12 +625,12 @@ export default function Explore({
             >
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '20px' }}>🏆</span>
+                  <Users size={19} strokeWidth={1.8} color="#000000" />
                   <span style={{ fontSize: '15px', fontWeight: '950', color: '#000000', letterSpacing: '-0.3px' }}>
                     Class Rank
                   </span>
                 </div>
-                <span style={{ fontSize: '11.5px', color: '#6b7280', fontWeight: '700', marginTop: '2px', paddingLeft: '30px' }}>
+                <span style={{ fontSize: '11.5px', color: '#6b7280', fontWeight: '700', marginTop: '2px', paddingLeft: '29px' }}>
                   {currentUserInstitute} • {currentUserStream}
                 </span>
               </div>
@@ -781,14 +749,15 @@ export default function Explore({
             </AnimatePresence>
           </div>
 
-          {/* ACCORDION 4: INSTITUTE-WIDE LEADERBOARD */}
+          {/* ACCORDION 4: SCHOOL RANK / INSTITUTE-WIDE LEADERBOARD */}
           <div
             style={{
-              background: '#ffffff',
-              border: '2px solid #000000',
-              borderRadius: '20px',
-              overflow: 'hidden',
-              boxShadow: '0 3px 12px rgba(0, 0, 0, 0.05)'
+              background: 'transparent',
+              border: 'none',
+              borderBottom: '1px solid #e5e7eb',
+              borderRadius: 0,
+              boxShadow: 'none',
+              overflow: 'hidden'
             }}
           >
             <button
@@ -796,24 +765,24 @@ export default function Explore({
               onClick={() => toggleAccordion('allBathinda')}
               style={{
                 width: '100%',
-                padding: '16px',
+                padding: '14px 4px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                background: '#ffffff',
+                background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
                 textAlign: 'left'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '20px' }}>📍</span>
+                <School size={19} strokeWidth={1.8} color="#000000" />
                 <div>
                   <div style={{ fontSize: '15px', fontWeight: '950', color: '#000000', letterSpacing: '-0.3px' }}>
-                    {currentUserInstitute} Rankings
+                    School Rank
                   </div>
                   <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '700', marginTop: '1px' }}>
-                    Institute-wide Leaderboard
+                    {currentUserInstitute} • Institute-wide Leaderboard
                   </div>
                 </div>
               </div>

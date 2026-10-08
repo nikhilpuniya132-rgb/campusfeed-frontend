@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import CustomPollSubmit from './CustomPollSubmit';
-import { copyReferralLink, getWhatsAppShareUrl } from '../utils/referral';
 import { handleShare } from '../utils/share';
-import { Share2 } from 'lucide-react';
+import { Share2, Sword } from 'lucide-react';
 
 export default function GodMode({
   user,
@@ -74,56 +72,10 @@ export default function GodMode({
     }
   }, [effectiveInvites, user, onUpdateUser, supabase]);
 
-  // Fetch classmates for Spying Friend feature when unlocked
-  useEffect(() => {
-    if (!hasLifetimeLegend) return;
-    let isMounted = true;
-    const fetchVisitors = async () => {
-      setIsLoadingVisitors(true);
-      try {
-        if (supabase) {
-          let query = supabase
-            .from('users')
-            .select('id, handle, name, avatar, profile_pic, stream, grade, institute')
-            .neq('id', user?.id || '');
-
-          if (user?.institute) {
-            query = query.eq('institute', user.institute);
-          }
-
-          const { data } = await query.limit(8);
-          if (isMounted && data && data.length > 0) {
-            const timeAgoList = ['14m ago', '38m ago', '1h ago', '3h ago', '5h ago', 'Yesterday', '2d ago', '3d ago'];
-            const enriched = data.map((u, i) => ({
-              ...u,
-              visitedAt: timeAgoList[i % timeAgoList.length]
-            }));
-            setVisitors(enriched);
-          }
-        }
-      } catch (err) {
-        console.warn('Error fetching secret visitors:', err);
-      } finally {
-        if (isMounted) setIsLoadingVisitors(false);
-      }
-    };
-    fetchVisitors();
-    return () => { isMounted = false; };
-  }, [hasLifetimeLegend, supabase, user?.id, user?.institute]);
-
   const showToast = (msg) => {
     setToastMessage(msg);
     if (window.navigator?.vibrate) window.navigator.vibrate(10);
     setTimeout(() => setToastMessage(''), 2500);
-  };
-
-  const handleCopyLink = async () => {
-    const res = await copyReferralLink(user);
-    if (res.success) {
-      showToast('Invite link copied! 📋');
-    } else {
-      showToast('Share: ' + res.link);
-    }
   };
 
   const handleNativeShare = async () => {
@@ -137,10 +89,6 @@ export default function GodMode({
       text: shareText,
       url: shareUrl
     });
-  };
-
-  const handleWhatsAppShare = () => {
-    handleNativeShare();
   };
 
   const toggleSubmenu = (menuId) => {
@@ -217,7 +165,7 @@ export default function GodMode({
             marginBottom: '8px'
           }}
         >
-          <span>{hasLifetimeLegend ? '👑' : hasMonthAccess ? '🔥' : '👤'}</span>{' '}
+          <span>{hasLifetimeLegend ? '👑' : hasMonthAccess ? <Sword size={13} strokeWidth={2} /> : '👤'}</span>{' '}
           {hasLifetimeLegend ? 'LIFETIME LEGEND' : hasMonthAccess ? 'BASIC GOD MODE (1 MONTH)' : 'NORMAL USER'}
         </div>
 
@@ -230,7 +178,11 @@ export default function GodMode({
             letterSpacing: '-0.5px'
           }}
         >
-          {hasLifetimeLegend ? 'Lifetime Legend 👑' : hasMonthAccess ? 'Basic God Mode 🔥' : 'God Mode Privileges'}
+          {hasLifetimeLegend ? 'Lifetime Legend 👑' : hasMonthAccess ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              Basic God Mode <Sword size={20} strokeWidth={2} />
+            </span>
+          ) : 'God Mode Privileges'}
         </h2>
         <p
           style={{
@@ -249,52 +201,32 @@ export default function GodMode({
         </p>
       </motion.div>
 
-      {/* Quick Invite Action Buttons */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%', marginBottom: '18px' }}>
+      {/* Universal Share Button */}
+      <div style={{ width: '100%', marginBottom: '18px' }}>
         <motion.button
           whileTap={{ scale: 0.98 }}
-          onClick={handleCopyLink}
+          onClick={handleNativeShare}
           type="button"
+          aria-label="Share"
           style={{
-            background: '#ffffff',
-            border: '1.5px solid #000000',
-            color: '#000000',
-            padding: '11px 14px',
-            borderRadius: '14px',
-            fontSize: '12.5px',
-            fontWeight: '800',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px'
-          }}
-        >
-          <span>📋</span>
-          <span>Copy Invite Link</span>
-        </motion.button>
-
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={handleWhatsAppShare}
-          type="button"
-          style={{
-            background: '#25D366',
+            width: '100%',
+            background: '#000000',
             border: 'none',
             color: '#ffffff',
-            padding: '11px 14px',
+            padding: '12px 18px',
             borderRadius: '14px',
-            fontSize: '12.5px',
+            fontSize: '13.5px',
             fontWeight: '800',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '6px'
+            gap: '8px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
           }}
         >
-          <span>💬</span>
-          <span>WhatsApp Share</span>
+          <Share2 size={16} strokeWidth={2} />
+          <span>Share</span>
         </motion.button>
       </div>
 
@@ -401,7 +333,7 @@ export default function GodMode({
                     <div style={{ marginTop: '12px', textAlign: 'center' }}>
                       <button
                         type="button"
-                        onClick={handleCopyLink}
+                        onClick={handleNativeShare}
                         style={{
                           background: '#000000',
                           color: '#ffffff',
@@ -519,10 +451,6 @@ export default function GodMode({
                     </li>
                     <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: hasLifetimeLegend ? '#ffffff' : '#111827' }}>
                       <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-                      <span><strong>Secret profile visitors</strong> (Spying Friend)</span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: hasLifetimeLegend ? '#ffffff' : '#111827' }}>
-                      <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
                       <span><strong>Select & equip custom Aura Rings</strong></span>
                     </li>
                     <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: hasLifetimeLegend ? '#ffffff' : '#111827' }}>
@@ -557,284 +485,6 @@ export default function GodMode({
                       >
                         <Share2 size={16} strokeWidth={1.8} />
                       </button>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* SUB-MENU 3: CREATE CUSTOM POLLS */}
-        <div
-          style={{
-            background: '#ffffff',
-            border: '1px solid #e5e7eb',
-            borderRadius: '18px',
-            overflow: 'hidden',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => toggleSubmenu('polls')}
-            style={{
-              width: '100%',
-              padding: '15px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: '#ffffff',
-              border: 'none',
-              cursor: 'pointer',
-              textAlign: 'left'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '18px' }}>✍️</span>
-              <div>
-                <div style={{ fontSize: '14.5px', fontWeight: '900', color: '#000000', letterSpacing: '-0.2px' }}>
-                  Create Custom Polls
-                </div>
-                <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>
-                  Submit polls to your school/batch feed
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span
-                style={{
-                  fontSize: '10.5px',
-                  fontWeight: '800',
-                  padding: '3px 8px',
-                  borderRadius: '10px',
-                  background: hasMonthAccess ? '#f3f4f6' : '#fee2e2',
-                  color: hasMonthAccess ? '#111827' : '#991b1b'
-                }}
-              >
-                {hasLifetimeLegend ? '150/mo' : hasMonthAccess ? '3/mo' : 'Locked'}
-              </span>
-              <span style={{ fontSize: '12px', color: '#6b7280', transform: openSubmenu === 'polls' ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                ▼
-              </span>
-            </div>
-          </button>
-
-          <AnimatePresence>
-            {openSubmenu === 'polls' && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                style={{ overflow: 'hidden', borderTop: '1px solid #f3f4f6' }}
-              >
-                <div style={{ padding: '8px 12px 14px 12px' }}>
-                  <CustomPollSubmit
-                    user={{ ...user, is_god_mode: hasLifetimeLegend, is_pro: hasMonthAccess, invites: effectiveInvites }}
-                    API={API}
-                    supabase={supabase}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* SUB-MENU 4: SPYING FRIEND (SECRET PROFILE VISITORS) */}
-        <div
-          style={{
-            background: '#ffffff',
-            border: '1px solid #e5e7eb',
-            borderRadius: '18px',
-            overflow: 'hidden',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => toggleSubmenu('spying')}
-            style={{
-              width: '100%',
-              padding: '15px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: '#ffffff',
-              border: 'none',
-              cursor: 'pointer',
-              textAlign: 'left'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '18px' }}>🕵️</span>
-              <div>
-                <div style={{ fontSize: '14.5px', fontWeight: '900', color: '#000000', letterSpacing: '-0.2px' }}>
-                  Spying Friend
-                </div>
-                <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>
-                  Secret Profile Visitors tracking
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span
-                style={{
-                  fontSize: '10.5px',
-                  fontWeight: '800',
-                  padding: '3px 8px',
-                  borderRadius: '10px',
-                  background: hasLifetimeLegend ? '#fef3c7' : '#f3f4f6',
-                  color: hasLifetimeLegend ? '#b45309' : '#6b7280'
-                }}
-              >
-                {hasLifetimeLegend ? '★ Unlocked' : '🔒 25 Invites'}
-              </span>
-              <span style={{ fontSize: '12px', color: '#6b7280', transform: openSubmenu === 'spying' ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                ▼
-              </span>
-            </div>
-          </button>
-
-          <AnimatePresence>
-            {openSubmenu === 'spying' && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                style={{ overflow: 'hidden', borderTop: '1px solid #f3f4f6' }}
-              >
-                <div style={{ padding: '14px 16px 16px 16px' }}>
-                  {hasLifetimeLegend ? (
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: '800', color: '#000000' }}>
-                          Recent Profile Stalkers & Visitors
-                        </span>
-                        <span style={{ fontSize: '11px', color: '#10b981', fontWeight: '700' }}>
-                          ● Live
-                        </span>
-                      </div>
-
-                      {isLoadingVisitors ? (
-                        <div style={{ padding: '20px 0', textAlign: 'center', fontSize: '12.5px', color: '#6b7280' }}>
-                          Detecting visitors...
-                        </div>
-                      ) : visitors.length === 0 ? (
-                        <div style={{ padding: '18px 12px', textAlign: 'center', background: '#f9fafb', borderRadius: '12px' }}>
-                          <span style={{ fontSize: '24px', display: 'block', marginBottom: '4px' }}>👀</span>
-                          <p style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: '800', color: '#000000' }}>
-                            Zero secret visitors in the last 24h
-                          </p>
-                          <span style={{ fontSize: '11.5px', color: '#6b7280' }}>
-                            Cast more votes in the feed to trigger classmates to check your profile!
-                          </span>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {visitors.map((v) => (
-                            <div
-                              key={v.id}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '10px 12px',
-                                borderRadius: '12px',
-                                background: '#f9fafb',
-                                border: '1px solid #e5e7eb'
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                {renderProfilePic ? (
-                                  renderProfilePic(v.profile_pic, v.avatar, false, 'none', 36)
-                                ) : (
-                                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    {v.avatar || '👀'}
-                                  </div>
-                                )}
-                                <div>
-                                  <div style={{ fontSize: '13px', fontWeight: '800', color: '#000000' }}>
-                                    @{v.handle}
-                                  </div>
-                                  <div style={{ fontSize: '11px', color: '#6b7280' }}>
-                                    {v.stream || 'Classmate'} • Viewed profile
-                                  </div>
-                                </div>
-                              </div>
-
-                              <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '700' }}>
-                                {v.visitedAt}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    /* Locked Spying Friend View (Blurred / Teaser) */
-                    <div style={{ position: 'relative', textAlign: 'center', padding: '12px 6px' }}>
-                      {/* Blurred Fake Stack */}
-                      <div style={{ filter: 'blur(5px)', pointerEvents: 'none', userSelect: 'none', opacity: 0.6, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f3f4f6', borderRadius: '10px' }}>
-                          <span>Classmate from 11th Medical</span>
-                          <span>18m ago</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f3f4f6', borderRadius: '10px' }}>
-                          <span>Someone from Kapil Institute</span>
-                          <span>1h ago</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f3f4f6', borderRadius: '10px' }}>
-                          <span>Classmate from 12th Board</span>
-                          <span>Yesterday</span>
-                        </div>
-                      </div>
-
-                      {/* Foreground Overlay Lock */}
-                      <div
-                        style={{
-                          position: 'absolute',
-                          inset: 0,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '10px',
-                          background: 'rgba(255, 255, 255, 0.85)',
-                          borderRadius: '12px'
-                        }}
-                      >
-                        <span style={{ fontSize: '26px', marginBottom: '4px' }}>🔒</span>
-                        <div style={{ fontSize: '13.5px', fontWeight: '900', color: '#000000', marginBottom: '2px' }}>
-                          Secret Profile Visitors Locked
-                        </div>
-                        <p style={{ margin: '0 0 10px 0', fontSize: '11.5px', color: '#6b7280', maxWidth: '280px', lineHeight: '1.4' }}>
-                          Classmates are secretly viewing your profile! Reach <strong>25 Invites (Lifetime Legend)</strong> to unmask exactly who is checking you out.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={handleNativeShare}
-                          title="Share / Invite Friends"
-                          aria-label="Share / Invite Friends"
-                          style={{
-                            background: '#000000',
-                            color: '#ffffff',
-                            border: '1.5px solid #000000',
-                            borderRadius: '12px',
-                            padding: '8px 14px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          <Share2 size={16} strokeWidth={1.8} />
-                        </button>
-                      </div>
                     </div>
                   )}
                 </div>
