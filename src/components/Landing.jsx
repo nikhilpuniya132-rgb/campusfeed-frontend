@@ -1,11 +1,8 @@
-import React, { useRef, useState, useEffect, Suspense, lazy } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence, useScroll, useSpring, useTransform } from 'framer-motion';
 import AddToHomeScreenGuide from './AddToHomeScreenGuide';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 import { MASTER_CLASS_OPTIONS, getGradeFromStream } from '../constants/classes';
-
-const InteractivePollDemo = lazy(() => import('./InteractivePollDemo'));
-const HolographicCard = lazy(() => import('./HolographicCard'));
 
 const FAQS = [
   {
@@ -128,7 +125,7 @@ export default function Landing({
   const pricingRef = useRef(null);
   const loginRef = useRef(null);
 
-  // --- 3D SCROLL-DRIVEN MOTION ---
+  // --- SCROLL-DRIVEN MOTION ---
   const { scrollYProgress: heroScrollProgress } = useScroll({
     target: heroRef,
     offset: ["start start", "end start"]
@@ -140,11 +137,8 @@ export default function Landing({
     mass: 0.2
   });
 
-  const heroTextOpacity = useTransform(smoothHero, [0, 0.45], [1, 0]);
-  const heroTextY = useTransform(smoothHero, [0, 0.45], [0, -45]);
-  const stageScale = useTransform(smoothHero, [0, 0.45], [0.85, 1]);
-  const stageRotateX = useTransform(smoothHero, [0, 0.45], [20, 0]);
-  const stageOpacity = useTransform(smoothHero, [0, 0.2], [0.9, 1]);
+  const heroTextOpacity = useTransform(smoothHero, [0, 0.65], [1, 0.2]);
+  const heroTextY = useTransform(smoothHero, [0, 0.65], [0, -30]);
 
   const { scrollYProgress: pricingScrollProgress } = useScroll({
     target: pricingRef,
@@ -175,37 +169,37 @@ export default function Landing({
   const loginY = useTransform(smoothLogin, [0, 0.75], [60, 0]);
 
   return (
-    <div className="gas-landing-wrapper" style={{ background: '#ffffff', color: '#000000', minHeight: '100vh' }}>
+    <div className="gas-landing-wrapper" style={{ background: '#000000', color: '#ffffff', minHeight: '100vh' }}>
       {/* 1. Top Navbar */}
-      <header className="gas-landing-nav" style={{ background: 'rgba(255, 255, 255, 0.95)', borderBottom: '1px solid #e5e7eb', backdropFilter: 'blur(12px)' }}>
+      <header className="gas-landing-nav" style={{ background: 'rgba(0, 0, 0, 0.9)', borderBottom: '1px solid #1f2937', backdropFilter: 'blur(12px)' }}>
         <div className="gas-logo">
           <span className="flame-icon">🔥</span>
-          <span style={{ color: '#000000', fontWeight: '900', letterSpacing: '-0.5px' }}>CENTERINSIDER</span>
+          <span style={{ color: '#ffffff', fontWeight: '900', letterSpacing: '-0.5px' }}>CENTERINSIDER</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span className="gas-school-badge" style={{ border: '1px solid #e5e7eb', background: '#f3f4f6', color: '#4b5563', fontWeight: '800', letterSpacing: '0.04em' }}>
+          <span className="gas-school-badge" style={{ border: '1px solid #27272a', background: '#18181b', color: '#d4d4d8', fontWeight: '800', letterSpacing: '0.04em' }}>
             🔥 BATHINDA COACHING NETWORK
           </span>
 
           <div className="tooltip-wrapper">
             <li className="nav-link" style={{ listStyle: 'none' }}>
-              <div className="tooltip-tab" style={{ color: '#4b5563', border: '1px solid #e5e7eb', background: '#f9fafb' }}>
+              <div className="tooltip-tab" style={{ color: '#d4d4d8', border: '1px solid #27272a', background: '#18181b' }}>
                 <span>Support</span>
                 <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', fill: 'currentColor' }}><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-11v6h2v-6h-2zm0-4v2h2V7h-2z" /></svg>
               </div>
-              <div className="tooltip" style={{ background: '#ffffff', border: '1px solid #e5e7eb', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)' }}>
+              <div className="tooltip" style={{ background: '#111827', border: '1px solid #27272a', boxShadow: '0 8px 30px rgba(0, 0, 0, 0.6)' }}>
                 <ul className="tooltip-menu-with-icon" style={{ padding: 0, margin: 0, listStyle: 'none' }}>
-                  <div style={{ padding: '8px 12px', fontSize: '11px', color: '#6b7280', borderBottom: '1px solid #e5e7eb', textAlign: 'center' }}>
+                  <div style={{ padding: '8px 12px', fontSize: '11px', color: '#9ca3af', borderBottom: '1px solid #1f2937', textAlign: 'center' }}>
                     Available 3 PM - 6 PM
                   </div>
                   <li className="tooltip-link">
-                    <a href="https://instagram.com/_nikhilpuniyaai" target="_blank" rel="noreferrer" style={{ color: '#111827' }}>
+                    <a href="https://instagram.com/_nikhilpuniyaai" target="_blank" rel="noreferrer" style={{ color: '#f3f4f6' }}>
                       @_nikhilpuniyaai
                     </a>
                   </li>
                   <li className="tooltip-link">
-                    <a href="mailto:nikhilpuniya132@gmail.com" style={{ color: '#111827' }}>
+                    <a href="mailto:nikhilpuniya132@gmail.com" style={{ color: '#f3f4f6' }}>
                       nikhilpuniya132@gmail.com
                     </a>
                   </li>
@@ -216,7 +210,7 @@ export default function Landing({
         </div>
       </header>
 
-      {/* 2. Hero Section - Stripped nested overflows and ensured no mobile touch trap */}
+      {/* 2. Hero Section */}
       <section ref={heroRef} className="gas-hero-section overflow-visible" style={{ overflow: 'visible', touchAction: 'pan-y' }}>
         <motion.div
           className="gas-hero-text overflow-visible"
@@ -226,103 +220,48 @@ export default function Landing({
             overflow: 'visible'
           }}
         >
-          <div className="gas-pill-badge" style={{ border: '1px solid #e5e7eb', background: '#f3f4f6', color: '#4b5563' }}>
+          <div className="gas-pill-badge" style={{ border: '1px solid #27272a', background: '#18181b', color: '#e4e4e7' }}>
             <span>✦</span> The Anonymous Loop for Bathinda Coaching Hubs
           </div>
 
-          <h1 className="gas-hero-title" style={{ color: '#000000' }}>
+          <h1 className="gas-hero-title" style={{ color: '#ffffff' }}>
             STOP GUESSING.<br />
-            <span style={{ color: '#000000' }}>START KNOWING.</span>
+            <span style={{ color: '#ffffff' }}>START KNOWING.</span>
           </h1>
 
-          <p className="gas-hero-subtitle" style={{ color: '#6b7280' }}>
+          <p className="gas-hero-subtitle" style={{ color: '#a1a1aa' }}>
             The 100% anonymous school voting network. Answer viral polls about your classmates, see who voted for you, and discover your secret admirers.
           </p>
 
-          <div className="gas-desktop-only">
-            <div className="gas-hero-stats">
-              <div className="gas-stat-card" style={{ background: '#f9fafb', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
-                <span className="gas-stat-number" style={{ color: '#000000' }}>12,480+</span>
-                <span className="gas-stat-label" style={{ color: '#6b7280' }}>Votes Cast</span>
-              </div>
-              <div className="gas-stat-card" style={{ background: '#f9fafb', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
-                <span className="gas-stat-number" style={{ color: '#000000' }}>100%</span>
-                <span className="gas-stat-label" style={{ color: '#6b7280' }}>Anonymous</span>
-              </div>
-              <div className="gas-stat-card" style={{ background: '#f9fafb', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
-                <span className="gas-stat-number" style={{ color: '#000000', fontSize: '13px' }}>Class 6 to 12 & Droppers</span>
-                <span className="gas-stat-label" style={{ color: '#6b7280' }}>Bathinda Hubs</span>
-              </div>
+          <div className="gas-hero-stats">
+            <div className="gas-stat-card" style={{ background: '#111827', border: '1px solid #1f2937', boxShadow: 'none' }}>
+              <span className="gas-stat-number" style={{ color: '#ffffff' }}>12,480+</span>
+              <span className="gas-stat-label" style={{ color: '#9ca3af' }}>Votes Cast</span>
             </div>
-
-            <div className="gas-hero-cta-group">
-              <button
-                className="magic-btn"
-                onClick={() => document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' })}
-                style={{ background: '#000000', color: '#ffffff', border: 'none', boxShadow: 'none', fontWeight: '800' }}
-              >
-                ENTER NETWORK ➔
-              </button>
+            <div className="gas-stat-card" style={{ background: '#111827', border: '1px solid #1f2937', boxShadow: 'none' }}>
+              <span className="gas-stat-number" style={{ color: '#ffffff' }}>100%</span>
+              <span className="gas-stat-label" style={{ color: '#9ca3af' }}>Anonymous</span>
+            </div>
+            <div className="gas-stat-card" style={{ background: '#111827', border: '1px solid #1f2937', boxShadow: 'none' }}>
+              <span className="gas-stat-number" style={{ color: '#ffffff', fontSize: '13px' }}>Class 6 to 12 & Droppers</span>
+              <span className="gas-stat-label" style={{ color: '#9ca3af' }}>Bathinda Hubs</span>
             </div>
           </div>
-        </motion.div>
 
-        {/* 3D Showcase Interactive Stage with Chips (overflow-visible, auto height, no touch trap) */}
-        <motion.div
-          className="gas-hero-3d-stage overflow-visible"
-          style={{
-            scale: stageScale,
-            rotateX: stageRotateX,
-            opacity: stageOpacity,
-            overflow: 'visible',
-            touchAction: 'pan-y',
-            height: 'auto',
-            minHeight: 'auto'
-          }}
-        >
-          <div className="gas-float-chip gas-float-chip-1" style={{ background: '#ffffff', border: '1px solid #e5e7eb', color: '#111827', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-            <span>🔥</span> Someone secretly picked you
-          </div>
-          <div className="gas-float-chip gas-float-chip-2" style={{ background: '#ffffff', border: '1px solid #e5e7eb', color: '#111827', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-            <span>👑</span> 100% Private & Anonymous
-          </div>
-
-          <Suspense fallback={<div className="overflow-visible" style={{ minHeight: 'auto', height: 'auto', overflow: 'visible' }} />}>
-            <InteractivePollDemo onCtaClick={() => document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' })} />
-          </Suspense>
-        </motion.div>
-
-        {/* Mobile-Only CTA */}
-        <div className="gas-mobile-only overflow-visible" style={{ width: '100%', marginTop: '20px', overflow: 'visible' }}>
           <div className="gas-hero-cta-group">
             <button
               className="magic-btn"
               onClick={() => document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' })}
-              style={{ background: '#000000', color: '#ffffff', border: 'none', boxShadow: 'none', fontWeight: '800' }}
+              style={{ background: '#ffffff', color: '#000000', border: 'none', boxShadow: '0 0 25px rgba(255, 255, 255, 0.15)', fontWeight: '800' }}
             >
               ENTER NETWORK ➔
             </button>
           </div>
-
-          <div className="gas-hero-stats">
-            <div className="gas-stat-card" style={{ background: '#f9fafb', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
-              <span className="gas-stat-number" style={{ color: '#000000' }}>12,480+</span>
-              <span className="gas-stat-label" style={{ color: '#6b7280' }}>Votes</span>
-            </div>
-            <div className="gas-stat-card" style={{ background: '#f9fafb', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
-              <span className="gas-stat-number" style={{ color: '#000000' }}>100%</span>
-              <span className="gas-stat-label" style={{ color: '#6b7280' }}>Anonymous</span>
-            </div>
-            <div className="gas-stat-card" style={{ background: '#f9fafb', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
-              <span className="gas-stat-number" style={{ color: '#000000', fontSize: '13px' }}>Class 6 to 12 & Droppers</span>
-              <span className="gas-stat-label" style={{ color: '#6b7280' }}>Bathinda Hubs</span>
-            </div>
-          </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* 3. Pure Invite Loop - Zero Paid Subscriptions */}
-      <section id="pricing-portal" ref={pricingRef} className="pricing-section" style={{ background: '#ffffff', padding: '60px 20px' }}>
+      <section id="pricing-portal" ref={pricingRef} className="pricing-section" style={{ background: '#000000', padding: '60px 20px' }}>
         <motion.div
           style={{
             opacity: pricingOpacity,
@@ -334,13 +273,13 @@ export default function Landing({
           }}
         >
           <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-            <span className="gas-pill-badge" style={{ border: '1px solid #e5e7eb', background: '#f3f4f6', color: '#111827', fontWeight: '800' }}>
+            <span className="gas-pill-badge" style={{ border: '1px solid #27272a', background: '#18181b', color: '#ffffff', fontWeight: '800' }}>
               ⚡ 100% FREE • PURE INVITE LOOP
             </span>
-            <h2 style={{ fontSize: 'clamp(28px, 6vw, 42px)', fontWeight: 900, margin: '14px 0 8px 0', color: '#000000', letterSpacing: '-1px' }}>
+            <h2 style={{ fontSize: 'clamp(28px, 6vw, 42px)', fontWeight: 900, margin: '14px 0 8px 0', color: '#ffffff', letterSpacing: '-1px' }}>
               Unlock God Mode With Friends.
             </h2>
-            <p style={{ color: '#6b7280', maxWidth: '540px', margin: '0 auto 16px auto', fontSize: '14px', lineHeight: 1.5 }}>
+            <p style={{ color: '#a1a1aa', maxWidth: '540px', margin: '0 auto 16px auto', fontSize: '14px', lineHeight: 1.5 }}>
               No subscriptions, no payment gateways, no fees. CenterInsider premium features unlock purely by inviting your classmates into the loop.
             </p>
 
@@ -349,12 +288,12 @@ export default function Landing({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
-              background: '#f9fafb',
-              border: '1px solid #e5e7eb',
+              background: '#111827',
+              border: '1px solid #1f2937',
               padding: '6px 16px',
               borderRadius: '20px',
               fontSize: '12px',
-              color: '#4b5563',
+              color: '#d1d5db',
               fontWeight: '600'
             }}>
               <span>👤 <strong>Normal User (0-2 Invites):</strong> 12 votes/session (30m cooldown) • Standard Avatar • No Reveals</span>
@@ -367,23 +306,23 @@ export default function Landing({
               whileHover={{ y: -4 }}
               transition={{ duration: 0.2 }}
               style={{
-                background: '#ffffff',
-                border: '1.5px solid #000000',
+                background: '#09090b',
+                border: '1.5px solid #27272a',
                 borderRadius: '24px',
                 padding: '28px 24px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
                 position: 'relative'
               }}
             >
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                   <span style={{
-                    background: '#f3f4f6',
-                    border: '1px solid #e5e7eb',
-                    color: '#000000',
+                    background: '#18181b',
+                    border: '1px solid #27272a',
+                    color: '#ffffff',
                     fontSize: '11px',
                     fontWeight: '900',
                     padding: '4px 10px',
@@ -392,42 +331,42 @@ export default function Landing({
                   }}>
                     🔥 3 INVITES MILESTONE
                   </span>
-                  <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '700' }}>1 Month Access</span>
+                  <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '700' }}>1 Month Access</span>
                 </div>
 
-                <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#000000', margin: '0 0 8px 0', letterSpacing: '-0.3px' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff', margin: '0 0 8px 0', letterSpacing: '-0.3px' }}>
                   Basic God Mode (3 Invites)
                 </h3>
-                <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 20px 0', lineHeight: 1.4 }}>
+                <p style={{ fontSize: '13px', color: '#a1a1aa', margin: '0 0 20px 0', lineHeight: 1.4 }}>
                   Invite 3 classmates to unlock essential utility powers with unlimited voting and voter reveals for 1 month.
                 </p>
 
-                <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '16px', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '800', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '12px' }}>
+                <div style={{ borderTop: '1px solid #1f2937', paddingTop: '16px', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '800', color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '12px' }}>
                     Unlocked Utility Perks:
                   </span>
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#111827', fontWeight: '600' }}>
-                      <span style={{ color: '#16a34a', fontWeight: '900', fontSize: '15px' }}>✓</span>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#e4e4e7', fontWeight: '600' }}>
+                      <span style={{ color: '#22c55e', fontWeight: '900', fontSize: '15px' }}>✓</span>
                       <span><strong>Unlimited votes</strong> (cooldown timer permanently disabled for the month)</span>
                     </li>
-                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#111827', fontWeight: '600' }}>
-                      <span style={{ color: '#16a34a', fontWeight: '900', fontSize: '15px' }}>✓</span>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#e4e4e7', fontWeight: '600' }}>
+                      <span style={{ color: '#22c55e', fontWeight: '900', fontSize: '15px' }}>✓</span>
                       <span><strong>See who voted for you</strong> (Voter Reveal)</span>
                     </li>
-                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#111827', fontWeight: '600' }}>
-                      <span style={{ color: '#16a34a', fontWeight: '900', fontSize: '15px' }}>✓</span>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#e4e4e7', fontWeight: '600' }}>
+                      <span style={{ color: '#22c55e', fontWeight: '900', fontSize: '15px' }}>✓</span>
                       <span><strong>Create up to 3 custom polls</strong> per month</span>
                     </li>
                   </ul>
                 </div>
 
                 {/* Strict Restrictions Box */}
-                <div style={{ background: '#f9fafb', border: '1px dashed #d1d5db', borderRadius: '14px', padding: '12px 14px', marginBottom: '24px' }}>
-                  <span style={{ fontSize: '10.5px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+                <div style={{ background: '#111827', border: '1px dashed #374151', borderRadius: '14px', padding: '12px 14px', marginBottom: '24px' }}>
+                  <span style={{ fontSize: '10.5px', fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
                     🔒 Strict Tier Restrictions:
                   </span>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', color: '#6b7280' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', color: '#9ca3af' }}>
                     <span>✕ Cannot see secret profile visitors</span>
                     <span>✕ No Aura Rings or Crown badge</span>
                     <span>✕ Not featured in Legends tab</span>
@@ -442,9 +381,9 @@ export default function Landing({
                   width: '100%',
                   padding: '13px',
                   borderRadius: '14px',
-                  border: '1.5px solid #000000',
-                  background: '#f9fafb',
-                  color: '#000000',
+                  border: '1px solid #3f3f46',
+                  background: '#18181b',
+                  color: '#ffffff',
                   fontWeight: '800',
                   fontSize: '13px',
                   cursor: 'pointer',
@@ -460,14 +399,14 @@ export default function Landing({
               whileHover={{ y: -4 }}
               transition={{ duration: 0.2 }}
               style={{
-                background: '#000000',
-                border: '1.5px solid #000000',
+                background: '#09090b',
+                border: '1.5px solid #3f3f46',
                 borderRadius: '24px',
                 padding: '28px 24px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                boxShadow: '0 8px 30px rgba(0,0,0,0.14)',
+                boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
                 color: '#ffffff',
                 position: 'relative'
               }}
@@ -490,8 +429,8 @@ export default function Landing({
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                   <span style={{
-                    background: '#262626',
-                    border: '1px solid #404040',
+                    background: '#18181b',
+                    border: '1px solid #3f3f46',
                     color: '#fbbf24',
                     fontSize: '11px',
                     fontWeight: '900',
@@ -511,7 +450,7 @@ export default function Landing({
                   Invite 25 classmates to permanently unlock full utility powers plus exclusive elite status & vanity perks.
                 </p>
 
-                <div style={{ borderTop: '1px solid #262626', paddingTop: '16px', marginBottom: '24px' }}>
+                <div style={{ borderTop: '1px solid #1f2937', paddingTop: '16px', marginBottom: '24px' }}>
                   <span style={{ fontSize: '11px', fontWeight: '800', color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '12px' }}>
                     Lifetime Status & Superpowers:
                   </span>
@@ -571,7 +510,7 @@ export default function Landing({
         </motion.div>
       </section>
 
-      {/* 4. Login Portal Section (Natural Flow & Scrollable) */}
+      {/* 4. Login Portal Section */}
       <section
         id="login-portal"
         ref={loginRef}
@@ -582,7 +521,7 @@ export default function Landing({
           justifyContent: 'center',
           padding: '60px 20px 80px 20px',
           position: 'relative',
-          background: '#ffffff'
+          background: '#000000'
         }}
       >
         <motion.div
@@ -598,19 +537,19 @@ export default function Landing({
           <div
             className="form"
             style={{
-              background: '#ffffff',
-              border: '1px solid #e5e7eb',
+              background: '#0a0a0a',
+              border: '1px solid #27272a',
               borderRadius: '24px',
               padding: '24px 20px',
-              boxShadow: 'none'
+              boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
             }}
           >
             <div style={{ textAlign: 'center', marginBottom: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
               <span
                 style={{
-                  background: '#f3f4f6',
-                  border: '1px solid #e5e7eb',
-                  color: '#4b5563',
+                  background: '#18181b',
+                  border: '1px solid #27272a',
+                  color: '#d4d4d8',
                   fontSize: '11px',
                   fontWeight: '800',
                   padding: '4px 12px',
@@ -623,9 +562,9 @@ export default function Landing({
               {referralCode && (
                 <span
                   style={{
-                    background: '#f0fdf4',
-                    border: '1px solid #bbf7d0',
-                    color: '#166534',
+                    background: 'rgba(22, 101, 52, 0.25)',
+                    border: '1px solid #166534',
+                    color: '#4ade80',
                     fontSize: '11px',
                     fontWeight: '700',
                     padding: '3px 10px',
@@ -640,16 +579,16 @@ export default function Landing({
               )}
             </div>
 
-            <p style={{ marginTop: '8px', textAlign: 'center', fontSize: '14px', color: '#000000', fontWeight: '700' }}>
+            <p style={{ marginTop: '8px', textAlign: 'center', fontSize: '14px', color: '#ffffff', fontWeight: '700' }}>
               Join the Loop.
-              <span style={{ color: '#6b7280', fontWeight: '500', display: 'block', marginTop: '2px', fontSize: '12.5px' }}>
+              <span style={{ color: '#a1a1aa', fontWeight: '500', display: 'block', marginTop: '2px', fontSize: '12.5px' }}>
                 Select your School/Institute to enter the loop.
               </span>
             </p>
 
             {/* Searchable Institute Combobox */}
-            <div style={{ marginBottom: '14px', textAlign: 'left' }}>
-              <label style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+            <div style={{ marginBottom: '14px', textAlign: 'left', width: '100%' }}>
+              <label style={{ fontSize: '11px', fontWeight: '800', color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
                 School/Institute
               </label>
               <InstituteCombobox
@@ -673,9 +612,9 @@ export default function Landing({
             </div>
 
             {/* Standard Dropdown Selector */}
-            <div style={{ marginBottom: '18px', textAlign: 'left' }}>
+            <div style={{ marginBottom: '18px', textAlign: 'left', width: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <label htmlFor="standard-selector" style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <label htmlFor="standard-selector" style={{ fontSize: '11px', fontWeight: '800', color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Select Class / Standard
                 </label>
                 <span style={{ fontSize: '10px', color: '#10b981', fontWeight: '800' }}>REQUIRED</span>
@@ -698,10 +637,10 @@ export default function Landing({
                   style={{
                     width: '100%',
                     padding: '13px 40px 13px 14px',
-                    background: '#f9fafb',
-                    border: '1.5px solid #000000',
+                    background: '#18181b',
+                    border: '1.5px solid #3f3f46',
                     borderRadius: '14px',
-                    color: '#000000',
+                    color: '#ffffff',
                     fontSize: '14px',
                     fontWeight: '700',
                     outline: 'none',
@@ -712,19 +651,19 @@ export default function Landing({
                     MozAppearance: 'none',
                     transition: 'all 0.15s ease'
                   }}
-                  onFocus={(e) => { e.target.style.borderColor = '#000000'; }}
-                  onBlur={(e) => { e.target.style.borderColor = '#000000'; }}
+                  onFocus={(e) => { e.target.style.borderColor = '#ffffff'; }}
+                  onBlur={(e) => { e.target.style.borderColor = '#3f3f46'; }}
                 >
                   <optgroup label="Junior School (Classes 6-9)">
                     {MASTER_CLASS_OPTIONS.filter(o => ['Class 6', 'Class 7', 'Class 8', 'Class 9'].includes(o)).map((opt) => (
-                      <option key={opt} value={opt} style={{ color: '#000000', background: '#ffffff', fontWeight: '600' }}>
+                      <option key={opt} value={opt} style={{ color: '#ffffff', background: '#18181b', fontWeight: '600' }}>
                         {opt}
                       </option>
                     ))}
                   </optgroup>
                   <optgroup label="Senior School & Coaching (Classes 10-12+)">
                     {MASTER_CLASS_OPTIONS.filter(o => !['Class 6', 'Class 7', 'Class 8', 'Class 9'].includes(o)).map((opt) => (
-                      <option key={opt} value={opt} style={{ color: '#000000', background: '#ffffff', fontWeight: '600' }}>
+                      <option key={opt} value={opt} style={{ color: '#ffffff', background: '#18181b', fontWeight: '600' }}>
                         {opt}
                       </option>
                     ))}
@@ -737,7 +676,7 @@ export default function Landing({
                     top: '50%',
                     transform: 'translateY(-50%)',
                     fontSize: '10px',
-                    color: '#6b7280',
+                    color: '#a1a1aa',
                     pointerEvents: 'none'
                   }}
                 >
@@ -757,8 +696,8 @@ export default function Landing({
                 type="button"
                 style={{
                   width: '100%',
-                  background: '#000000',
-                  color: '#ffffff',
+                  background: '#ffffff',
+                  color: '#000000',
                   border: 'none',
                   borderRadius: '16px',
                   fontWeight: '900',
@@ -791,9 +730,9 @@ export default function Landing({
                 type="button"
                 style={{
                   width: '100%',
-                  background: '#ffffff',
-                  color: '#000000',
-                  border: '1.5px solid #000000',
+                  background: '#18181b',
+                  color: '#ffffff',
+                  border: '1.5px solid #3f3f46',
                   borderRadius: '16px',
                   fontWeight: '900',
                   fontSize: '14px',
@@ -817,16 +756,16 @@ export default function Landing({
                 <span>{isAuthenticating ? 'Connecting...' : 'Log In with Google'}</span>
               </motion.button>
             </div>
-            <div style={{ textAlign: 'center', fontSize: '11px', color: '#6b7280', marginTop: '10px' }}>
+            <div style={{ textAlign: 'center', fontSize: '11px', color: '#9ca3af', marginTop: '10px' }}>
               Zero passwords • Instant student verification
             </div>
 
             {/* De-emphasized Manual / Test Accounts Accordion */}
-            <div style={{ width: '100%', borderTop: '1px solid #e5e7eb', paddingTop: '16px', marginTop: '16px', textAlign: 'center' }}>
+            <div style={{ width: '100%', borderTop: '1px solid #1f2937', paddingTop: '16px', marginTop: '16px', textAlign: 'center' }}>
               <button
                 type="button"
                 onClick={() => setShowManualLogin(!showManualLogin)}
-                style={{ background: 'transparent', border: 'none', color: '#6b7280', fontSize: '11.5px', fontWeight: '700', cursor: 'pointer', transition: 'color 0.2s' }}
+                style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: '11.5px', fontWeight: '700', cursor: 'pointer', transition: 'color 0.2s' }}
               >
                 {showManualLogin ? '▲ Hide Test Accounts' : '▼ Or use username & password (Seed Accounts)'}
               </button>
@@ -838,19 +777,19 @@ export default function Landing({
                     placeholder="Handle (e.g., gursharan)"
                     value={handle}
                     onChange={e => setHandle(e.target.value)}
-                    style={{ padding: '12px', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#f9fafb', color: '#000000', fontSize: '14px', outline: 'none' }}
+                    style={{ padding: '12px', borderRadius: '12px', border: '1px solid #27272a', background: '#18181b', color: '#ffffff', fontSize: '14px', outline: 'none' }}
                   />
                   <input
                     type="password"
                     placeholder="Password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    style={{ padding: '12px', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#f9fafb', color: '#000000', fontSize: '14px', outline: 'none' }}
+                    style={{ padding: '12px', borderRadius: '12px', border: '1px solid #27272a', background: '#18181b', color: '#ffffff', fontSize: '14px', outline: 'none' }}
                   />
                   <button
                     type="button"
                     onClick={doPasswordLogin}
-                    style={{ padding: '12px', borderRadius: '12px', border: 'none', background: '#000000', color: '#ffffff', fontWeight: '800', cursor: 'pointer', transition: 'background 0.2s' }}
+                    style={{ padding: '12px', borderRadius: '12px', border: 'none', background: '#ffffff', color: '#000000', fontWeight: '800', cursor: 'pointer', transition: 'background 0.2s' }}
                   >
                     Login with Password
                   </button>
@@ -864,14 +803,14 @@ export default function Landing({
             <AddToHomeScreenGuide installPrompt={installPrompt} />
           </div>
 
-          <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '12px', color: '#6b7280' }}>
+          <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '12px', color: '#9ca3af' }}>
             <p>
               By entering, you agree to our <br />
-              <span onClick={() => setLegalView('terms')} style={{ color: '#000000', textDecoration: 'underline', cursor: 'pointer', fontWeight: '600' }}>
+              <span onClick={() => setLegalView('terms')} style={{ color: '#ffffff', textDecoration: 'underline', cursor: 'pointer', fontWeight: '600' }}>
                 Terms & Conditions
               </span>{' '}
               and{' '}
-              <span onClick={() => setLegalView('privacy')} style={{ color: '#000000', textDecoration: 'underline', cursor: 'pointer', fontWeight: '600' }}>
+              <span onClick={() => setLegalView('privacy')} style={{ color: '#ffffff', textDecoration: 'underline', cursor: 'pointer', fontWeight: '600' }}>
                 Privacy Policy
               </span>
             </p>
@@ -885,11 +824,11 @@ export default function Landing({
         style={{
           width: '100%',
           padding: '48px 20px 64px 20px',
-          background: '#ffffff',
+          background: '#000000',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          borderTop: '1px solid #f3f4f6',
+          borderTop: '1px solid #1f2937',
           boxSizing: 'border-box'
         }}
       >
@@ -897,9 +836,9 @@ export default function Landing({
           <div style={{ textAlign: 'center', marginBottom: '28px' }}>
             <span
               style={{
-                background: '#f3f4f6',
-                border: '1px solid #e5e7eb',
-                color: '#4b5563',
+                background: '#18181b',
+                border: '1px solid #27272a',
+                color: '#d4d4d8',
                 fontSize: '11px',
                 fontWeight: '800',
                 padding: '4px 12px',
@@ -915,13 +854,13 @@ export default function Landing({
                 fontSize: 'clamp(24px, 5vw, 32px)',
                 fontWeight: 900,
                 margin: '12px 0 6px 0',
-                color: '#000000',
+                color: '#ffffff',
                 letterSpacing: '-0.5px'
               }}
             >
               Got Questions? We've Got Answers.
             </h2>
-            <p style={{ color: '#6b7280', fontSize: '13.5px', margin: 0 }}>
+            <p style={{ color: '#a1a1aa', fontSize: '13.5px', margin: 0 }}>
               Everything you need to know about CenterInsider and how it works.
             </p>
           </div>
@@ -933,9 +872,9 @@ export default function Landing({
                 <div
                   key={idx}
                   style={{
-                    border: '1px solid #e5e7eb',
+                    border: '1px solid #27272a',
                     borderRadius: '16px',
-                    background: isOpen ? '#f9fafb' : '#ffffff',
+                    background: isOpen ? '#18181b' : '#0a0a0a',
                     overflow: 'hidden',
                     transition: 'all 0.15s ease'
                   }}
@@ -959,13 +898,13 @@ export default function Landing({
                       gap: '12px'
                     }}
                   >
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#000000', lineHeight: 1.4 }}>
+                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff', lineHeight: 1.4 }}>
                       {faq.q}
                     </span>
                     <span
                       style={{
                         fontSize: '11px',
-                        color: '#6b7280',
+                        color: '#9ca3af',
                         transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                         transition: 'transform 0.2s ease',
                         flexShrink: 0
@@ -987,10 +926,10 @@ export default function Landing({
                         <div
                           style={{
                             padding: '0 18px 16px 18px',
-                            color: '#4b5563',
+                            color: '#d4d4d8',
                             fontSize: '13.5px',
                             lineHeight: 1.6,
-                            borderTop: '1px solid #f3f4f6',
+                            borderTop: '1px solid #27272a',
                             paddingTop: '12px'
                           }}
                         >
@@ -1018,7 +957,7 @@ export default function Landing({
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0, 0, 0, 0.5)',
+              background: 'rgba(0, 0, 0, 0.75)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1031,21 +970,21 @@ export default function Landing({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 20, opacity: 0 }}
               style={{
-                background: '#ffffff',
-                color: '#000000',
+                background: '#0a0a0a',
+                color: '#ffffff',
                 padding: '28px',
                 borderRadius: '24px',
                 maxWidth: '480px',
                 width: '100%',
-                border: '1px solid #e5e7eb',
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)'
+                border: '1px solid #27272a',
+                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.6)'
               }}
               onClick={e => e.stopPropagation()}
             >
-              <h2 style={{ color: '#000000', marginTop: 0, fontSize: '19px', fontWeight: 800 }}>
+              <h2 style={{ color: '#ffffff', marginTop: 0, fontSize: '19px', fontWeight: 800 }}>
                 {legalView === 'terms' ? 'Terms of Service & User Agreement' : 'Privacy Policy & Data Handling'}
               </h2>
-              <div style={{ color: '#4b5563', fontSize: '13px', lineHeight: '1.65', maxHeight: '360px', overflowY: 'auto', paddingRight: '4px' }}>
+              <div style={{ color: '#d4d4d8', fontSize: '13px', lineHeight: '1.65', maxHeight: '360px', overflowY: 'auto', paddingRight: '4px' }}>
                 {legalView === 'terms' ? (
                   <p style={{ margin: 0 }}>
                     Welcome to CenterInsider. By accessing or using our platform, you agree to be bound by these Terms of Service. CenterInsider operates as a closed-network, peer-to-peer polling application designed exclusively for verified student communities. Users must authenticate via Google OAuth to maintain platform integrity and prevent sybil attacks (fake accounts). You agree to use the platform solely for its intended positive interactions. Any attempt to reverse-engineer, scrape data, harass other users, or manipulate the voting algorithms will result in immediate and permanent account termination. CenterInsider reserves the right to modify, suspend, or discontinue any aspect of the service at any time without prior notice. We do not guarantee uninterrupted access to the platform and shall not be held liable for any data loss, digital goods (e.g., Feed Drops, God Mode status) loss, or service downtimes. All intellectual property, including branding, UI/UX, and proprietary algorithms, remains the sole property of CenterInsider Inc.
@@ -1061,8 +1000,8 @@ export default function Landing({
                 style={{
                   width: '100%',
                   padding: '12px 20px',
-                  background: '#000000',
-                  color: '#ffffff',
+                  background: '#ffffff',
+                  color: '#000000',
                   border: 'none',
                   borderRadius: '12px',
                   fontWeight: '800',

@@ -1,13 +1,13 @@
 :root {
-  --text: #6b7280;
-  --text-h: #000000;
-  --bg: #ffffff;
-  --border: #e5e7eb;
-  --code-bg: #f9fafb;
-  --accent: #000000;
-  --accent-bg: #f3f4f6;
-  --accent-border: #e5e7eb;
-  --social-bg: #f9fafb;
+  --text: #9ca3af;
+  --text-h: #ffffff;
+  --bg: #000000;
+  --border: #27272a;
+  --code-bg: #18181b;
+  --accent: #ffffff;
+  --accent-bg: #18181b;
+  --accent-border: #27272a;
+  --social-bg: #18181b;
   --shadow: none;
 
   --sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -16,7 +16,7 @@
 
   font: 16px/145% var(--sans);
   letter-spacing: -0.01em;
-  color-scheme: light;
+  color-scheme: dark;
   color: var(--text-h);
   background: var(--bg);
   font-synthesis: none;
@@ -30,8 +30,9 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
-  background: #ffffff;
-  color: #000000;
+  background: #000000;
+  color: #ffffff;
+  color-scheme: dark;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -45,8 +46,8 @@ body {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  background: #ffffff;
-  color: #000000;
+  background: #000000;
+  color: #ffffff;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -57,7 +58,7 @@ h3,
 h4 {
   font-family: var(--heading);
   font-weight: 700;
-  color: #000000;
+  color: #ffffff;
 }
 
 h1 {
@@ -79,7 +80,18 @@ h2 {
 
 p {
   margin: 0;
-  color: #6b7280;
+  color: #9ca3af;
+}
+
+/* Ensure all outline SVG icons and generic shapes inherit white stroke/fill by default */
+svg {
+  color: inherit;
+}
+svg:not([stroke="none"]):not([stroke]) {
+  stroke: currentColor;
+}
+svg[stroke="currentColor"] {
+  stroke: currentColor;
 }
 
 code,
@@ -95,6 +107,31 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+
+/* Global utility classes for dark theme */
+.bg-black {
+  background-color: #000000 !important;
+}
+
+.bg-gray-900 {
+  background-color: #111827 !important;
+}
+
+.bg-gray-800 {
+  background-color: #1f2937 !important;
+}
+
+.text-white {
+  color: #ffffff !important;
+}
+
+.text-gray-300 {
+  color: #d1d5db !important;
+}
+
+.text-gray-400 {
+  color: #9ca3af !important;
 }
 
 /* Hide scrollbars for horizontal carousels and stream pills */

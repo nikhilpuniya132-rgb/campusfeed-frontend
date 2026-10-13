@@ -73,14 +73,14 @@ export default function InstituteCombobox({
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
-          background: '#f9fafb',
-          border: isOpen ? '1px solid #000000' : '1px solid #e5e7eb',
+          background: '#18181b',
+          border: isOpen ? '1px solid #ffffff' : '1px solid #27272a',
           borderRadius: '14px',
           transition: 'all 0.15s ease',
           boxShadow: 'none'
         }}
       >
-        <span style={{ position: 'absolute', left: '14px', fontSize: '15px', color: '#6b7280', pointerEvents: 'none' }}>
+        <span style={{ position: 'absolute', left: '14px', fontSize: '15px', color: '#a1a1aa', pointerEvents: 'none' }}>
           🏫
         </span>
 
@@ -100,7 +100,7 @@ export default function InstituteCombobox({
             padding: '13px 40px 13px 40px',
             background: 'transparent',
             border: 'none',
-            color: '#000000',
+            color: '#ffffff',
             fontSize: '14px',
             fontWeight: '700',
             outline: 'none',
@@ -119,9 +119,9 @@ export default function InstituteCombobox({
             style={{
               position: 'absolute',
               right: '12px',
-              background: '#e5e7eb',
+              background: '#27272a',
               border: 'none',
-              color: '#374151',
+              color: '#d4d4d8',
               width: '20px',
               height: '20px',
               borderRadius: '50%',
@@ -141,7 +141,7 @@ export default function InstituteCombobox({
               position: 'absolute',
               right: '14px',
               fontSize: '10px',
-              color: '#6b7280',
+              color: '#a1a1aa',
               cursor: 'pointer'
             }}
           >
@@ -164,26 +164,26 @@ export default function InstituteCombobox({
               left: 0,
               right: 0,
               zIndex: 9999,
-              background: '#ffffff',
-              border: '1px solid #e5e7eb',
+              background: '#0a0a0a',
+              border: '1px solid #27272a',
               borderRadius: '16px',
               maxHeight: '260px',
               overflowY: 'auto',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.6)',
               padding: '6px'
             }}
           >
             {totalResults === 0 ? (
-              <div style={{ padding: '16px', textAlign: 'center', color: '#6b7280', fontSize: '13px' }}>
-                <p style={{ margin: '0 0 6px 0', fontWeight: '700', color: '#000000' }}>No exact institute found.</p>
+              <div style={{ padding: '16px', textAlign: 'center', color: '#a1a1aa', fontSize: '13px' }}>
+                <p style={{ margin: '0 0 6px 0', fontWeight: '700', color: '#ffffff' }}>No exact institute found.</p>
                 <button
                   type="button"
                   onClick={() => handleSelect(searchQuery, "Bathinda Hub")}
                   style={{
                     padding: '8px 14px',
                     borderRadius: '10px',
-                    background: '#000000',
-                    color: '#ffffff',
+                    background: '#ffffff',
+                    color: '#000000',
                     border: 'none',
                     fontWeight: '800',
                     fontSize: '12px',
@@ -200,13 +200,13 @@ export default function InstituteCombobox({
                     padding: '6px 10px',
                     fontSize: '10.5px',
                     fontWeight: '800',
-                    color: '#6b7280',
+                    color: '#a1a1aa',
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    borderBottom: '1px solid #f3f4f6',
+                    borderBottom: '1px solid #1f2937',
                     marginBottom: '4px'
                   }}
                 >
@@ -224,9 +224,9 @@ export default function InstituteCombobox({
                         borderRadius: '10px',
                         fontSize: '13.5px',
                         fontWeight: isSelected ? '800' : '600',
-                        color: isSelected ? '#000000' : '#374151',
-                        background: isSelected ? '#f3f4f6' : 'transparent',
-                        border: isSelected ? '1px solid #e5e7eb' : '1px solid transparent',
+                        color: isSelected ? '#ffffff' : '#e4e4e7',
+                        background: isSelected ? '#27272a' : 'transparent',
+                        border: isSelected ? '1px solid #3f3f46' : '1px solid transparent',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -234,14 +234,14 @@ export default function InstituteCombobox({
                         transition: 'background 0.12s ease'
                       }}
                       onMouseEnter={(e) => {
-                        if (!isSelected) e.currentTarget.style.background = '#f9fafb';
+                        if (!isSelected) e.currentTarget.style.background = '#18181b';
                       }}
                       onMouseLeave={(e) => {
                         if (!isSelected) e.currentTarget.style.background = 'transparent';
                       }}
                     >
                       <span>{name}</span>
-                      {isSelected && <span style={{ color: '#000000', fontSize: '12px', fontWeight: '900' }}>✓</span>}
+                      {isSelected && <span style={{ color: '#ffffff', fontSize: '12px', fontWeight: '900' }}>✓</span>}
                     </div>
                   );
                 })}

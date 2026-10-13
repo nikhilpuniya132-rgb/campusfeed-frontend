@@ -9,7 +9,6 @@ import HamsterLoader from './components/HamsterLoader';
 // Lazily loaded components
 const TiltCard = lazy(() => import('./components/TiltCard'));
 const HolographicCard = lazy(() => import('./components/HolographicCard'));
-const InteractivePollDemo = lazy(() => import('./components/InteractivePollDemo'));
 const OnboardingWizard = lazy(() => import('./components/OnboardingWizard'));
 const FriendSearch = lazy(() => import('./components/FriendSearch'));
 const Profile = lazy(() => import('./components/Profile'));
@@ -1100,7 +1099,7 @@ export default function App() {
 
   if (isAuthLoading || isProfileLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-white text-black text-xl font-bold">
+      <div className="flex h-screen items-center justify-center bg-black text-white text-xl font-bold" style={{ background: '#000000', color: '#ffffff' }}>
         Loading...
       </div>
     );
@@ -1129,8 +1128,8 @@ export default function App() {
       preSelectedSchool: preSchool
     } : null);
     return (
-      <div className="gas-landing-wrapper">
-        <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100svh', background: '#ffffff', color: '#000000' }}><HamsterLoader message="Loading Onboarding..." /></div>}>
+      <div className="gas-landing-wrapper" style={{ background: '#000000', color: '#ffffff' }}>
+        <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100svh', background: '#000000', color: '#ffffff' }}><HamsterLoader message="Loading Onboarding..." /></div>}>
           <OnboardingWizard
             googleUser={wizardUser}
             API={API}
@@ -1172,8 +1171,8 @@ export default function App() {
   }
 
   return (
-    <div className="gas-app-shell">
-      <div className="gas-app-container">
+    <div className="gas-app-shell" style={{ background: '#000000', color: '#ffffff' }}>
+      <div className="gas-app-container" style={{ background: '#000000', color: '#ffffff', borderColor: '#262626' }}>
         {installPrompt && (
           <div
             style={{
@@ -1238,8 +1237,8 @@ export default function App() {
             justifyContent: 'space-between',
             padding: '0 16px',
             height: '52px',
-            background: '#ffffff',
-            borderBottom: '1px solid #e5e7eb',
+            background: '#000000',
+            borderBottom: '1px solid #262626',
             boxSizing: 'border-box',
             flexShrink: 0,
             zIndex: 30
@@ -1260,7 +1259,7 @@ export default function App() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#000000',
+              color: '#ffffff',
               borderRadius: '10px'
             }}
           >
@@ -1273,7 +1272,7 @@ export default function App() {
               fontSize: '18px',
               fontWeight: '900',
               letterSpacing: '-0.03em',
-              color: '#000000',
+              color: '#ffffff',
               userSelect: 'none'
             }}
           >
@@ -1296,7 +1295,7 @@ export default function App() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#000000',
+              color: '#ffffff',
               borderRadius: '10px'
             }}
           >
@@ -1486,7 +1485,7 @@ export default function App() {
             aria-label="Feed"
             role="button"
           >
-            <Home size={24} strokeWidth={view === 'poll' ? 2.4 : 1.8} color={view === 'poll' ? '#000000' : '#8e8e93'} />
+            <Home size={24} strokeWidth={view === 'poll' ? 2.4 : 1.8} color={view === 'poll' ? '#ffffff' : '#71717a'} />
             {view === 'poll' && (
               <motion.div layoutId="activeDockGlow" className="gas-dock-glow-pill" />
             )}
@@ -1500,7 +1499,7 @@ export default function App() {
             aria-label="Explore"
             role="button"
           >
-            <Search size={24} strokeWidth={view === 'explore' ? 2.4 : 1.8} color={view === 'explore' ? '#000000' : '#8e8e93'} />
+            <Search size={24} strokeWidth={view === 'explore' ? 2.4 : 1.8} color={view === 'explore' ? '#ffffff' : '#71717a'} />
             {view === 'explore' && (
               <motion.div layoutId="activeDockGlow" className="gas-dock-glow-pill" />
             )}
@@ -1514,7 +1513,7 @@ export default function App() {
             aria-label="God Mode"
             role="button"
           >
-            <Crown size={24} strokeWidth={view === 'pro' ? 2.4 : 1.8} color={view === 'pro' ? '#000000' : '#8e8e93'} />
+            <Crown size={24} strokeWidth={view === 'pro' ? 2.4 : 1.8} color={view === 'pro' ? '#ffffff' : '#71717a'} />
             {view === 'pro' && (
               <motion.div layoutId="activeDockGlow" className="gas-dock-glow-pill" />
             )}
@@ -1534,7 +1533,7 @@ export default function App() {
                 height: '27px',
                 borderRadius: '50%',
                 padding: '1.5px',
-                border: view === 'profile' ? '2px solid #000000' : '2px solid transparent',
+                border: view === 'profile' ? '2px solid #ffffff' : '2px solid transparent',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1559,14 +1558,14 @@ export default function App() {
                     width: '100%',
                     height: '100%',
                     borderRadius: '50%',
-                    background: '#f3f4f6',
+                    background: '#18181b',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '13px'
                   }}
                 >
-                  {user?.avatar || <User size={15} strokeWidth={1.8} color={view === 'profile' ? '#000000' : '#8e8e93'} />}
+                  {user?.avatar || <User size={15} strokeWidth={1.8} color={view === 'profile' ? '#ffffff' : '#71717a'} />}
                 </div>
               )}
             </div>
@@ -1624,10 +1623,10 @@ export default function App() {
                 </div>
 
                 <div style={{ textAlign: 'center', marginBottom: '18px' }}>
-                  <p style={{ color: '#111827', fontSize: '12px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 6px 0' }}>
+                  <p style={{ color: '#ffffff', fontSize: '12px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 6px 0' }}>
                     🔥 Secret Flame
                   </p>
-                  <h3 style={{ fontSize: '18px', color: '#000000', margin: 0, padding: '0 8px', fontStyle: 'italic' }}>
+                  <h3 style={{ fontSize: '18px', color: '#ffffff', margin: 0, padding: '0 8px', fontStyle: 'italic' }}>
                     "{activeRevealPopup.text}"
                   </h3>
                 </div>
@@ -1646,8 +1645,8 @@ export default function App() {
                         width: '130px',
                         height: '90px',
                         margin: '0 auto 18px auto',
-                        background: '#f9fafb',
-                        border: '1px solid #e5e7eb',
+                        background: '#111827',
+                        border: '1px solid #1f2937',
                         borderRadius: '20px',
                         display: 'flex',
                         alignItems: 'center',
@@ -1685,9 +1684,9 @@ export default function App() {
                         gap: '6px',
                         padding: '4px 12px',
                         borderRadius: '12px',
-                        background: '#f3f4f6',
-                        border: '1px solid #e5e7eb',
-                        color: '#374151',
+                        background: '#18181b',
+                        border: '1px solid #27272a',
+                        color: '#d4d4d8',
                         fontWeight: '800',
                         fontSize: '12px',
                         marginBottom: '8px'
@@ -1697,12 +1696,12 @@ export default function App() {
                       </div>
                     )}
 
-                    <h4 style={{ fontSize: '20px', fontWeight: '900', color: '#000000', margin: '0 0 6px 0' }}>
+                    <h4 style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff', margin: '0 0 6px 0' }}>
                       Secret Voter Locked
                     </h4>
 
-                    <p style={{ color: '#6b7280', fontSize: '13.5px', lineHeight: '1.4', margin: '0 0 16px 0', padding: '0 8px' }}>
-                      Invite <strong style={{ color: '#000000', fontSize: '15px' }}>{revealData.remaining}</strong> more {revealData.remaining === 1 ? 'friend' : 'friends'} to unlock voter identities for 1 month.
+                    <p style={{ color: '#a1a1aa', fontSize: '13.5px', lineHeight: '1.4', margin: '0 0 16px 0', padding: '0 8px' }}>
+                      Invite <strong style={{ color: '#ffffff', fontSize: '15px' }}>{revealData.remaining}</strong> more {revealData.remaining === 1 ? 'friend' : 'friends'} to unlock voter identities for 1 month.
                     </p>
 
                     {/* Invite Share Action Button */}
@@ -1713,8 +1712,8 @@ export default function App() {
                         onClick={handleInviteShare}
                         style={{
                           width: '100%',
-                          background: '#000000',
-                          color: '#ffffff',
+                          background: '#ffffff',
+                          color: '#000000',
                           border: 'none',
                           borderRadius: '14px',
                           padding: '12px 16px',
@@ -1733,7 +1732,7 @@ export default function App() {
                         </svg>
                         <span>Share Invite Link</span>
                       </motion.button>
-                      <span style={{ fontSize: '11px', color: '#6b7280' }}>Unlocks automatically when friends join</span>
+                      <span style={{ fontSize: '11px', color: '#a1a1aa' }}>Unlocks automatically when friends join</span>
                     </div>
                   </div>
                 ) : (
@@ -1835,26 +1834,26 @@ export default function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '20px' }}>🔔</span>
-                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#000000' }}>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#ffffff' }}>
                       Friend Requests
                     </h3>
-                    <span style={{ fontSize: '12px', background: '#f3f4f6', color: '#000000', padding: '2px 8px', borderRadius: '12px', fontWeight: '800' }}>
+                    <span style={{ fontSize: '12px', background: '#27272a', color: '#ffffff', padding: '2px 8px', borderRadius: '12px', fontWeight: '800' }}>
                       {pendingRequests.length}
                     </span>
                   </div>
                   <button
                     onClick={() => setShowNotifications(false)}
-                    style={{ background: '#f3f4f6', border: 'none', color: '#6b7280', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}
+                    style={{ background: '#27272a', border: 'none', color: '#a1a1aa', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}
                   >
                     ✕
                   </button>
                 </div>
 
                 {pendingRequests.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '32px 10px', color: '#6b7280' }}>
+                  <div style={{ textAlign: 'center', padding: '32px 10px', color: '#a1a1aa' }}>
                     <div style={{ fontSize: '42px', marginBottom: '10px' }}>📬</div>
-                    <p style={{ margin: 0, fontWeight: '800', color: '#000000', fontSize: '15px' }}>No Pending Requests</p>
-                    <p style={{ fontSize: '12.5px', margin: '6px 0 0 0', color: '#6b7280' }}>Share your invite link with classmates to connect!</p>
+                    <p style={{ margin: 0, fontWeight: '800', color: '#ffffff', fontSize: '15px' }}>No Pending Requests</p>
+                    <p style={{ fontSize: '12.5px', margin: '6px 0 0 0', color: '#a1a1aa' }}>Share your invite link with classmates to connect!</p>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '360px', overflowY: 'auto', paddingRight: '4px' }}>
@@ -1869,17 +1868,17 @@ export default function App() {
                           justifyContent: 'space-between',
                           padding: '12px 14px',
                           borderRadius: '18px',
-                          background: '#f9fafb',
-                          border: '1px solid #e5e7eb'
+                          background: '#111827',
+                          border: '1px solid #1f2937'
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           {renderProfilePic(req.requester?.profile_pic, req.requester?.avatar, req.requester?.is_pro, req.requester?.ring, 42, Boolean(req.requester?.invites >= 25 || req.requester?.recruits >= 25 || req.requester?.is_god_mode || req.requester?.is_legend))}
                           <div>
-                            <span style={{ fontWeight: '800', color: '#000000', fontSize: '14px', display: 'block' }}>
+                            <span style={{ fontWeight: '800', color: '#ffffff', fontSize: '14px', display: 'block' }}>
                               @{req.requester?.handle}
                             </span>
-                            <span style={{ color: '#6b7280', fontSize: '11px', fontWeight: '600' }}>
+                            <span style={{ color: '#9ca3af', fontSize: '11px', fontWeight: '600' }}>
                               {req.requester?.stream || '11th Med'} • {req.requester?.institute || 'Bathinda'}
                             </span>
                           </div>
@@ -1892,9 +1891,9 @@ export default function App() {
                             style={{
                               padding: '8px 14px',
                               borderRadius: '12px',
-                              border: '1px solid #000000',
-                              background: '#000000',
-                              color: '#ffffff',
+                              border: 'none',
+                              background: '#ffffff',
+                              color: '#000000',
                               fontSize: '12.5px',
                               fontWeight: '800',
                               cursor: 'pointer',
@@ -1909,9 +1908,9 @@ export default function App() {
                             style={{
                               padding: '8px 12px',
                               borderRadius: '12px',
-                              border: '1px solid #e5e7eb',
-                              background: '#f3f4f6',
-                              color: '#6b7280',
+                              border: '1px solid #27272a',
+                              background: '#18181b',
+                              color: '#a1a1aa',
                               fontSize: '12px',
                               fontWeight: '700',
                               cursor: 'pointer'
@@ -1950,9 +1949,9 @@ export default function App() {
                   margin: 'auto',
                   borderRadius: '28px',
                   padding: '20px 18px',
-                  background: '#ffffff',
-                  border: '1px solid #e5e7eb',
-                  boxShadow: '0 25px 60px rgba(0,0,0,0.25)',
+                  background: '#0a0a0a',
+                  border: '1px solid #27272a',
+                  boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
                   maxHeight: '88vh',
                   overflowY: 'auto'
                 }}
@@ -1961,7 +1960,7 @@ export default function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '18px' }}>✍️</span>
-                    <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#000000' }}>
+                    <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#ffffff' }}>
                       Add New Poll
                     </h3>
                   </div>
@@ -1970,9 +1969,9 @@ export default function App() {
                     onClick={() => setShowAddPollModal(false)}
                     aria-label="Close modal"
                     style={{
-                      background: '#f3f4f6',
+                      background: '#18181b',
                       border: 'none',
-                      color: '#6b7280',
+                      color: '#a1a1aa',
                       borderRadius: '50%',
                       width: '30px',
                       height: '30px',
