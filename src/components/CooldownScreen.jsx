@@ -153,37 +153,38 @@ export default function CooldownScreen({
         justifyContent: 'center',
         padding: '24px 16px',
         textAlign: 'center',
-        background: '#ffffff'
+        background: '#000000',
+        color: '#ffffff'
       }}
     >
       <div
         style={{
           width: '100%',
           maxWidth: '380px',
-          background: '#ffffff',
-          border: '1px solid #e5e7eb',
+          background: '#09090b',
+          border: '1px solid #27272a',
           borderRadius: '24px',
           padding: '32px 20px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           boxSizing: 'border-box',
-          boxShadow: '0 2px 12px rgba(0, 0, 0, 0.04)'
+          boxShadow: 'none'
         }}
       >
         <span style={{ fontSize: '44px', marginBottom: '8px' }}>⏱️</span>
-        <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.3px' }}>
+        <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#ffffff', margin: '0 0 6px 0', letterSpacing: '-0.3px' }}>
           Cooldown Active
         </h2>
-        <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 20px 0', lineHeight: '1.4' }}>
+        <p style={{ fontSize: '13px', color: '#a1a1aa', margin: '0 0 20px 0', lineHeight: '1.4' }}>
           You've answered 12 polls! Take a breather while your classmates vote on you.
         </p>
 
         {/* Live Ticking Countdown Timer */}
         <div
           style={{
-            background: '#f9fafb',
-            border: '1px solid #e5e7eb',
+            background: '#18181b',
+            border: '1px solid #27272a',
             borderRadius: '18px',
             padding: '16px 28px',
             marginBottom: '20px',
@@ -194,13 +195,13 @@ export default function CooldownScreen({
               fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
               fontSize: '44px',
               fontWeight: '900',
-              color: '#000000',
+              color: '#ffffff',
               letterSpacing: '2px',
             }}
           >
             {formattedTime}
           </div>
-          <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             Next Poll Batch In
           </span>
         </div>
@@ -209,8 +210,8 @@ export default function CooldownScreen({
         <div
           style={{
             width: '100%',
-            background: '#f3f4f6',
-            border: '1px solid #e5e7eb',
+            background: '#18181b',
+            border: '1px solid #27272a',
             borderRadius: '14px',
             padding: '10px 14px',
             marginBottom: '18px',
@@ -219,7 +220,7 @@ export default function CooldownScreen({
             justifyContent: 'center',
             gap: '8px',
             fontSize: '11.5px',
-            color: '#374151'
+            color: '#d4d4d8'
           }}
         >
           <span
@@ -227,7 +228,7 @@ export default function CooldownScreen({
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              background: hasShared ? '#10b981' : '#6b7280',
+              background: hasShared ? '#10b981' : '#71717a',
               display: 'inline-block'
             }}
           />
@@ -252,9 +253,9 @@ export default function CooldownScreen({
                 width: '100%',
                 padding: '13px 18px',
                 borderRadius: '14px',
-                border: '1px solid #000000',
-                background: '#000000',
-                color: '#ffffff',
+                border: '1px solid #ffffff',
+                background: '#ffffff',
+                color: '#000000',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -271,7 +272,7 @@ export default function CooldownScreen({
               </svg>
               <span>{hasShared ? 'Share Invite Link Again' : 'Share Link to Unlock'}</span>
             </motion.button>
-            <span style={{ fontSize: '11px', color: '#6b7280' }}>
+            <span style={{ fontSize: '11px', color: '#a1a1aa' }}>
               Unlocks automatically the moment your friend logs in
             </span>
           </div>

@@ -215,7 +215,8 @@ export default function Explore({
         alignItems: 'center',
         padding: '16px 0 85px 0',
         boxSizing: 'border-box',
-        background: '#ffffff'
+        background: '#000000',
+        color: '#ffffff'
       }}
     >
       {/* 80% SCREEN FOCUS CONTAINER (80/20 Rule: 80% content focus, 20% clean margins) */}
@@ -238,7 +239,8 @@ export default function Explore({
               gap: '6px',
               padding: '3px 10px',
               borderRadius: '20px',
-              background: '#000000',
+              background: '#18181b',
+              border: '1px solid #27272a',
               color: '#ffffff',
               fontSize: '10px',
               fontWeight: '900',
@@ -255,7 +257,7 @@ export default function Explore({
             style={{
               fontSize: '32px',
               fontWeight: '950',
-              color: '#000000',
+              color: '#ffffff',
               margin: '0 0 4px 0',
               letterSpacing: '-1.2px',
               lineHeight: 1.05
@@ -267,7 +269,7 @@ export default function Explore({
             style={{
               fontSize: '13px',
               fontWeight: '700',
-              color: '#6b7280',
+              color: '#a1a1aa',
               margin: 0,
               letterSpacing: '-0.2px'
             }}
@@ -282,15 +284,15 @@ export default function Explore({
             style={{
               display: 'flex',
               alignItems: 'center',
-              background: '#f9fafb',
-              border: '2px solid #000000',
+              background: '#18181b',
+              border: '2px solid #27272a',
               borderRadius: '18px',
               padding: '0 14px',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+              boxShadow: 'none',
               transition: 'border-color 0.2s ease'
             }}
           >
-            <span style={{ fontSize: '15px', color: '#000000', marginRight: '8px', fontWeight: '900' }}>🔍</span>
+            <span style={{ fontSize: '15px', color: '#ffffff', marginRight: '8px', fontWeight: '900' }}>🔍</span>
             <input
               type="text"
               placeholder="Search classmates @handle..."
@@ -302,7 +304,7 @@ export default function Explore({
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                color: '#000000',
+                color: '#ffffff',
                 fontSize: '14px',
                 fontWeight: '800'
               }}
@@ -313,7 +315,7 @@ export default function Explore({
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#9ca3af',
+                  color: '#71717a',
                   fontSize: '14px',
                   cursor: 'pointer',
                   padding: '4px'
@@ -337,22 +339,22 @@ export default function Explore({
                   left: 0,
                   right: 0,
                   marginTop: '8px',
-                  background: '#ffffff',
-                  border: '2px solid #000000',
+                  background: '#09090b',
+                  border: '2px solid #27272a',
                   borderRadius: '18px',
                   padding: '8px',
                   zIndex: 40,
-                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.12)',
+                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.7)',
                   maxHeight: '260px',
                   overflowY: 'auto'
                 }}
               >
                 {isSearching ? (
-                  <div style={{ padding: '16px', textAlign: 'center', color: '#6b7280', fontSize: '13px', fontWeight: '700' }}>
+                  <div style={{ padding: '16px', textAlign: 'center', color: '#a1a1aa', fontSize: '13px', fontWeight: '700' }}>
                     Searching Bathinda Hubs...
                   </div>
                 ) : searchResults.length === 0 ? (
-                  <div style={{ padding: '16px', textAlign: 'center', color: '#6b7280', fontSize: '13px', fontWeight: '700' }}>
+                  <div style={{ padding: '16px', textAlign: 'center', color: '#a1a1aa', fontSize: '13px', fontWeight: '700' }}>
                     No classmates found for "{searchQuery}"
                   </div>
                 ) : (
@@ -367,7 +369,8 @@ export default function Explore({
                           justifyContent: 'space-between',
                           padding: '10px 12px',
                           borderRadius: '12px',
-                          background: '#f9fafb',
+                          background: '#18181b',
+                          border: '1px solid #27272a',
                           marginBottom: '6px'
                         }}
                       >
@@ -378,15 +381,15 @@ export default function Explore({
                           {renderProfilePic
                             ? renderProfilePic(user.profile_pic, user.avatar, user.is_pro, user.selected_ring || user.ring, 38, Boolean(user.invites >= 25 || user.recruits >= 25 || user.is_god_mode || user.is_legend))
                             : (
-                              <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 {user.avatar || '😎'}
                               </div>
                             )}
                           <div style={{ textAlign: 'left' }}>
-                            <span style={{ fontSize: '13.5px', fontWeight: '900', color: '#000000', display: 'block' }}>
+                            <span style={{ fontSize: '13.5px', fontWeight: '900', color: '#ffffff', display: 'block' }}>
                               {user.name || `@${user.handle}`}
                             </span>
-                            <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>
+                            <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '600' }}>
                               @{user.handle} • {user.institute || 'Kapil Institute'}
                             </span>
                           </div>
@@ -395,11 +398,11 @@ export default function Explore({
                         {/* Request Action Button */}
                         <div>
                           {status === 'accepted' ? (
-                            <span style={{ fontSize: '11px', color: '#059669', fontWeight: '900', padding: '4px 8px' }}>
+                            <span style={{ fontSize: '11px', color: '#10b981', fontWeight: '900', padding: '4px 8px' }}>
                               ✓ Friends
                             </span>
                           ) : status === 'pending' || status === 'sending' ? (
-                            <span style={{ fontSize: '11px', color: '#d97706', fontWeight: '800', padding: '4px 8px' }}>
+                            <span style={{ fontSize: '11px', color: '#f59e0b', fontWeight: '800', padding: '4px 8px' }}>
                               ⏳ Sent
                             </span>
                           ) : (
@@ -410,8 +413,8 @@ export default function Explore({
                                 padding: '7px 14px',
                                 borderRadius: '10px',
                                 border: 'none',
-                                background: '#000000',
-                                color: '#ffffff',
+                                background: '#ffffff',
+                                color: '#000000',
                                 fontSize: '12px',
                                 fontWeight: '900',
                                 cursor: 'pointer'
@@ -438,11 +441,11 @@ export default function Explore({
           {/* ACCORDION 2: LEGENDS (BATCH CAPTAINS) */}
           <div
             style={{
-              background: '#ffffff',
-              border: '2px solid #000000',
+              background: '#09090b',
+              border: '1.5px solid #27272a',
               borderRadius: '20px',
               overflow: 'hidden',
-              boxShadow: '0 3px 12px rgba(0, 0, 0, 0.05)'
+              boxShadow: 'none'
             }}
           >
             <button
@@ -454,7 +457,7 @@ export default function Explore({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                background: '#ffffff',
+                background: '#09090b',
                 border: 'none',
                 cursor: 'pointer',
                 textAlign: 'left'
@@ -463,10 +466,10 @@ export default function Explore({
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span style={{ fontSize: '20px' }}>👑</span>
                 <div>
-                  <div style={{ fontSize: '15px', fontWeight: '950', color: '#000000', letterSpacing: '-0.3px' }}>
+                  <div style={{ fontSize: '15px', fontWeight: '950', color: '#ffffff', letterSpacing: '-0.3px' }}>
                     Legends (Batch Captains)
                   </div>
-                  <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '700', marginTop: '1px' }}>
+                  <div style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '700', marginTop: '1px' }}>
                     25+ Recruits • Hall of Fame
                   </div>
                 </div>
@@ -475,7 +478,7 @@ export default function Explore({
                 style={{
                   fontSize: '13px',
                   fontWeight: '900',
-                  color: '#000000',
+                  color: '#ffffff',
                   transform: openAccordion === 'legends' ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.2s ease'
                 }}
@@ -491,32 +494,32 @@ export default function Explore({
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.22, ease: 'easeInOut' }}
-                  style={{ overflow: 'hidden', borderTop: '1px solid #f3f4f6' }}
+                  style={{ overflow: 'hidden', borderTop: '1px solid #27272a' }}
                 >
                   <div style={{ padding: '12px 16px 16px 16px' }}>
-                    <p style={{ margin: '0 0 12px 0', fontSize: '12px', fontWeight: '700', color: '#6b7280', textAlign: 'left' }}>
+                    <p style={{ margin: '0 0 12px 0', fontSize: '12px', fontWeight: '700', color: '#a1a1aa', textAlign: 'left' }}>
                       Students with official Batch Captain status across Bathinda hubs.
                     </p>
 
                     {isLoadingLegends ? (
-                      <div style={{ padding: '24px 0', textAlign: 'center', color: '#6b7280', fontSize: '13px', fontWeight: '700' }}>
+                      <div style={{ padding: '24px 0', textAlign: 'center', color: '#a1a1aa', fontSize: '13px', fontWeight: '700' }}>
                         Loading Legends...
                       </div>
                     ) : legends.length === 0 ? (
                       <div style={{ padding: '20px 8px', textAlign: 'center' }}>
                         <div style={{ fontSize: '32px', marginBottom: '8px' }}>👑</div>
-                        <p style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: '950', color: '#000000', lineHeight: '1.3' }}>
+                        <p style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: '950', color: '#ffffff', lineHeight: '1.3' }}>
                           No Batch Captains yet. Claim the crown!
                         </p>
-                        <p style={{ margin: '0 0 14px 0', fontSize: '12px', color: '#6b7280', fontWeight: '600' }}>
+                        <p style={{ margin: '0 0 14px 0', fontSize: '12px', color: '#a1a1aa', fontWeight: '600' }}>
                           Invite 25 classmates to become an official Batch Captain and lead your hub.
                         </p>
                         <button
                           onClick={() => navigate('/captains')}
                           style={{
                             padding: '10px 20px',
-                            background: '#000000',
-                            color: '#ffffff',
+                            background: '#ffffff',
+                            color: '#000000',
                             border: 'none',
                             borderRadius: '12px',
                             fontSize: '12.5px',
@@ -538,7 +541,7 @@ export default function Explore({
                               alignItems: 'center',
                               justifyContent: 'space-between',
                               padding: '12px 0',
-                              borderBottom: idx === legends.length - 1 ? 'none' : '1px solid #f3f4f6',
+                              borderBottom: idx === legends.length - 1 ? 'none' : '1px solid #27272a',
                               cursor: 'pointer',
                               textAlign: 'left'
                             }}
@@ -547,15 +550,15 @@ export default function Explore({
                               {renderProfilePic
                                 ? renderProfilePic(legend.profile_pic, legend.avatar, true, legend.selected_ring || legend.ring || 'gold', 42, true)
                                 : (
-                                  <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
+                                  <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
                                     {legend.avatar || '👑'}
                                   </div>
                                 )}
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                <span style={{ fontSize: '14.5px', fontWeight: '950', color: '#000000', letterSpacing: '-0.2px' }}>
+                                <span style={{ fontSize: '14.5px', fontWeight: '950', color: '#ffffff', letterSpacing: '-0.2px' }}>
                                   {legend.name || `@${legend.handle}`}
                                 </span>
-                                <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '600' }}>
+                                <span style={{ fontSize: '12px', color: '#a1a1aa', fontWeight: '600' }}>
                                   @{legend.handle}
                                 </span>
                                 <div
@@ -563,7 +566,8 @@ export default function Explore({
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: '4px',
-                                    background: '#000000',
+                                    background: '#18181b',
+                                    border: '1px solid #27272a',
                                     color: '#ffffff',
                                     fontSize: '9.5px',
                                     fontWeight: '900',
@@ -580,10 +584,10 @@ export default function Explore({
                             </div>
 
                             <div style={{ textAlign: 'right' }}>
-                              <span style={{ fontSize: '13px', fontWeight: '950', color: '#000000' }}>
+                              <span style={{ fontSize: '13px', fontWeight: '950', color: '#ffffff' }}>
                                 {legend.total_votes || 0} 🔥
                               </span>
-                              <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px', fontWeight: '700' }}>
+                              <div style={{ fontSize: '11px', color: '#a1a1aa', marginTop: '1px', fontWeight: '700' }}>
                                 {legend.invites ? `${legend.invites} recruits` : 'Leader'}
                               </div>
                             </div>
@@ -602,7 +606,7 @@ export default function Explore({
             style={{
               background: 'transparent',
               border: 'none',
-              borderBottom: '1px solid #e5e7eb',
+              borderBottom: '1px solid #27272a',
               borderRadius: 0,
               boxShadow: 'none',
               overflow: 'hidden'
@@ -625,12 +629,12 @@ export default function Explore({
             >
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Users size={19} strokeWidth={1.8} color="#000000" />
-                  <span style={{ fontSize: '15px', fontWeight: '950', color: '#000000', letterSpacing: '-0.3px' }}>
+                  <Users size={19} strokeWidth={1.8} color="#ffffff" />
+                  <span style={{ fontSize: '15px', fontWeight: '950', color: '#ffffff', letterSpacing: '-0.3px' }}>
                     Class Rank
                   </span>
                 </div>
-                <span style={{ fontSize: '11.5px', color: '#6b7280', fontWeight: '700', marginTop: '2px', paddingLeft: '29px' }}>
+                <span style={{ fontSize: '11.5px', color: '#a1a1aa', fontWeight: '700', marginTop: '2px', paddingLeft: '29px' }}>
                   {currentUserInstitute} • {currentUserStream}
                 </span>
               </div>
@@ -638,7 +642,7 @@ export default function Explore({
                 style={{
                   fontSize: '13px',
                   fontWeight: '900',
-                  color: '#000000',
+                  color: '#ffffff',
                   transform: openAccordion === 'classRank' ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.2s ease'
                 }}
@@ -654,34 +658,34 @@ export default function Explore({
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.22, ease: 'easeInOut' }}
-                  style={{ overflow: 'hidden', borderTop: '1px solid #f3f4f6' }}
+                  style={{ overflow: 'hidden', borderTop: '1px solid #27272a' }}
                 >
                   <div style={{ padding: '12px 16px 16px 16px' }}>
                     <div
                       style={{
                         padding: '8px 12px',
                         borderRadius: '12px',
-                        background: '#f9fafb',
-                        border: '1px solid #e5e7eb',
+                        background: '#18181b',
+                        border: '1px solid #27272a',
                         marginBottom: '12px',
                         textAlign: 'left'
                       }}
                     >
-                      <span style={{ fontSize: '11.5px', color: '#111827', fontWeight: '800' }}>
+                      <span style={{ fontSize: '11.5px', color: '#e4e4e7', fontWeight: '800' }}>
                         📍 Isolated to {currentUserInstitute} • {currentUserStream} students only
                       </span>
                     </div>
 
                     {isLoadingLeaderboard ? (
-                      <div style={{ padding: '24px 0', textAlign: 'center', color: '#6b7280', fontSize: '13px', fontWeight: '700' }}>
+                      <div style={{ padding: '24px 0', textAlign: 'center', color: '#a1a1aa', fontSize: '13px', fontWeight: '700' }}>
                         Calculating class rank...
                       </div>
                     ) : classLeaderboard.length === 0 ? (
                       <div style={{ padding: '20px 0', textAlign: 'left' }}>
-                        <p style={{ margin: '0 0 6px 0', fontSize: '14px', fontWeight: '950', color: '#000000' }}>
+                        <p style={{ margin: '0 0 6px 0', fontSize: '14px', fontWeight: '950', color: '#ffffff' }}>
                           You are the first from {currentUserInstitute} ({currentUserStream})!
                         </p>
-                        <p style={{ margin: 0, fontSize: '12px', color: '#6b7280', fontWeight: '600' }}>
+                        <p style={{ margin: 0, fontSize: '12px', color: '#a1a1aa', fontWeight: '600' }}>
                           Invite your classmates to kickstart the live batch ranking.
                         </p>
                       </div>
@@ -698,9 +702,9 @@ export default function Explore({
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
                                 padding: '12px 0',
-                                borderBottom: idx === classLeaderboard.length - 1 ? 'none' : '1px solid #f3f4f6',
+                                borderBottom: idx === classLeaderboard.length - 1 ? 'none' : '1px solid #27272a',
                                 cursor: 'pointer',
-                                background: isMe ? '#f9fafb' : 'transparent',
+                                background: isMe ? '#18181b' : 'transparent',
                                 borderRadius: isMe ? '12px' : '0',
                                 paddingLeft: isMe ? '8px' : '0',
                                 paddingRight: isMe ? '8px' : '0'
@@ -712,7 +716,7 @@ export default function Explore({
                                     width: '26px',
                                     fontSize: '14px',
                                     fontWeight: '950',
-                                    color: idx === 0 ? '#000000' : '#6b7280',
+                                    color: idx === 0 ? '#ffffff' : '#a1a1aa',
                                     textAlign: 'left'
                                   }}
                                 >
@@ -721,21 +725,21 @@ export default function Explore({
                                 {renderProfilePic
                                   ? renderProfilePic(student.profile_pic, student.avatar, student.is_pro, student.selected_ring || student.ring, 40, Boolean(student.invites >= 25 || student.recruits >= 25 || student.is_god_mode || student.is_legend))
                                   : (
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                       {student.avatar || '😎'}
                                     </div>
                                   )}
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                  <span style={{ fontSize: '14px', fontWeight: '950', color: '#000000', letterSpacing: '-0.2px' }}>
+                                  <span style={{ fontSize: '14px', fontWeight: '950', color: '#ffffff', letterSpacing: '-0.2px' }}>
                                     {student.name || `@${student.handle}`} {isMe && ' (You)'}
                                   </span>
-                                  <span style={{ fontSize: '11.5px', color: '#6b7280', fontWeight: '600' }}>
+                                  <span style={{ fontSize: '11.5px', color: '#a1a1aa', fontWeight: '600' }}>
                                     @{student.handle}
                                   </span>
                                 </div>
                               </div>
 
-                              <span style={{ fontSize: '13px', fontWeight: '950', color: '#000000' }}>
+                              <span style={{ fontSize: '13px', fontWeight: '950', color: '#ffffff' }}>
                                 {student.total_votes || 0} 🔥
                               </span>
                             </div>
@@ -754,7 +758,7 @@ export default function Explore({
             style={{
               background: 'transparent',
               border: 'none',
-              borderBottom: '1px solid #e5e7eb',
+              borderBottom: '1px solid #27272a',
               borderRadius: 0,
               boxShadow: 'none',
               overflow: 'hidden'
@@ -776,12 +780,12 @@ export default function Explore({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <School size={19} strokeWidth={1.8} color="#000000" />
+                <School size={19} strokeWidth={1.8} color="#ffffff" />
                 <div>
-                  <div style={{ fontSize: '15px', fontWeight: '950', color: '#000000', letterSpacing: '-0.3px' }}>
+                  <div style={{ fontSize: '15px', fontWeight: '950', color: '#ffffff', letterSpacing: '-0.3px' }}>
                     School Rank
                   </div>
-                  <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '700', marginTop: '1px' }}>
+                  <div style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '700', marginTop: '1px' }}>
                     {currentUserInstitute} • Institute-wide Leaderboard
                   </div>
                 </div>
@@ -790,7 +794,7 @@ export default function Explore({
                 style={{
                   fontSize: '13px',
                   fontWeight: '900',
-                  color: '#000000',
+                  color: '#ffffff',
                   transform: openAccordion === 'allBathinda' ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.2s ease'
                 }}
@@ -806,19 +810,19 @@ export default function Explore({
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.22, ease: 'easeInOut' }}
-                  style={{ overflow: 'hidden', borderTop: '1px solid #f3f4f6' }}
+                  style={{ overflow: 'hidden', borderTop: '1px solid #27272a' }}
                 >
                   <div style={{ padding: '12px 16px 16px 16px' }}>
-                    <p style={{ margin: '0 0 12px 0', fontSize: '12px', fontWeight: '700', color: '#6b7280', textAlign: 'left' }}>
+                    <p style={{ margin: '0 0 12px 0', fontSize: '12px', fontWeight: '700', color: '#a1a1aa', textAlign: 'left' }}>
                       Rankings strictly isolated to {currentUserInstitute} students.
                     </p>
 
                     {isLoadingLeaderboard ? (
-                      <div style={{ padding: '24px 0', textAlign: 'center', color: '#6b7280', fontSize: '13px', fontWeight: '700' }}>
+                      <div style={{ padding: '24px 0', textAlign: 'center', color: '#a1a1aa', fontSize: '13px', fontWeight: '700' }}>
                         Loading {currentUserInstitute} ranks...
                       </div>
                     ) : leaderboard.length === 0 ? (
-                      <div style={{ padding: '20px 0', textAlign: 'center', color: '#6b7280', fontSize: '13px', fontWeight: '700' }}>
+                      <div style={{ padding: '20px 0', textAlign: 'center', color: '#a1a1aa', fontSize: '13px', fontWeight: '700' }}>
                         No students ranked yet. Cast votes in the feed to start trends!
                       </div>
                     ) : (
@@ -832,7 +836,7 @@ export default function Explore({
                               alignItems: 'center',
                               justifyContent: 'space-between',
                               padding: '12px 0',
-                              borderBottom: idx === leaderboard.length - 1 ? 'none' : '1px solid #f3f4f6',
+                              borderBottom: idx === leaderboard.length - 1 ? 'none' : '1px solid #27272a',
                               cursor: 'pointer',
                               textAlign: 'left'
                             }}
@@ -843,7 +847,7 @@ export default function Explore({
                                   width: '26px',
                                   fontSize: '14px',
                                   fontWeight: '950',
-                                  color: idx === 0 ? '#000000' : '#6b7280',
+                                  color: idx === 0 ? '#ffffff' : '#a1a1aa',
                                   textAlign: 'left'
                                 }}
                               >
@@ -852,21 +856,21 @@ export default function Explore({
                               {renderProfilePic
                                 ? renderProfilePic(student.profile_pic, student.avatar, student.is_pro, student.selected_ring || student.ring, 40, Boolean(student.invites >= 25 || student.recruits >= 25 || student.is_god_mode || student.is_legend))
                                 : (
-                                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     {student.avatar || '😎'}
                                   </div>
                                 )}
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                <span style={{ fontSize: '14px', fontWeight: '950', color: '#000000', letterSpacing: '-0.2px' }}>
+                                <span style={{ fontSize: '14px', fontWeight: '950', color: '#ffffff', letterSpacing: '-0.2px' }}>
                                   {student.name || `@${student.handle}`}
                                 </span>
-                                <span style={{ fontSize: '11.5px', color: '#6b7280', fontWeight: '600' }}>
+                                <span style={{ fontSize: '11.5px', color: '#a1a1aa', fontWeight: '600' }}>
                                   @{student.handle} • {student.stream || student.institute || 'Kapil Institute'}
                                 </span>
                               </div>
                             </div>
 
-                            <span style={{ fontSize: '13px', fontWeight: '950', color: '#000000' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '950', color: '#ffffff' }}>
                               {student.total_votes || 0} 🔥
                             </span>
                           </div>

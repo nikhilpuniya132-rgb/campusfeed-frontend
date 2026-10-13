@@ -500,7 +500,8 @@ export default function Feed({
         margin: '0 auto',
         padding: '4px 12px 62px 12px',
         boxSizing: 'border-box',
-        background: '#ffffff'
+        background: '#000000',
+        color: '#ffffff'
       }}
     >
       {/* Classes Filter */}
@@ -527,26 +528,26 @@ export default function Feed({
               justifyContent: 'space-between',
               padding: '9px 14px',
               borderRadius: '14px',
-              border: '1.5px solid #000000',
-              background: '#f9fafb',
-              color: '#000000',
+              border: '1.5px solid #27272a',
+              background: '#18181b',
+              color: '#ffffff',
               fontWeight: '800',
               fontSize: '12.5px',
               cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+              boxShadow: 'none',
               transition: 'all 0.15s ease'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
               <span style={{ fontSize: '13px' }}>🎓</span>
-              <span style={{ color: '#6b7280', fontWeight: '700', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <span style={{ color: '#a1a1aa', fontWeight: '700', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Classes:
               </span>
-              <span style={{ fontWeight: '800', color: '#000000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ fontWeight: '800', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {currentClassLabel}
               </span>
             </div>
-            <span style={{ fontSize: '10px', color: '#6b7280', transition: 'transform 0.2s ease', transform: isClassesOpen ? 'rotate(180deg)' : 'none' }}>
+            <span style={{ fontSize: '10px', color: '#a1a1aa', transition: 'transform 0.2s ease', transform: isClassesOpen ? 'rotate(180deg)' : 'none' }}>
               ▼
             </span>
           </motion.button>
@@ -565,16 +566,16 @@ export default function Feed({
                   right: 0,
                   maxHeight: '260px',
                   overflowY: 'auto',
-                  background: '#ffffff',
-                  border: '1.5px solid #000000',
+                  background: '#09090b',
+                  border: '1.5px solid #27272a',
                   borderRadius: '16px',
-                  boxShadow: '0 12px 30px rgba(0, 0, 0, 0.15)',
+                  boxShadow: '0 12px 30px rgba(0, 0, 0, 0.6)',
                   zIndex: 100,
                   padding: '6px',
                   scrollbarWidth: 'thin'
                 }}
               >
-                <div style={{ padding: '6px 10px 4px 10px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', color: '#9ca3af', letterSpacing: '0.05em' }}>
+                <div style={{ padding: '6px 10px 4px 10px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', color: '#71717a', letterSpacing: '0.05em' }}>
                   Filter By Class / Stream
                 </div>
 
@@ -587,8 +588,8 @@ export default function Feed({
                     padding: '9px 12px',
                     borderRadius: '10px',
                     border: 'none',
-                    background: (!activeGradeFilter || activeGradeFilter === 'all') ? '#000000' : 'transparent',
-                    color: (!activeGradeFilter || activeGradeFilter === 'all') ? '#ffffff' : '#111827',
+                    background: (!activeGradeFilter || activeGradeFilter === 'all') ? '#27272a' : 'transparent',
+                    color: (!activeGradeFilter || activeGradeFilter === 'all') ? '#ffffff' : '#d4d4d8',
                     fontWeight: '800',
                     fontSize: '12px',
                     cursor: 'pointer',
@@ -603,7 +604,7 @@ export default function Feed({
                   {(!activeGradeFilter || activeGradeFilter === 'all') && <span>✓</span>}
                 </button>
 
-                <div style={{ height: '1px', background: '#f3f4f6', margin: '4px 0' }} />
+                <div style={{ height: '1px', background: '#27272a', margin: '4px 0' }} />
 
                 {availableClassOptions.map((c) => {
                   const isSelected = activeGradeFilter?.toLowerCase() === c.toLowerCase();
@@ -618,8 +619,8 @@ export default function Feed({
                         padding: '9px 12px',
                         borderRadius: '10px',
                         border: 'none',
-                        background: isSelected ? '#000000' : 'transparent',
-                        color: isSelected ? '#ffffff' : '#1f2937',
+                        background: isSelected ? '#27272a' : 'transparent',
+                        color: isSelected ? '#ffffff' : '#d4d4d8',
                         fontWeight: '700',
                         fontSize: '12px',
                         cursor: 'pointer',
@@ -657,28 +658,28 @@ export default function Feed({
             justifyContent: 'center',
             textAlign: 'center',
             minHeight: '280px',
-            background: '#ffffff',
-            border: '1px solid #e5e7eb',
+            background: '#09090b',
+            border: '1px solid #27272a',
             borderRadius: '24px',
             padding: '32px 20px',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)'
+            boxShadow: 'none'
           }}
         >
           <div style={{ fontSize: '46px', marginBottom: '8px' }}>🔥</div>
-          <h2 style={{ color: '#000000', fontSize: '22px', fontWeight: '900', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+          <h2 style={{ color: '#ffffff', fontSize: '22px', fontWeight: '900', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
             Flame Sent!
           </h2>
           
           {selectedCandidate && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#f3f4f6', padding: '6px 14px', borderRadius: '16px', margin: '6px 0 16px 0', border: '1px solid #e5e7eb' }}>
-              <span style={{ fontSize: '13px', color: '#6b7280' }}>To:</span>
-              <span style={{ fontSize: '13.5px', fontWeight: '800', color: '#000000' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#18181b', padding: '6px 14px', borderRadius: '16px', margin: '6px 0 16px 0', border: '1px solid #27272a' }}>
+              <span style={{ fontSize: '13px', color: '#a1a1aa' }}>To:</span>
+              <span style={{ fontSize: '13.5px', fontWeight: '800', color: '#ffffff' }}>
                 @{selectedCandidate.handle}
               </span>
             </div>
           )}
 
-          <p style={{ color: '#6b7280', fontSize: '13px', maxWidth: '270px', margin: '0 0 24px 0', lineHeight: '1.4' }}>
+          <p style={{ color: '#a1a1aa', fontSize: '13px', maxWidth: '270px', margin: '0 0 24px 0', lineHeight: '1.4' }}>
             Delivered anonymously. They won't know it was you unless they unlock via 3 recruits or God Mode!
           </p>
 
@@ -688,9 +689,9 @@ export default function Feed({
             style={{
               padding: '14px 32px',
               borderRadius: '16px',
-              border: '1px solid #000000',
-              background: '#000000',
-              color: '#ffffff',
+              border: '1px solid #ffffff',
+              background: '#ffffff',
+              color: '#000000',
               fontSize: '14.5px',
               fontWeight: '800',
               cursor: 'pointer',
@@ -710,8 +711,8 @@ export default function Feed({
             style={{
               flex: 4,
               minHeight: 0,
-              background: '#ffffff',
-              border: '1px solid #e5e7eb',
+              background: '#09090b',
+              border: '1px solid #27272a',
               borderRadius: '20px',
               padding: '16px 14px',
               textAlign: 'center',
@@ -719,7 +720,7 @@ export default function Feed({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+              boxShadow: 'none',
               position: 'relative',
               boxSizing: 'border-box'
             }}
@@ -733,8 +734,8 @@ export default function Feed({
                 position: 'absolute',
                 top: '10px',
                 right: '10px',
-                background: '#f3f4f6',
-                border: '1px solid #e5e7eb',
+                background: '#18181b',
+                border: '1px solid #27272a',
                 borderRadius: '10px',
                 width: '30px',
                 height: '30px',
@@ -742,7 +743,7 @@ export default function Feed({
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                color: '#6b7280',
+                color: '#ffffff',
                 transition: 'all 0.15s ease'
               }}
             >
@@ -753,7 +754,7 @@ export default function Feed({
               style={{
                 fontSize: 'clamp(21px, 5.4vw, 26px)',
                 fontWeight: '900',
-                color: '#000000',
+                color: '#ffffff',
                 lineHeight: '1.25',
                 margin: 0,
                 padding: '0 16px',
@@ -779,11 +780,11 @@ export default function Feed({
                   justifyContent: 'center',
                   padding: '14px 10px',
                   textAlign: 'center',
-                  background: '#ffffff',
-                  border: '1px solid #e5e7eb',
+                  background: '#09090b',
+                  border: '1px solid #27272a',
                   borderRadius: '16px',
                   marginBottom: '4px',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
+                  boxShadow: 'none'
                 }}
               >
                 <div style={{ fontSize: '24px', marginBottom: '4px' }}>👥</div>
@@ -791,7 +792,7 @@ export default function Feed({
                   style={{
                     fontSize: '12px',
                     fontWeight: '600',
-                    color: '#111827',
+                    color: '#e4e4e7',
                     lineHeight: '1.3',
                     maxWidth: '280px',
                     margin: '0 0 8px 0'
@@ -803,9 +804,9 @@ export default function Feed({
                   whileTap={{ scale: 0.95 }}
                   onClick={handleSharePoll}
                   style={{
-                    background: '#000000',
+                    background: '#18181b',
                     color: '#ffffff',
-                    border: '1px solid #000000',
+                    border: '1px solid #3f3f46',
                     borderRadius: '10px',
                     padding: '6px 14px',
                     fontSize: '11.5px',
@@ -829,36 +830,36 @@ export default function Feed({
                     transition={{ duration: 0.1 }}
                     onClick={() => handleVoteClick(opt)}
                     style={{
-                      background: '#ffffff',
-                      border: '1px solid #e5e7eb',
+                      background: '#18181b',
+                      border: '1px solid #27272a',
                       borderRadius: '14px',
                       padding: '6px 4px',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#000000',
+                      color: '#ffffff',
                       cursor: 'pointer',
                       outline: 'none',
                       minHeight: 0,
                       boxSizing: 'border-box',
                       userSelect: 'none',
                       transition: 'all 0.15s ease',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
+                      boxShadow: 'none'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#d1d5db';
-                      e.currentTarget.style.background = '#f9fafb';
+                      e.currentTarget.style.borderColor = '#3f3f46';
+                      e.currentTarget.style.background = '#27272a';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = '#e5e7eb';
-                      e.currentTarget.style.background = '#ffffff';
+                      e.currentTarget.style.borderColor = '#27272a';
+                      e.currentTarget.style.background = '#18181b';
                     }}
                   >
                     {renderProfilePic
                       ? renderProfilePic(opt.profile_pic, opt.avatar, opt.is_pro, opt.selected_ring || opt.ring, 36, Boolean(opt.invites >= 25 || opt.recruits >= 25 || opt.is_god_mode || opt.is_legend))
                       : (
-                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
                           {opt.avatar || '😎'}
                         </div>
                       )}
@@ -866,7 +867,7 @@ export default function Feed({
                       style={{
                         fontSize: '12px',
                         fontWeight: '800',
-                        color: '#000000',
+                        color: '#ffffff',
                         marginTop: '2px',
                         textAlign: 'center',
                         lineHeight: '1.15',
@@ -880,7 +881,7 @@ export default function Feed({
                       @{opt.handle}
                     </span>
                     {opt.stream && (
-                      <span style={{ fontSize: '8.5px', color: '#6b7280', fontWeight: '600', marginTop: '1px' }}>
+                      <span style={{ fontSize: '8.5px', color: '#a1a1aa', fontWeight: '600', marginTop: '1px' }}>
                         {opt.stream}
                       </span>
                     )}
@@ -897,9 +898,9 @@ export default function Feed({
                   disabled={shuffleCount >= 3}
                   onClick={handleShuffleClick}
                   style={{
-                    background: shuffleCount >= 3 ? '#f3f4f6' : '#f9fafb',
-                    border: '1px solid #e5e7eb',
-                    color: shuffleCount >= 3 ? '#9ca3af' : '#374151',
+                    background: shuffleCount >= 3 ? '#121214' : '#18181b',
+                    border: '1px solid #27272a',
+                    color: shuffleCount >= 3 ? '#71717a' : '#e4e4e7',
                     padding: '6px 12px',
                     borderRadius: '10px',
                     fontSize: '11px',
@@ -922,9 +923,9 @@ export default function Feed({
                 whileTap={{ scale: 0.94 }}
                 onClick={handleSkipClick}
                 style={{
-                  background: '#f9fafb',
-                  border: '1px solid #e5e7eb',
-                  color: '#374151',
+                  background: '#18181b',
+                  border: '1px solid #27272a',
+                  color: '#e4e4e7',
                   padding: '6px 12px',
                   borderRadius: '10px',
                   fontSize: '11px',

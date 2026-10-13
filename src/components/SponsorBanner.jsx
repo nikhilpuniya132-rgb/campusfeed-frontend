@@ -19,15 +19,15 @@ export function JuniorSponsorBanner({ city = 'Bathinda', hub = 'Bathinda Schools
         style={{
           position: 'relative',
           borderRadius: '14px',
-          background: '#ffffff',
-          border: '1.5px solid #000000',
+          background: '#09090b',
+          border: '1.5px solid #27272a',
           padding: '6px 12px',
           boxSizing: 'border-box',
-          color: '#000000',
+          color: '#ffffff',
           display: 'flex',
           flexDirection: 'column',
           gap: '3px',
-          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)'
+          boxShadow: 'none'
         }}
       >
         {/* Header Tag & Title */}
@@ -39,7 +39,7 @@ export function JuniorSponsorBanner({ city = 'Bathinda', hub = 'Bathinda Schools
                 margin: 0,
                 fontSize: '12px',
                 fontWeight: '900',
-                color: '#000000',
+                color: '#ffffff',
                 letterSpacing: '-0.01em',
                 lineHeight: 1.2
               }}
@@ -54,11 +54,11 @@ export function JuniorSponsorBanner({ city = 'Bathinda', hub = 'Bathinda Schools
               fontWeight: '800',
               textTransform: 'uppercase',
               letterSpacing: '0.04em',
-              background: '#f3f4f6',
-              color: '#374151',
+              background: '#18181b',
+              color: '#a1a1aa',
               padding: '1px 5px',
               borderRadius: '4px',
-              border: '1px solid #e5e7eb'
+              border: '1px solid #27272a'
             }}
           >
             SPONSOR
@@ -70,7 +70,7 @@ export function JuniorSponsorBanner({ city = 'Bathinda', hub = 'Bathinda Schools
           style={{
             margin: 0,
             fontSize: '10px',
-            color: '#6b7280',
+            color: '#a1a1aa',
             lineHeight: 1.25,
             fontWeight: '600',
             whiteSpace: 'nowrap',
@@ -89,7 +89,7 @@ export function JuniorSponsorBanner({ city = 'Bathinda', hub = 'Bathinda Schools
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px',
-              background: '#000000',
+              background: '#18181b',
               color: '#ffffff',
               padding: '4px 10px',
               borderRadius: '8px',
@@ -97,7 +97,7 @@ export function JuniorSponsorBanner({ city = 'Bathinda', hub = 'Bathinda Schools
               fontWeight: '800',
               textDecoration: 'none',
               cursor: 'pointer',
-              border: '1px solid #000000'
+              border: '1px solid #3f3f46'
             }}
           >
             <span>✉️</span>
@@ -126,15 +126,15 @@ export function SeniorSponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub' }
         style={{
           position: 'relative',
           borderRadius: '14px',
-          background: '#ffffff',
-          border: '1.5px solid #000000',
+          background: '#09090b',
+          border: '1.5px solid #27272a',
           padding: '6px 12px',
           boxSizing: 'border-box',
-          color: '#000000',
+          color: '#ffffff',
           display: 'flex',
           flexDirection: 'column',
           gap: '3px',
-          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)'
+          boxShadow: 'none'
         }}
       >
         {/* Header Tag & Title */}
@@ -146,7 +146,7 @@ export function SeniorSponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub' }
                 margin: 0,
                 fontSize: '12px',
                 fontWeight: '900',
-                color: '#000000',
+                color: '#ffffff',
                 letterSpacing: '-0.01em',
                 lineHeight: 1.2
               }}
@@ -161,11 +161,11 @@ export function SeniorSponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub' }
               fontWeight: '800',
               textTransform: 'uppercase',
               letterSpacing: '0.04em',
-              background: '#f3f4f6',
-              color: '#374151',
+              background: '#18181b',
+              color: '#a1a1aa',
               padding: '1px 5px',
               borderRadius: '4px',
-              border: '1px solid #e5e7eb'
+              border: '1px solid #27272a'
             }}
           >
             SPONSOR
@@ -177,7 +177,7 @@ export function SeniorSponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub' }
           style={{
             margin: 0,
             fontSize: '10px',
-            color: '#6b7280',
+            color: '#a1a1aa',
             lineHeight: 1.25,
             fontWeight: '600',
             whiteSpace: 'nowrap',
@@ -196,7 +196,7 @@ export function SeniorSponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub' }
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px',
-              background: '#000000',
+              background: '#18181b',
               color: '#ffffff',
               padding: '4px 10px',
               borderRadius: '8px',
@@ -204,7 +204,7 @@ export function SeniorSponsorBanner({ city = 'Bathinda', hub = 'Ajit Road Hub' }
               fontWeight: '800',
               textDecoration: 'none',
               cursor: 'pointer',
-              border: '1px solid #000000'
+              border: '1px solid #3f3f46'
             }}
           >
             <span>✉️</span>

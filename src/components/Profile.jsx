@@ -371,7 +371,7 @@ export default function Profile({
   };
 
   return (
-    <div style={{ padding: '12px 14px 85px 14px', maxWidth: '440px', margin: '0 auto', boxSizing: 'border-box', position: 'relative', background: '#ffffff', minHeight: '100%' }}>
+    <div style={{ padding: '12px 14px 85px 14px', maxWidth: '440px', margin: '0 auto', boxSizing: 'border-box', position: 'relative', background: '#000000', color: '#ffffff', minHeight: '100%' }}>
       
       {/* Top Bar: Unified Share Button & Settings 3-Dots Menu */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', position: 'relative', marginBottom: '8px' }} ref={settingsMenuRef}>
@@ -381,8 +381,8 @@ export default function Profile({
           aria-label="Share Profile"
           title="Share Profile / Invite"
           style={{
-            background: '#f9fafb',
-            border: '1px solid #e5e7eb',
+            background: '#18181b',
+            border: '1px solid #27272a',
             borderRadius: '12px',
             width: '36px',
             height: '36px',
@@ -390,7 +390,7 @@ export default function Profile({
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            color: '#111827',
+            color: '#ffffff',
             transition: 'border-color 0.15s ease'
           }}
         >
@@ -402,8 +402,8 @@ export default function Profile({
           onClick={() => setShowSettingsMenu(!showSettingsMenu)}
           aria-label="Settings"
           style={{
-            background: '#f9fafb',
-            border: '1px solid #e5e7eb',
+            background: '#18181b',
+            border: '1px solid #27272a',
             borderRadius: '12px',
             width: '36px',
             height: '36px',
@@ -411,7 +411,7 @@ export default function Profile({
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            color: '#4b5563',
+            color: '#ffffff',
             fontSize: '18px',
             fontWeight: '900',
             lineHeight: 1
@@ -432,13 +432,13 @@ export default function Profile({
                 position: 'absolute',
                 top: '44px',
                 right: 0,
-                background: '#ffffff',
-                border: '1px solid #e5e7eb',
+                background: '#09090b',
+                border: '1px solid #27272a',
                 borderRadius: '16px',
                 padding: '6px',
                 minWidth: '170px',
                 zIndex: 50,
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.6)'
               }}
             >
               <button
@@ -452,7 +452,7 @@ export default function Profile({
                   borderRadius: '10px',
                   border: 'none',
                   background: 'transparent',
-                  color: '#000000',
+                  color: '#ffffff',
                   fontSize: '13px',
                   fontWeight: '700',
                   textAlign: 'left',
@@ -461,14 +461,14 @@ export default function Profile({
                   alignItems: 'center',
                   gap: '8px'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#18181b'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >
                 <span>🚪</span>
                 <span>Sign Out</span>
               </button>
 
-              <div style={{ height: '1px', background: '#e5e7eb', margin: '4px 6px' }} />
+              <div style={{ height: '1px', background: '#27272a', margin: '4px 6px' }} />
 
               <button
                 onClick={() => {
@@ -490,7 +490,7 @@ export default function Profile({
                   alignItems: 'center',
                   gap: '8px'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >
                 <span>⚠️</span>
@@ -510,7 +510,7 @@ export default function Profile({
             {renderProfilePic
               ? renderProfilePic(editProfilePic || user.profile_pic, editAvatar || user.avatar, user.is_pro, selectedRing, 84, isLifetimeLegend)
               : (
-                <div style={{ fontSize: '42px', width: '84px', height: '84px', borderRadius: '50%', background: '#f3f4f6', border: '1.5px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ fontSize: '42px', width: '84px', height: '84px', borderRadius: '50%', background: '#18181b', border: '1.5px solid #27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {user.avatar || '😎'}
                 </div>
               )}
@@ -520,10 +520,10 @@ export default function Profile({
           <div style={{ display: 'flex', flex: 1, justifyContent: 'space-around', alignItems: 'center', paddingLeft: '4px' }}>
             {/* Stat 1: Polls Casted */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px' }}>
-              <span style={{ fontSize: '18px', fontWeight: '900', color: '#000000', lineHeight: 1.2 }}>
+              <span style={{ fontSize: '18px', fontWeight: '900', color: '#ffffff', lineHeight: 1.2 }}>
                 {todayVotesCount || user?.total_votes || 0}
               </span>
-              <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600', marginTop: '2px', textAlign: 'center' }}>
+              <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '600', marginTop: '2px', textAlign: 'center' }}>
                 Polls Casted
               </span>
             </div>
@@ -546,10 +546,10 @@ export default function Profile({
               }}
               aria-label="View Friends"
             >
-              <span style={{ fontSize: '18px', fontWeight: '900', color: '#000000', lineHeight: 1.2 }}>
+              <span style={{ fontSize: '18px', fontWeight: '900', color: '#ffffff', lineHeight: 1.2 }}>
                 {acceptedFriends.length}
               </span>
-              <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600', marginTop: '2px', textAlign: 'center' }}>
+              <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '600', marginTop: '2px', textAlign: 'center' }}>
                 Friends
               </span>
             </motion.button>
@@ -573,9 +573,9 @@ export default function Profile({
               aria-label="View Spies"
             >
               <div style={{ height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <UserSearch size={18} strokeWidth={2} color="#000000" />
+                <UserSearch size={18} strokeWidth={2} color="#ffffff" />
               </div>
-              <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600', marginTop: '2px', textAlign: 'center' }}>
+              <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '600', marginTop: '2px', textAlign: 'center' }}>
                 Spies
               </span>
             </motion.button>
@@ -584,21 +584,21 @@ export default function Profile({
 
         {/* User Handle & Details */}
         <div style={{ textAlign: 'left', marginBottom: '14px' }}>
-          <h2 style={{ margin: '0 0 3px 0', fontSize: '16.5px', fontWeight: '900', color: '#000000', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <h2 style={{ margin: '0 0 3px 0', fontSize: '16.5px', fontWeight: '900', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span>@{user.handle}</span>
             {isLifetimeLegend && <span title="Lifetime Legend" style={{ fontSize: '13px' }}>👑</span>}
           </h2>
 
-          <p style={{ margin: '0 0 6px 0', fontSize: '12px', color: '#6b7280', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-            <span style={{ color: '#111827', fontWeight: '700' }}>{user.stream || '11th Medical'}</span>
+          <p style={{ margin: '0 0 6px 0', fontSize: '12px', color: '#a1a1aa', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+            <span style={{ color: '#ffffff', fontWeight: '700' }}>{user.stream || '11th Medical'}</span>
             <span>•</span>
             <span>{user.institute || user.school || 'Kapil Institute'}</span>
             <span>•</span>
-            <span style={{ color: '#4b5563' }}>📍 {user.coaching_hub || user.hub || 'Ajit Road Hub'}</span>
+            <span style={{ color: '#a1a1aa' }}>📍 {user.coaching_hub || user.hub || 'Ajit Road Hub'}</span>
           </p>
 
           {/* Bio */}
-          <p style={{ color: '#374151', fontSize: '13px', margin: 0, lineHeight: '1.45' }}>
+          <p style={{ color: '#d4d4d8', fontSize: '13px', margin: 0, lineHeight: '1.45' }}>
             {user.bio || `${user.stream || '11th Medical'} student at ${user.institute || 'Kapil Institute'}`}
           </p>
         </div>
@@ -613,15 +613,17 @@ export default function Profile({
               flex: 1,
               padding: '9px 12px',
               borderRadius: '10px',
-              background: '#f3f4f6',
-              border: '1px solid #e5e7eb',
-              color: '#000000',
+              background: '#18181b',
+              border: '1px solid #27272a',
+              color: '#ffffff',
               fontWeight: '700',
               fontSize: '13px',
               cursor: 'pointer',
               textAlign: 'center',
               transition: 'background-color 0.15s ease'
             }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#27272a'}
+            onMouseLeave={(e) => e.currentTarget.style.background = '#18181b'}
           >
             Edit Profile
           </motion.button>
@@ -634,9 +636,9 @@ export default function Profile({
               flex: 1,
               padding: '9px 12px',
               borderRadius: '10px',
-              background: '#f3f4f6',
-              border: '1px solid #e5e7eb',
-              color: '#000000',
+              background: '#18181b',
+              border: '1px solid #27272a',
+              color: '#ffffff',
               fontWeight: '700',
               fontSize: '13px',
               cursor: 'pointer',
@@ -646,6 +648,8 @@ export default function Profile({
               gap: '6px',
               transition: 'background-color 0.15s ease'
             }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#27272a'}
+            onMouseLeave={(e) => e.currentTarget.style.background = '#18181b'}
           >
             <Share2 size={14} strokeWidth={2.2} />
             <span>Share Profile</span>
@@ -657,26 +661,27 @@ export default function Profile({
       {isEditing && (
         <div
           style={{
-            background: '#ffffff',
+            background: '#09090b',
             borderRadius: '20px',
             padding: '20px',
-            border: '2px solid #000000',
+            border: '1.5px solid #27272a',
             textAlign: 'left',
             marginBottom: '18px',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06)'
+            boxShadow: 'none',
+            color: '#ffffff'
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '950', color: '#000000' }}>Edit Profile</h3>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '950', color: '#ffffff' }}>Edit Profile</h3>
             <button
               onClick={() => setIsEditing(false)}
               style={{
-                background: '#f3f4f6',
-                border: '1px solid #e5e7eb',
+                background: '#18181b',
+                border: '1px solid #27272a',
                 borderRadius: '50%',
                 width: '28px',
                 height: '28px',
-                color: '#4b5563',
+                color: '#ffffff',
                 cursor: 'pointer',
                 fontSize: '13px'
               }}
@@ -687,7 +692,7 @@ export default function Profile({
 
           {/* Full Name Input */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '11px', color: '#4b5563', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+            <label style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
               Full Name
             </label>
             <input
@@ -699,9 +704,9 @@ export default function Profile({
                 width: '100%',
                 padding: '12px 14px',
                 borderRadius: '12px',
-                border: '1.5px solid #000000',
-                background: '#f9fafb',
-                color: '#000000',
+                border: '1.5px solid #27272a',
+                background: '#18181b',
+                color: '#ffffff',
                 fontSize: '14px',
                 fontWeight: '600',
                 outline: 'none',
@@ -712,20 +717,20 @@ export default function Profile({
 
           {/* Profile Picture Upload */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '12px', color: '#4b5563', fontWeight: '800', display: 'block', marginBottom: '6px' }}>
+            <label style={{ fontSize: '12px', color: '#a1a1aa', fontWeight: '800', display: 'block', marginBottom: '6px' }}>
               Profile Photo
             </label>
             <input
               type="file"
               accept="image/*"
               onChange={handleImageUpload}
-              style={{ fontSize: '12px', color: '#4b5563' }}
+              style={{ fontSize: '12px', color: '#a1a1aa' }}
             />
           </div>
 
           {/* Bio Input */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '12px', color: '#4b5563', fontWeight: '800', display: 'block', marginBottom: '6px' }}>
+            <label style={{ fontSize: '12px', color: '#a1a1aa', fontWeight: '800', display: 'block', marginBottom: '6px' }}>
               Bio
             </label>
             <input
@@ -737,9 +742,9 @@ export default function Profile({
                 width: '100%',
                 padding: '12px 14px',
                 borderRadius: '12px',
-                border: '1.5px solid #000000',
-                background: '#f9fafb',
-                color: '#000000',
+                border: '1.5px solid #27272a',
+                background: '#18181b',
+                color: '#ffffff',
                 fontSize: '14px',
                 fontWeight: '600',
                 outline: 'none',
@@ -750,7 +755,7 @@ export default function Profile({
 
           {/* Coaching Institute Picker */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '11px', color: '#4b5563', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+            <label style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
               Coaching Institute
             </label>
             <InstituteCombobox
@@ -761,7 +766,7 @@ export default function Profile({
               }}
               onSelectHub={(hub) => setEditHub(hub)}
             />
-            <div style={{ marginTop: '5px', fontSize: '11px', color: '#111827', fontWeight: '700' }}>
+            <div style={{ marginTop: '5px', fontSize: '11px', color: '#a1a1aa', fontWeight: '700' }}>
               📍 Hub: {editHub || findHubForInstitute(editInstitute)}
             </div>
           </div>
@@ -772,7 +777,7 @@ export default function Profile({
               htmlFor="change-class-select"
               style={{
                 fontSize: '11px',
-                color: '#4b5563',
+                color: '#a1a1aa',
                 fontWeight: '800',
                 textTransform: 'uppercase',
                 letterSpacing: '0.04em',
@@ -792,28 +797,31 @@ export default function Profile({
                   setEditStream(val);
                   setEditGrade(val.includes('10') ? '10' : val.includes('12') ? '12' : '11');
                 }}
-                className="w-full px-3.5 py-3 rounded-xl border-2 border-black bg-gray-50 text-gray-900 font-bold text-sm cursor-pointer outline-none appearance-none focus:border-black focus:ring-1 focus:ring-black transition-all"
+                className="w-full px-3.5 py-3 rounded-xl border-2 border-zinc-800 bg-zinc-900 text-white font-bold text-sm cursor-pointer outline-none appearance-none focus:border-zinc-700 transition-all"
                 style={{
                   maxHeight: '240px',
-                  overflowY: 'auto'
+                  overflowY: 'auto',
+                  background: '#18181b',
+                  color: '#ffffff',
+                  border: '1.5px solid #27272a'
                 }}
               >
                 {MASTER_CLASS_OPTIONS.map((c) => (
-                  <option key={c} value={c} className="py-2 text-sm font-semibold">
+                  <option key={c} value={c} style={{ background: '#18181b', color: '#ffffff' }} className="py-2 text-sm font-semibold">
                     {c}
                   </option>
                 ))}
               </select>
-              <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '11px', color: '#6b7280' }}>
+              <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '11px', color: '#a1a1aa' }}>
                 ▼
               </div>
             </div>
           </div>
 
           {/* 3. SELECT AURA RINGS (INSIDE EDIT PROFILE WITH STRICT 25-INVITE LOCK) */}
-          <div style={{ marginBottom: '20px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
+          <div style={{ marginBottom: '20px', paddingTop: '16px', borderTop: '1px solid #27272a' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <label style={{ fontSize: '12.5px', color: '#000000', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ fontSize: '12.5px', color: '#ffffff', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span>💍</span>
                 <span>Select Aura Rings</span>
               </label>
@@ -823,9 +831,9 @@ export default function Profile({
                   fontWeight: '900',
                   padding: '3px 8px',
                   borderRadius: '8px',
-                  background: isLifetimeLegend ? '#fbbf24' : '#f3f4f6',
-                  color: isLifetimeLegend ? '#000000' : '#6b7280',
-                  border: isLifetimeLegend ? '1px solid #f59e0b' : '1px solid #e5e7eb'
+                  background: isLifetimeLegend ? '#fbbf24' : '#18181b',
+                  color: isLifetimeLegend ? '#000000' : '#a1a1aa',
+                  border: isLifetimeLegend ? '1px solid #f59e0b' : '1px solid #27272a'
                 }}
               >
                 {isLifetimeLegend ? '👑 Unlocked' : '🔒 25 Invites'}
@@ -835,10 +843,10 @@ export default function Profile({
             {!isLifetimeLegend ? (
               <div style={{
                 padding: '10px 12px',
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
                 borderRadius: '12px',
-                color: '#991b1b',
+                color: '#f87171',
                 fontSize: '11.5px',
                 lineHeight: '1.4',
                 textAlign: 'left',
@@ -854,7 +862,7 @@ export default function Profile({
                 </div>
               </div>
             ) : (
-              <p style={{ margin: '0 0 10px 0', fontSize: '11px', color: '#6b7280' }}>
+              <p style={{ margin: '0 0 10px 0', fontSize: '11px', color: '#a1a1aa' }}>
                 Equip a halo ring on your profile & feed appearances.
               </p>
             )}
@@ -864,8 +872,9 @@ export default function Profile({
                 marginBottom: '10px',
                 padding: '6px 10px',
                 borderRadius: '8px',
-                background: '#dcfce7',
-                color: '#166534',
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+                color: '#34d399',
                 fontSize: '11px',
                 fontWeight: '800',
                 textAlign: 'center'
@@ -889,8 +898,8 @@ export default function Profile({
                       justifyContent: 'space-between',
                       padding: '9px 12px',
                       borderRadius: '12px',
-                      border: isEquipped ? '2px solid #000000' : '1px solid #e5e7eb',
-                      background: isEquipped ? '#f9fafb' : '#ffffff',
+                      border: isEquipped ? '2px solid #ffffff' : '1px solid #27272a',
+                      background: isEquipped ? '#18181b' : '#09090b',
                       cursor: isLifetimeLegend ? 'pointer' : 'not-allowed',
                       opacity: isLifetimeLegend ? 1 : 0.5,
                       width: '100%',
@@ -908,10 +917,10 @@ export default function Profile({
                         flexShrink: 0
                       }} />
                       <div>
-                        <div style={{ fontSize: '12.5px', fontWeight: '900', color: '#000000' }}>
+                        <div style={{ fontSize: '12.5px', fontWeight: '900', color: '#ffffff' }}>
                           {r.label}
                         </div>
-                        <div style={{ fontSize: '10.5px', color: '#6b7280' }}>
+                        <div style={{ fontSize: '10.5px', color: '#a1a1aa' }}>
                           {r.desc}
                         </div>
                       </div>
@@ -922,8 +931,8 @@ export default function Profile({
                       fontWeight: '900',
                       padding: '3px 8px',
                       borderRadius: '6px',
-                      background: isEquipped ? '#000000' : 'transparent',
-                      color: isEquipped ? '#ffffff' : '#6b7280'
+                      background: isEquipped ? '#ffffff' : 'transparent',
+                      color: isEquipped ? '#000000' : '#a1a1aa'
                     }}>
                       {isLifetimeLegend ? (isEquipped ? 'Equipped ✓' : 'Equip') : '🔒'}
                     </span>
@@ -944,8 +953,8 @@ export default function Profile({
                 padding: '12px',
                 borderRadius: '12px',
                 border: 'none',
-                background: '#000000',
-                color: '#ffffff',
+                background: '#ffffff',
+                color: '#000000',
                 fontWeight: '950',
                 fontSize: '14px',
                 cursor: 'pointer'
@@ -959,9 +968,9 @@ export default function Profile({
               style={{
                 padding: '12px 18px',
                 borderRadius: '12px',
-                border: '1px solid #e5e7eb',
-                background: '#f3f4f6',
-                color: '#111827',
+                border: '1px solid #27272a',
+                background: '#18181b',
+                color: '#ffffff',
                 fontWeight: '800',
                 fontSize: '14px',
                 cursor: 'pointer'
@@ -984,7 +993,7 @@ export default function Profile({
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0, 0, 0, 0.4)',
+              background: 'rgba(0, 0, 0, 0.65)',
               backdropFilter: 'blur(4px)',
               zIndex: 60,
               display: 'flex',
@@ -999,8 +1008,8 @@ export default function Profile({
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
               onClick={(e) => e.stopPropagation()}
               style={{
-                background: '#ffffff',
-                border: '1px solid #e5e7eb',
+                background: '#09090b',
+                border: '1px solid #27272a',
                 borderRadius: '24px',
                 padding: '20px',
                 width: '100%',
@@ -1008,27 +1017,28 @@ export default function Profile({
                 maxHeight: '75vh',
                 display: 'flex',
                 flexDirection: 'column',
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)'
+                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.7)',
+                color: '#ffffff'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#000000' }}>
+                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#ffffff' }}>
                     Friends
                   </h3>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                  <span style={{ fontSize: '12px', color: '#a1a1aa' }}>
                     {acceptedFriends.length} {acceptedFriends.length === 1 ? 'Classmate' : 'Classmates'}
                   </span>
                 </div>
                 <button
                   onClick={() => setShowFriendsModal(false)}
                   style={{
-                    background: '#f3f4f6',
-                    border: '1px solid #e5e7eb',
+                    background: '#18181b',
+                    border: '1px solid #27272a',
                     borderRadius: '50%',
                     width: '30px',
                     height: '30px',
-                    color: '#4b5563',
+                    color: '#ffffff',
                     cursor: 'pointer',
                     fontSize: '14px'
                   }}
@@ -1038,11 +1048,11 @@ export default function Profile({
               </div>
 
               {acceptedFriends.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px 10px', color: '#6b7280' }}>
+                <div style={{ textAlign: 'center', padding: '30px 10px', color: '#a1a1aa' }}>
                   <p style={{ margin: '0 0 10px 0', fontSize: '13.5px' }}>
                     You haven't added any classmates yet.
                   </p>
-                  <span style={{ fontSize: '12px', color: '#4b5563' }}>
+                  <span style={{ fontSize: '12px', color: '#71717a' }}>
                     Use the Explore tab to search & connect with friends!
                   </span>
                 </div>
@@ -1061,8 +1071,8 @@ export default function Profile({
                         justifyContent: 'space-between',
                         padding: '10px 12px',
                         borderRadius: '14px',
-                        background: '#f9fafb',
-                        border: '1px solid #e5e7eb',
+                        background: '#18181b',
+                        border: '1px solid #27272a',
                         cursor: 'pointer'
                       }}
                     >
@@ -1070,21 +1080,21 @@ export default function Profile({
                         {renderProfilePic
                           ? renderProfilePic(f.profile_pic, f.avatar, f.is_pro, f.selected_ring || f.ring, 40)
                           : (
-                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               {f.avatar || '😎'}
                             </div>
                           )}
                         <div>
-                          <span style={{ fontSize: '13px', fontWeight: '800', color: '#000000', display: 'block' }}>
+                          <span style={{ fontSize: '13px', fontWeight: '800', color: '#ffffff', display: 'block' }}>
                             @{f.handle}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                          <span style={{ fontSize: '11px', color: '#a1a1aa' }}>
                             Class {f.grade || '11'}
                           </span>
                         </div>
                       </div>
 
-                      <span style={{ fontSize: '11px', color: '#000000', fontWeight: '800' }}>
+                      <span style={{ fontSize: '11px', color: '#ffffff', fontWeight: '800' }}>
                         {f.total_votes || 0} 🔥
                       </span>
                     </div>
@@ -1107,7 +1117,7 @@ export default function Profile({
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0, 0, 0, 0.4)',
+              background: 'rgba(0, 0, 0, 0.65)',
               backdropFilter: 'blur(4px)',
               zIndex: 60,
               display: 'flex',
@@ -1122,8 +1132,8 @@ export default function Profile({
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
               onClick={(e) => e.stopPropagation()}
               style={{
-                background: '#ffffff',
-                border: '1px solid #e5e7eb',
+                background: '#09090b',
+                border: '1px solid #27272a',
                 borderRadius: '24px',
                 padding: '20px',
                 width: '100%',
@@ -1131,17 +1141,18 @@ export default function Profile({
                 maxHeight: '75vh',
                 display: 'flex',
                 flexDirection: 'column',
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)'
+                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.7)',
+                color: '#ffffff'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <UserSearch size={19} strokeWidth={2} color="#000000" />
+                  <UserSearch size={19} strokeWidth={2} color="#ffffff" />
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#000000' }}>
+                    <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#ffffff' }}>
                       Spies
                     </h3>
-                    <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                    <span style={{ fontSize: '11px', color: '#a1a1aa' }}>
                       Profile Visitors Tracking
                     </span>
                   </div>
@@ -1149,12 +1160,12 @@ export default function Profile({
                 <button
                   onClick={() => setShowSpiesModal(false)}
                   style={{
-                    background: '#f3f4f6',
-                    border: '1px solid #e5e7eb',
+                    background: '#18181b',
+                    border: '1px solid #27272a',
                     borderRadius: '50%',
                     width: '30px',
                     height: '30px',
-                    color: '#4b5563',
+                    color: '#ffffff',
                     cursor: 'pointer',
                     fontSize: '14px'
                   }}
@@ -1167,7 +1178,7 @@ export default function Profile({
                 /* Unlocked View: list of users who visited their profile */
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#000000' }}>
+                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#ffffff' }}>
                       Recent Profile Visitors
                     </span>
                     <span style={{ fontSize: '11px', color: '#10b981', fontWeight: '700' }}>
@@ -1176,15 +1187,15 @@ export default function Profile({
                   </div>
 
                   {isLoadingSpies ? (
-                    <div style={{ padding: '24px 0', textAlign: 'center', color: '#6b7280', fontSize: '13px', fontWeight: '700' }}>
+                    <div style={{ padding: '24px 0', textAlign: 'center', color: '#a1a1aa', fontSize: '13px', fontWeight: '700' }}>
                       Detecting profile visitors...
                     </div>
                   ) : spiesList.length === 0 ? (
-                    <div style={{ padding: '24px 10px', textAlign: 'center', color: '#6b7280' }}>
-                      <p style={{ margin: '0 0 6px 0', fontSize: '13.5px', fontWeight: '800', color: '#000000' }}>
+                    <div style={{ padding: '24px 10px', textAlign: 'center', color: '#a1a1aa' }}>
+                      <p style={{ margin: '0 0 6px 0', fontSize: '13.5px', fontWeight: '800', color: '#ffffff' }}>
                         Zero secret visitors in the last 24h
                       </p>
-                      <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                      <span style={{ fontSize: '12px', color: '#71717a' }}>
                         Cast more votes in the feed to trigger classmates to check your profile!
                       </span>
                     </div>
@@ -1203,8 +1214,8 @@ export default function Profile({
                             justifyContent: 'space-between',
                             padding: '10px 12px',
                             borderRadius: '14px',
-                            background: '#f9fafb',
-                            border: '1px solid #e5e7eb',
+                            background: '#18181b',
+                            border: '1px solid #27272a',
                             cursor: 'pointer'
                           }}
                         >
@@ -1212,21 +1223,21 @@ export default function Profile({
                             {renderProfilePic
                               ? renderProfilePic(spy.profile_pic, spy.avatar, false, 'none', 38)
                               : (
-                                <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                   {spy.avatar || '😎'}
                                 </div>
                               )}
                             <div>
-                              <span style={{ fontSize: '13px', fontWeight: '800', color: '#000000', display: 'block' }}>
+                              <span style={{ fontSize: '13px', fontWeight: '800', color: '#ffffff', display: 'block' }}>
                                 @{spy.handle}
                               </span>
-                              <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                              <span style={{ fontSize: '11px', color: '#a1a1aa' }}>
                                 {spy.stream || 'Classmate'} • Viewed profile
                               </span>
                             </div>
                           </div>
 
-                          <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '700' }}>
+                          <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '700' }}>
                             {spy.visitedAt}
                           </span>
                         </div>
@@ -1238,7 +1249,7 @@ export default function Profile({
                 /* Locked View (< 25 invites): Single-line UI message */
                 <div style={{ textAlign: 'center', padding: '24px 8px' }}>
                   <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔒</div>
-                  <p style={{ margin: '0 0 16px 0', fontSize: '13.5px', fontWeight: '700', color: '#111827', lineHeight: '1.4' }}>
+                  <p style={{ margin: '0 0 16px 0', fontSize: '13.5px', fontWeight: '700', color: '#e4e4e7', lineHeight: '1.4' }}>
                     Share with more friends to reach the 25 invite target to unlock spies.
                   </p>
                   <motion.button
@@ -1248,8 +1259,8 @@ export default function Profile({
                       handleNativeShare();
                     }}
                     style={{
-                      background: '#000000',
-                      color: '#ffffff',
+                      background: '#ffffff',
+                      color: '#000000',
                       border: 'none',
                       borderRadius: '12px',
                       padding: '10px 20px',
