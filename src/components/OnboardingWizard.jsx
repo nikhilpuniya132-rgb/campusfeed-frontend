@@ -217,7 +217,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
     reader.readAsDataURL(file);
   };
 
-  const nextStep = () => {
+  const nextStep = async () => {
     setErrorMsg('');
     // Step 1 Validation: Institute and Class selection
     if (step === 1) {
@@ -239,6 +239,23 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       }
       if (cleanH.length < 3) {
         return setErrorMsg('Username must be at least 3 characters');
+      }
+
+      // Proactively check if handle is already taken in Supabase
+      if (supabase) {
+        try {
+          const { data: existingUser } = await supabase
+            .from('users')
+            .select('id')
+            .eq('handle', cleanH)
+            .maybeSingle();
+
+          if (existingUser && (!currentUserId || String(existingUser.id) !== String(currentUserId))) {
+            return setErrorMsg('This handle is already taken. Please choose another.');
+          }
+        } catch (err) {
+          console.warn('Error checking handle uniqueness in Step 2:', err);
+        }
       }
     }
     // Step 3 Validation: Password setup
@@ -328,26 +345,81 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
 
       // 3. Strict database insert into Supabase public.users
       console.log("Submitting Onboarding to Supabase public.users:", supabasePayload);
-      let { data: insertData, error: insertError } = await supabase
-        .from('users')
-        .insert(supabasePayload)
-        .select()
-        .maybeSingle();
+      let insertData = null;
+      let insertError = null;
 
-      // If user row already exists with this ID (duplicate key), fall back to upsert
-      if (insertError && (insertError.code === '23505' || insertError.message?.includes('duplicate key') || insertError.message?.includes('already exists'))) {
-        console.warn("User ID already exists in users table, retrying with upsert...");
-        const upsertRes = await supabase
+      const isHandleConflict = (err) => {
+        if (!err) return false;
+        const msg = (err.message || '').toLowerCase();
+        const details = (err.details || '').toLowerCase();
+        return (
+          msg.includes('users_handle_key') ||
+          details.includes('users_handle_key') ||
+          (err.code === '23505' && (msg.includes('handle') || details.includes('handle')))
+        );
+      };
+
+      try {
+        const insertRes = await supabase
           .from('users')
-          .upsert(supabasePayload)
+          .insert(supabasePayload)
           .select()
           .maybeSingle();
-        insertData = upsertRes.data;
-        insertError = upsertRes.error;
+
+        insertData = insertRes.data;
+        insertError = insertRes.error;
+
+        // Check specifically for handle unique conflict on insert
+        if (isHandleConflict(insertError)) {
+          console.warn("Handle already taken on insert:", cleanHandle);
+          setErrorMsg('This handle is already taken. Please choose another.');
+          setDirection(-1);
+          setStep(2);
+          setIsSubmitting(false);
+          return;
+        }
+
+        // If user row already exists with this ID (duplicate key on ID), fall back to upsert
+        if (insertError && (insertError.code === '23505' || insertError.message?.includes('duplicate key') || insertError.message?.includes('already exists'))) {
+          console.warn("User ID already exists in users table, retrying with upsert...");
+          const upsertRes = await supabase
+            .from('users')
+            .upsert(supabasePayload)
+            .select()
+            .maybeSingle();
+          insertData = upsertRes.data;
+          insertError = upsertRes.error;
+
+          if (isHandleConflict(insertError)) {
+            console.warn("Handle already taken on upsert:", cleanHandle);
+            setErrorMsg('This handle is already taken. Please choose another.');
+            setDirection(-1);
+            setStep(2);
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      } catch (err) {
+        if (isHandleConflict(err)) {
+          console.warn("Handle already taken (caught error):", cleanHandle);
+          setErrorMsg('This handle is already taken. Please choose another.');
+          setDirection(-1);
+          setStep(2);
+          setIsSubmitting(false);
+          return;
+        }
+        insertError = err;
       }
 
       // 4. Strict Error Handling: Stop execution if Supabase failed!
       if (insertError) {
+        if (isHandleConflict(insertError)) {
+          setErrorMsg('This handle is already taken. Please choose another.');
+          setDirection(-1);
+          setStep(2);
+          setIsSubmitting(false);
+          return;
+        }
         console.error("Supabase insert into users table failed:", insertError);
         const detailedError = insertError.message || insertError.details || JSON.stringify(insertError);
         setErrorMsg(`Database error: ${detailedError}`);
@@ -806,33 +878,50 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                       type="text"
                       placeholder="username"
                       value={handle}
-                      onChange={e => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                      onChange={e => {
+                        setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+                        setErrorMsg('');
+                      }}
                       autoFocus
                       style={{
                         width: '100%',
                         padding: '14px 16px 14px 34px',
                         borderRadius: '14px',
-                        border: '1px solid #e5e7eb',
-                        background: '#f9fafb',
+                        border: errorMsg ? '1.5px solid #ef4444' : '1px solid #e5e7eb',
+                        background: errorMsg ? '#fef2f2' : '#f9fafb',
                         color: '#000000',
                         fontSize: '15px',
                         fontWeight: '700',
                         outline: 'none',
-                        boxSizing: 'border-box'
+                        boxSizing: 'border-box',
+                        transition: 'border-color 0.2s, background 0.2s'
                       }}
                     />
                   </div>
-                  <span style={{ fontSize: '11.5px', color: '#6b7280', marginTop: '6px', display: 'block' }}>
-                    Only lowercase letters, numbers, and underscores allowed.
-                  </span>
+                  {errorMsg ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        marginTop: '8px',
+                        color: '#ef4444',
+                        fontSize: '12.5px',
+                        fontWeight: '600'
+                      }}
+                    >
+                      <span>⚠️</span>
+                      <span>{errorMsg}</span>
+                    </motion.div>
+                  ) : (
+                    <span style={{ fontSize: '11.5px', color: '#6b7280', marginTop: '6px', display: 'block' }}>
+                      Only lowercase letters, numbers, and underscores allowed.
+                    </span>
+                  )}
                 </div>
               </div>
-
-              {errorMsg && (
-                <p style={{ color: '#ef4444', fontSize: '12.5px', textAlign: 'center', margin: '8px 0 0 0' }}>
-                  {errorMsg}
-                </p>
-              )}
 
               <motion.button
                 whileTap={{ scale: 0.97 }}

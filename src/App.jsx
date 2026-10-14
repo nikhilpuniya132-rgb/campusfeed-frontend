@@ -916,11 +916,19 @@ export default function App() {
     if (!confirmed) return;
 
     try {
-      // 1. Delete user row in Supabase users table (by user.id, google_id, or email)
+      // 1. Delete user row in Supabase users and profiles tables (by user.id, handle, google_id, or email)
       if (supabase && user) {
         if (user.id) {
           try {
             await supabase.from('users').delete().eq('id', user.id);
+          } catch (_) {}
+          try {
+            await supabase.from('profiles').delete().eq('id', user.id);
+          } catch (_) {}
+        }
+        if (user.handle) {
+          try {
+            await supabase.from('users').delete().eq('handle', user.handle);
           } catch (_) {}
         }
         if (user.google_id) {
