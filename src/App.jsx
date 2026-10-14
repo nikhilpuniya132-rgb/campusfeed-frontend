@@ -916,45 +916,7 @@ export default function App() {
     if (!confirmed) return;
 
     try {
-      // 1. Delete user row in Supabase users and profiles tables (by user.id, handle, google_id, or email)
-      if (supabase && user) {
-        if (user.id) {
-          try {
-            await supabase.from('users').delete().eq('id', user.id);
-          } catch (_) {}
-          try {
-            await supabase.from('profiles').delete().eq('id', user.id);
-          } catch (_) {}
-        }
-        if (user.handle) {
-          try {
-            await supabase.from('users').delete().eq('handle', user.handle);
-          } catch (_) {}
-        }
-        if (user.google_id) {
-          try {
-            await supabase.from('users').delete().eq('google_id', user.google_id);
-          } catch (_) {}
-        }
-        if (user.email) {
-          try {
-            await supabase.from('users').delete().eq('email', user.email);
-          } catch (_) {}
-        }
-      }
-
-      // 2. Best-effort backend deletion if handle exists
-      if (user?.handle) {
-        try {
-          await fetch(`${API}/profile/${user.id || user.handle}`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isOAuth: true, handle: user.handle })
-          });
-        } catch (_) {}
-      }
-
-      // 3. Call Supabase RPC function to securely delete user's auth identity from auth.users
+      // 1. Call the database function: delete user from auth and public records via RPC
       if (supabase) {
         const { error: rpcError } = await supabase.rpc('delete_user');
         if (rpcError) {
@@ -963,7 +925,7 @@ export default function App() {
         }
       }
 
-      // 4. Immediately after the RPC call succeeds, clear the local session
+      // 2. Clear the local session
       if (supabase) {
         try {
           await supabase.auth.signOut({ scope: 'local' });
@@ -973,6 +935,7 @@ export default function App() {
         } catch (_) {}
       }
 
+      // 3. Redirect the user back to the landing page or login screen
       setUser(null);
       setProfileData(null);
       setSession(null);
