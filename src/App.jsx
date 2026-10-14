@@ -946,7 +946,16 @@ export default function App() {
         } catch (_) {}
       }
 
-      // 3. Delete Supabase Auth session
+      // 3. Call Supabase RPC function to securely delete user's auth identity from auth.users
+      if (supabase) {
+        const { error: rpcError } = await supabase.rpc('delete_user');
+        if (rpcError) {
+          console.error('Supabase delete_user RPC error:', rpcError);
+          throw rpcError;
+        }
+      }
+
+      // 4. Immediately after the RPC call succeeds, clear the local session
       if (supabase) {
         try {
           await supabase.auth.signOut({ scope: 'local' });
