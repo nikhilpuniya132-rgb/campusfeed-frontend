@@ -9,7 +9,7 @@ import HamsterLoader from './components/HamsterLoader';
 // Lazily loaded components
 const TiltCard = lazy(() => import('./components/TiltCard'));
 const HolographicCard = lazy(() => import('./components/HolographicCard'));
-const OnboardingWizard = lazy(() => import('./components/OnboardingWizard'));
+import OnboardingWizard from './components/OnboardingWizard';
 const FriendSearch = lazy(() => import('./components/FriendSearch'));
 const Profile = lazy(() => import('./components/Profile'));
 const Inbox = lazy(() => import('./components/Inbox'));
@@ -257,7 +257,7 @@ export default function App() {
   }, []);
 
   // =========================================================
-  // AUTH STATE & ROUTING GUARD (FIX ONBOARDING LOOP & DELAY)
+  // AUTH STATE & INSTANT ROUTING (ZERO BLOCKING QUERIES)
   // =========================================================
   const isOAuthRedirectUrl = () => {
     if (typeof window === 'undefined') return false;
@@ -266,246 +266,159 @@ export default function App() {
     return hash.includes('access_token=') || hash.includes('error=') || search.includes('code=');
   };
 
-  const fetchProfile = async (session) => {
-    if (!session?.user?.id) {
-      setUser(null);
-      setProfileData(null);
-      setOnboardingGoogleUser(null);
-      userRef.current = null;
-      localStorage.removeItem('campus_cached_user');
-      setIsProfileLoading(false);
-      setIsAuthLoading(false);
-      return;
+  const hasHandledAuthRedirectRef = useRef(false);
+
+  // Instant Routing: Push immediately to /onboarding the exact millisecond session is detected
+  const routeUserInstant = (currentSession) => {
+    if (!currentSession?.user) return;
+    const sessionUser = currentSession.user;
+    const currentSessionId = sessionUser.id;
+    const currentSessionEmail = sessionUser.email || '';
+
+    // Immediately clean the URL fragment so browser and Supabase do not re-process the hash
+    if (typeof window !== 'undefined' && window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname);
     }
 
-    const currentSessionId = session.user.id;
-    const currentSessionEmail = session.user.email || null;
-
-    inFlightAuthSessionIdRef.current = currentSessionId;
-    setIsProfileLoading(true);
-    setIsAuthLoading(true);
-
-    try {
-      // 1. Single optimized async call directly to Supabase users table (combines id and google_id checks)
-      let data = null;
+    // Check if user is already cached locally (instant returning user bypass in 0ms)
+    const cachedStr = localStorage.getItem('campus_cached_user');
+    let cachedUser = null;
+    if (cachedStr) {
       try {
-        const { data: profileRow, error } = await supabase
-          .from('users')
-          .select('*')
-          .or(`id.eq.${currentSessionId},google_id.eq.${currentSessionId}`)
-          .maybeSingle();
-
-        if (error) {
-          console.warn("Combined .or profile query error, trying direct id check:", error);
-          const { data: idRow } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', currentSessionId)
-            .maybeSingle();
-          data = idRow;
-        } else {
-          data = profileRow;
+        const parsed = JSON.parse(cachedStr);
+        if (parsed && String(parsed.id) === String(currentSessionId) && (parsed.handle || parsed.username)) {
+          cachedUser = parsed;
         }
-      } catch (queryErr) {
-        console.warn("Direct Supabase profile check error:", queryErr);
-      }
-
-      console.log("Auth Guard - Current Session ID:", currentSessionId, "Email:", currentSessionEmail, "Found Profile:", data);
-
-      // 2. The Routing Decision:
-      // If a row is found in public.users for this specific user.id AND it has a completed handle, route to /feed.
-      // If NO row is found in public.users for this specific user.id (new user or re-signup after account deletion),
-      // forcefully route them to /onboarding the exact millisecond session without profile is detected.
-      const handleVal = (data?.handle || data?.username || '').trim();
-      const userInstitute = (data?.school || data?.institute || '').trim();
-      const isReturningUser = Boolean(data && handleVal !== '');
-
-      if (isReturningUser) {
-        // LOGIC A (Returning User): Record exists with completed handle -> route directly to feed
-        const userRing = data.selected_ring || data.ring || localStorage.getItem('campus_user_ring') || 'gold';
-        localStorage.setItem('campus_user_ring', userRing);
-        const fullUser = {
-          ...data,
-          id: currentSessionId, // Guarantee ID matches active session
-          handle: handleVal,
-          username: handleVal,
-          institute: userInstitute,
-          school: userInstitute,
-          ring: userRing,
-          selected_ring: userRing
-        };
-        localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
-
-        const chosenStream = localStorage.getItem('campus_stream');
-        const chosenGrade = localStorage.getItem('campus_grade');
-        if (chosenStream && (!data.stream || chosenStream !== data.stream)) {
-          fullUser.stream = chosenStream;
-          fullUser.grade = chosenGrade ? parseInt(chosenGrade, 10) : fullUser.grade;
-          try {
-            supabase.from('users').update({ stream: chosenStream, grade: fullUser.grade }).eq('id', currentSessionId).then().catch(console.warn);
-          } catch (_) {}
-        }
-
-        setProfileData(fullUser);
-        setUser(fullUser);
-        userRef.current = fullUser;
-        setIsOnboarding(false);
-        setOnboardingGoogleUser(null);
-        setView('poll');
-        setGradeFilter(fullUser.grade ? fullUser.grade.toString() : '11');
-
-        setIsProfileLoading(false);
-        setIsAuthLoading(false);
-        setIsCheckingSession(false);
-        setIsAuthenticating(false);
-        navigate('/feed');
-
-        // Background non-blocking queries
-        loadNextPoll(fullUser.grade ? fullUser.grade.toString() : '11', fullUser.id);
-        fetchPendingRequests(fullUser.id);
-        fetchAcceptedFriends(fullUser.id);
-        fetchInbox(fullUser.id);
-      } else {
-        // LOGIC B (New User / Re-signup after account deletion):
-        // Force router immediately to /onboarding the exact millisecond a session without profile is detected
-        const cleanRef = (localStorage.getItem('referred_by') || sessionStorage.getItem('referred_by') || sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '').trim().replace(/^@/, '');
-        const preSchool = (localStorage.getItem('pre_selected_school') || localStorage.getItem('campus_institute') || '').trim();
-        
-        localStorage.removeItem('campus_cached_user');
-
-        const newGoogleUser = {
-          googleId: currentSessionId,
-          id: currentSessionId,
-          email: currentSessionEmail,
-          name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || currentSessionEmail?.split('@')[0] || '',
-          avatar: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
-          refCode: cleanRef,
-          referred_by: cleanRef,
-          preSelectedSchool: preSchool
-        };
-
-        setOnboardingGoogleUser(newGoogleUser);
-        setProfileData(null);
-        setUser(null);
-        userRef.current = null;
-        setIsOnboarding(true);
-        setIsProfileLoading(false);
-        setIsAuthLoading(false);
-        setIsCheckingSession(false);
-        setIsAuthenticating(false);
-        window.history.replaceState(null, '', '/onboarding');
-        navigate('/onboarding');
-      }
-    } catch (err) {
-      console.error('fetchProfile routing error:', err);
-      localStorage.removeItem('campus_cached_user');
-      setUser(null);
-      setProfileData(null);
-      userRef.current = null;
-      setIsProfileLoading(false);
-      setIsAuthLoading(false);
-      setIsCheckingSession(false);
-      setIsAuthenticating(false);
-      setIsOnboarding(true);
-      window.history.replaceState(null, '', '/onboarding');
-      navigate('/onboarding');
-    } finally {
-      inFlightAuthSessionIdRef.current = null;
-      lastFetchedSessionIdRef.current = session.user.id;
-      setIsCheckingSession(false);
-      setIsAuthLoading(false);
-      setIsProfileLoading(false);
-      setIsAuthenticating(false);
+      } catch (_) {}
     }
 
-    // Keep server-side API sync active in background without blocking instant routing
-    syncWithBackend(session.user).catch(console.warn);
-  };
-
-  const handleAuthSession = async (session) => {
-    if (!session?.user) {
-      // If URL still holds OAuth redirect tokens, Supabase is actively resolving the hash; don't flash landing page
-      if (isOAuthRedirectUrl()) {
-        console.log("OAuth tokens in URL; waiting for onAuthStateChange SIGNED_IN event...");
-        return;
-      }
-
-      setUser(null);
-      setProfile(null);
-      setSession(null);
-      setOnboardingGoogleUser(null);
-      userRef.current = null;
+    if (cachedUser) {
+      // Returning user with cached profile -> push directly to feed
+      setProfileData(cachedUser);
+      setUser(cachedUser);
+      userRef.current = cachedUser;
       setIsOnboarding(false);
-      localStorage.removeItem('campus_cached_user');
-      setIsAuthLoading(false);
+      setOnboardingGoogleUser(null);
+      setView('poll');
       setIsProfileLoading(false);
+      setIsAuthLoading(false);
       setIsCheckingSession(false);
       setIsAuthenticating(false);
+      window.history.replaceState(null, '', '/feed');
+      navigate('/feed');
 
-      const currentPath = window.location.pathname.replace(/^\//, '');
-      if (currentPath === 'feed' || currentPath === 'poll' || currentPath === 'inbox' || currentPath === 'profile') {
-        navigate('/');
-      }
+      loadNextPoll(cachedUser.grade ? cachedUser.grade.toString() : '11', cachedUser.id);
+      fetchPendingRequests(cachedUser.id);
+      fetchAcceptedFriends(cachedUser.id);
+      fetchInbox(cachedUser.id);
       return;
     }
 
-    // Deduplicate redundant auth calls for the same active session ID
-    if (inFlightAuthSessionIdRef.current === session.user.id) {
-      console.log("Profile fetch already in flight for session:", session.user.id);
-      return;
-    }
-    if (lastFetchedSessionIdRef.current === session.user.id && userRef.current?.id === session.user.id) {
-      setSession(session);
-      return;
-    }
+    // New Session (Ad Traffic / New User) -> Instant 0ms routing to /onboarding!
+    const cleanRef = (
+      localStorage.getItem('referred_by') ||
+      sessionStorage.getItem('referred_by') ||
+      localStorage.getItem('campus_ref_code') ||
+      sessionStorage.getItem('campus_ref_code') ||
+      ''
+    ).trim().replace(/^@/, '');
+    const preSchool = (
+      localStorage.getItem('pre_selected_school') ||
+      localStorage.getItem('campus_institute') ||
+      ''
+    ).trim();
 
-    setSession(session);
-    await fetchProfile(session);
+    localStorage.removeItem('campus_cached_user');
+
+    const newGoogleUser = {
+      googleId: currentSessionId,
+      id: currentSessionId,
+      email: currentSessionEmail,
+      name: sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || currentSessionEmail?.split('@')[0] || '',
+      avatar: sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '',
+      refCode: cleanRef,
+      referred_by: cleanRef,
+      preSelectedSchool: preSchool
+    };
+
+    // Instant state updates
+    setOnboardingGoogleUser(newGoogleUser);
+    setUser(null);
+    setProfileData(null);
+    userRef.current = null;
+    setIsOnboarding(true);
+    setCurrentRoute('onboarding');
+    setIsProfileLoading(false);
+    setIsAuthLoading(false);
+    setIsCheckingSession(false);
+    setIsAuthenticating(false);
+
+    // Force router to /onboarding immediately
+    window.history.replaceState(null, '', '/onboarding');
+    navigate('/onboarding');
+
+    // Completely non-blocking background check in case user registered on another device
+    supabase
+      .from('users')
+      .select('*')
+      .eq('id', currentSessionId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data && (data.handle || data.username)) {
+          const userRing = data.selected_ring || data.ring || 'gold';
+          const fullUser = { ...data, ring: userRing, selected_ring: userRing, id: currentSessionId };
+          localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
+          setProfileData(fullUser);
+          setUser(fullUser);
+          userRef.current = fullUser;
+          setIsOnboarding(false);
+          setOnboardingGoogleUser(null);
+          setView('poll');
+          window.history.replaceState(null, '', '/feed');
+          navigate('/feed');
+        }
+      })
+      .catch(console.warn);
+
+    syncWithBackend(sessionUser).catch(console.warn);
   };
 
   useEffect(() => {
-    let isMounted = true;
-
-    // Safety timeout: if OAuth tokens are in the URL but auth never resolves within 6 seconds, unblock UI
-    let oauthSafetyTimeout = null;
-    if (isOAuthRedirectUrl()) {
-      oauthSafetyTimeout = setTimeout(() => {
-        if (isMounted && !userRef.current && isAuthLoading) {
-          console.warn("OAuth redirect resolution timeout reached");
-          setIsAuthLoading(false);
-          setIsProfileLoading(false);
-          setIsAuthenticating(false);
-        }
-      }, 6000);
-    }
-
-    // 1. Get initial session
+    // 1. Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isMounted) return;
-      handleAuthSession(session);
+      if (session?.user && !hasHandledAuthRedirectRef.current) {
+        hasHandledAuthRedirectRef.current = true;
+        setSession(session);
+        routeUserInstant(session);
+      } else if (!session?.user && !isOAuthRedirectUrl()) {
+        setIsAuthLoading(false);
+        setIsProfileLoading(false);
+        setIsCheckingSession(false);
+        setIsAuthenticating(false);
+      }
+    }).catch(() => {
+      setIsAuthLoading(false);
+      setIsProfileLoading(false);
+      setIsCheckingSession(false);
+      setIsAuthenticating(false);
     });
 
-    // 2. Listen for auth changes
+    // 2. Auth state change listener with zero blocking queries
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!isMounted) return;
-      if (oauthSafetyTimeout) {
-        clearTimeout(oauthSafetyTimeout);
-        oauthSafetyTimeout = null;
-      }
-
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-        handleAuthSession(session);
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
+        if (!hasHandledAuthRedirectRef.current) {
+          hasHandledAuthRedirectRef.current = true;
+          setSession(session);
+          routeUserInstant(session);
+        } else {
+          setSession(session);
+        }
       } else if (event === 'TOKEN_REFRESHED') {
         setSession(session);
-        // Only trigger handleAuthSession if user profile state is not loaded yet
-        if (!userRef.current && session?.user) {
-          handleAuthSession(session);
-        }
       } else if (event === 'SIGNED_OUT') {
-        inFlightAuthSessionIdRef.current = null;
-        lastFetchedSessionIdRef.current = null;
+        hasHandledAuthRedirectRef.current = false;
         setUser(null);
-        setProfile(null);
+        setProfileData(null);
         setSession(null);
         setOnboardingGoogleUser(null);
         userRef.current = null;
@@ -524,8 +437,6 @@ export default function App() {
     });
 
     return () => {
-      isMounted = false;
-      if (oauthSafetyTimeout) clearTimeout(oauthSafetyTimeout);
       subscription?.unsubscribe();
     };
   }, []);
@@ -533,24 +444,24 @@ export default function App() {
   // Persistent Auth Routing: If a logged-in user with completed profile is on base URL, landing, onboarding, or signup,
   // automatically redirect them away directly to the main app interface (/feed).
   useEffect(() => {
-    if (isAuthLoading || isProfileLoading) return;
-    const userHandle = (user?.handle || user?.username || '').trim();
-    if (user && userHandle) {
+    const currentUser = userRef.current;
+    const userHandle = (currentUser?.handle || currentUser?.username || '').trim();
+    if (currentUser && userHandle) {
       const currentPath = window.location.pathname.replace(/^\//, '');
       if (!currentPath || currentPath === 'landing' || currentPath === 'onboarding' || currentPath === 'signup') {
         window.history.replaceState(null, '', '/feed');
         setView('poll');
       }
     }
-  }, [user, isAuthLoading, isProfileLoading]);
+  }, [user]);
 
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname.replace(/^\//, '');
       setCurrentRoute(path);
-      if (isAuthLoading || isProfileLoading) return;
-      const userHandle = (user?.handle || user?.username || '').trim();
-      if (user && userHandle) {
+      const currentUser = userRef.current;
+      const userHandle = (currentUser?.handle || currentUser?.username || '').trim();
+      if (currentUser && userHandle) {
         if (!path || path === 'landing') {
           window.history.replaceState(null, '', '/feed');
           setView('poll');
@@ -566,7 +477,7 @@ export default function App() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [user, isAuthLoading, isProfileLoading]);
+  }, []);
 
   const loginWithGoogle = async (explicitSchool = null) => {
     setIsAuthenticating(true);
@@ -1143,26 +1054,53 @@ export default function App() {
     );
   };
 
-  if (isAuthLoading || isProfileLoading || isAuthenticating || (isOAuthRedirectUrl() && !user && !isOnboarding)) {
+  const hasOAuthFragment = typeof window !== 'undefined' && Boolean(
+    window.location.hash && (window.location.hash.includes('access_token=') || window.location.hash.includes('error='))
+  );
+
+  if (hasOAuthFragment || isAuthenticating || (isAuthLoading && isOAuthRedirectUrl() && !isOnboarding)) {
     return (
       <div
-        className="gas-app-loading-screen"
+        id="campus-oauth-loader"
         style={{
+          position: 'fixed',
+          inset: 0,
+          background: '#000000',
+          color: '#ffffff',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: '100svh',
-          width: '100vw',
-          background: '#000000',
-          color: '#ffffff',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          zIndex: 99999
+          zIndex: 999999,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
         }}
       >
-        <HamsterLoader message="Signing in with Google..." color="#ffffff" />
+        <div
+          style={{
+            width: '46px',
+            height: '46px',
+            border: '3px solid rgba(255, 255, 255, 0.12)',
+            borderTopColor: '#ffffff',
+            borderRadius: '50%',
+            animation: 'campusOAuthSpin 0.65s linear infinite'
+          }}
+        />
+        <p
+          style={{
+            marginTop: '22px',
+            fontSize: '15px',
+            fontWeight: '700',
+            letterSpacing: '0.3px',
+            color: '#f4f4f5'
+          }}
+        >
+          Signing in with Google...
+        </p>
+        <style>{`
+          @keyframes campusOAuthSpin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
@@ -1175,7 +1113,7 @@ export default function App() {
   const isProfileIncomplete = Boolean(user && !hasCompletedProfile);
   const isSessionWithoutProfile = Boolean(session?.user && !hasCompletedProfile);
 
-  if (!isAuthLoading && !isProfileLoading && (isOnboarding || isProfileIncomplete || isSessionWithoutProfile)) {
+  if (isOnboarding || isProfileIncomplete || isSessionWithoutProfile) {
     if (window.location.pathname !== '/onboarding') {
       window.history.replaceState(null, '', '/onboarding');
     }
@@ -1191,13 +1129,11 @@ export default function App() {
     } : null);
     return (
       <div className="gas-landing-wrapper" style={{ background: '#000000', color: '#ffffff' }}>
-        <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100svh', background: '#000000', color: '#ffffff' }}><HamsterLoader message="Loading Onboarding..." /></div>}>
-          <OnboardingWizard
-            googleUser={wizardUser}
-            API={API}
-            onComplete={handleOnboardingComplete}
-          />
-        </Suspense>
+        <OnboardingWizard
+          googleUser={wizardUser}
+          API={API}
+          onComplete={handleOnboardingComplete}
+        />
       </div>
     );
   }
