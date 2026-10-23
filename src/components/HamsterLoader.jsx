@@ -2,7 +2,7 @@ import React from 'react';
 import './HamsterLoader.css';
 import { motion } from 'framer-motion';
 
-export default function HamsterLoader({ message = 'Loading...' }) {
+export default function HamsterLoader({ message = 'Loading...', color = '#ffffff' }) {
   return (
     <div
       style={{
@@ -46,7 +46,7 @@ export default function HamsterLoader({ message = 'Loading...' }) {
             marginTop: '20px',
             fontSize: '15px',
             fontWeight: '800',
-            color: '#000000',
+            color: color || '#ffffff',
             letterSpacing: '0.4px',
           }}
         >
