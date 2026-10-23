@@ -20,6 +20,7 @@ const GodMode = lazy(() => import('./components/GodMode'));
 import AddToHomeScreenGuide from './components/AddToHomeScreenGuide';
 import InstituteCombobox, { findHubForInstitute } from './components/InstituteCombobox';
 import Landing from './components/Landing';
+import Signup from './components/Signup';
 import CustomPollSubmit from './components/CustomPollSubmit';
 import { handleShare } from './utils/share';
 import { isJuniorUser } from './constants/classes';
@@ -88,6 +89,7 @@ export default function App() {
   const [activePlan, setActivePlan] = useState('weekly'); 
   const [showManualLogin, setShowManualLogin] = useState(false);
   const navigate = useNavigate();
+  const [currentRoute, setCurrentRoute] = useState(() => window.location.pathname.replace(/^\//, ''));
 
   const [view, setView] = useState(() => {
     const path = window.location.pathname.replace(/^\//, '');
@@ -232,6 +234,8 @@ export default function App() {
 
   useEffect(() => {
     const handleNavEvent = (e) => {
+      const cleanPath = (e.detail?.path || window.location.pathname).replace(/^\//, '');
+      setCurrentRoute(cleanPath);
       const currentUser = userRef.current;
       const currentInst = (currentUser?.school || currentUser?.institute || '').trim();
       if (currentUser && !currentInst) {
@@ -526,14 +530,14 @@ export default function App() {
     };
   }, []);
 
-  // Persistent Auth Routing: If a logged-in user with completed profile is on base URL, landing, or onboarding,
+  // Persistent Auth Routing: If a logged-in user with completed profile is on base URL, landing, onboarding, or signup,
   // automatically redirect them away directly to the main app interface (/feed).
   useEffect(() => {
     if (isAuthLoading || isProfileLoading) return;
     const userHandle = (user?.handle || user?.username || '').trim();
     if (user && userHandle) {
       const currentPath = window.location.pathname.replace(/^\//, '');
-      if (!currentPath || currentPath === 'landing' || currentPath === 'onboarding') {
+      if (!currentPath || currentPath === 'landing' || currentPath === 'onboarding' || currentPath === 'signup') {
         window.history.replaceState(null, '', '/feed');
         setView('poll');
       }
@@ -542,10 +546,11 @@ export default function App() {
 
   useEffect(() => {
     const handlePopState = () => {
+      const path = window.location.pathname.replace(/^\//, '');
+      setCurrentRoute(path);
       if (isAuthLoading || isProfileLoading) return;
       const userHandle = (user?.handle || user?.username || '').trim();
       if (user && userHandle) {
-        const path = window.location.pathname.replace(/^\//, '');
         if (!path || path === 'landing') {
           window.history.replaceState(null, '', '/feed');
           setView('poll');
@@ -566,18 +571,24 @@ export default function App() {
   const loginWithGoogle = async (explicitSchool = null) => {
     setIsAuthenticating(true);
 
+    const isSignupRoute = window.location.pathname.replace(/^\//, '') === 'signup';
+
     // Preserve non-auth user context (referral and school selection)
-    const selectedSchool = (
-      (typeof explicitSchool === 'string' && explicitSchool.trim()) ||
-      (typeof institute === 'string' && institute.trim()) ||
-      localStorage.getItem('pre_selected_school') ||
-      localStorage.getItem('campus_institute') ||
-      ''
-    ).trim();
+    const selectedSchool = isSignupRoute
+      ? ''
+      : (
+        (typeof explicitSchool === 'string' && explicitSchool.trim()) ||
+        (typeof institute === 'string' && institute.trim()) ||
+        localStorage.getItem('pre_selected_school') ||
+        localStorage.getItem('campus_institute') ||
+        ''
+      ).trim();
 
     const refCode = (
       localStorage.getItem('referred_by') ||
+      sessionStorage.getItem('referred_by') ||
       localStorage.getItem('campus_ref_code') ||
+      sessionStorage.getItem('campus_ref_code') ||
       ''
     ).trim();
 
@@ -610,15 +621,25 @@ export default function App() {
     if (selectedSchool) {
       localStorage.setItem('pre_selected_school', selectedSchool);
       localStorage.setItem('campus_institute', selectedSchool);
+    } else {
+      localStorage.removeItem('pre_selected_school');
+      localStorage.removeItem('campus_institute');
     }
+
     if (refCode) {
       localStorage.setItem('referred_by', refCode);
       localStorage.setItem('campus_ref_code', refCode);
     }
 
-    if (grade) localStorage.setItem('campus_grade', grade);
-    if (stream) localStorage.setItem('campus_stream', stream);
-    if (coachingHub) localStorage.setItem('campus_hub', coachingHub);
+    if (!isSignupRoute) {
+      if (grade) localStorage.setItem('campus_grade', grade);
+      if (stream) localStorage.setItem('campus_stream', stream);
+      if (coachingHub) localStorage.setItem('campus_hub', coachingHub);
+    } else {
+      localStorage.removeItem('campus_stream');
+      localStorage.removeItem('campus_grade');
+      localStorage.removeItem('campus_hub');
+    }
 
     // 2. Clear all React state
     setUser(null);
@@ -1182,6 +1203,17 @@ export default function App() {
   }
 
   if (!user) {
+    if (currentRoute === 'signup' || (typeof window !== 'undefined' && window.location.pathname.replace(/^\//, '') === 'signup')) {
+      return (
+        <Signup
+          loginWithGoogle={loginWithGoogle}
+          isAuthenticating={isAuthenticating}
+          legalView={legalView}
+          setLegalView={setLegalView}
+        />
+      );
+    }
+
     return (
       <Landing
         grade={grade}
