@@ -503,15 +503,7 @@ export default function App() {
       ''
     ).trim();
 
-    // 1. Force Clean Session Wipe on Login/Signup Initiation
-    try {
-      await supabase.auth.signOut({ scope: 'local' });
-    } catch (_) {}
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.warn("Pre-login signOut error:", e);
-    }
+    // Synchronous state & storage clean-up (no async network pre-flight delay)
 
     // Selectively wipe stale user tokens and cached data to prevent ghost logins,
     // while keeping storage clean for the new OAuth PKCE challenge
