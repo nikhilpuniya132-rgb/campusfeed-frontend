@@ -560,14 +560,11 @@ export default function App() {
     setIsOnboarding(false);
     userRef.current = null;
     
-    const redirectUrl = (typeof window !== 'undefined' && window.location.origin)
-      ? `${window.location.origin}/feed`
-      : 'https://campusfeed-frontend.vercel.app/feed';
-
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectUrl,
+        redirectTo: 'https://centerinsider.vercel.app/onboarding',
+        skipBrowserRedirect: false,
         queryParams: {
           prompt: 'select_account',
           access_type: 'offline'
@@ -578,6 +575,11 @@ export default function App() {
     if (error) {
       alert("Login Failed: " + error.message);
       setIsAuthenticating(false);
+      return;
+    }
+
+    if (data?.url) {
+      window.location.assign(data.url);
     }
   };
 

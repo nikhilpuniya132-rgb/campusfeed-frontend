@@ -9,8 +9,7 @@
  */
 export function getReferralLink(user) {
   const refId = user?.id || user?.invite_code || user?.handle || 'campus';
-  const cleanRef = String(refId).trim().replace(/^@/, '');
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://campusfeed-frontend.vercel.app';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://centerinsider.vercel.app';
   return `${baseUrl}/?ref=${encodeURIComponent(cleanRef)}`;
 }
 
