@@ -5,11 +5,15 @@ import {
   ShieldCheck,
   Sparkles,
   Users,
-  ArrowRight,
   Loader2,
   Mail,
+  Lock,
+  Eye,
+  EyeOff,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  UserPlus,
+  LogIn
 } from 'lucide-react';
 import { supabase } from '../supabase';
 
@@ -26,14 +30,16 @@ export default function Signup({
 
   const [referralCode, setReferralCode] = useState('');
   const [email, setEmail] = useState('');
-  const [isEmailLoading, setIsEmailLoading] = useState(false);
-  const [localIsAuthenticating, setLocalIsAuthenticating] = useState(false);
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Loading state: null | 'signup' | 'login' | 'google'
+  const [actionLoading, setActionLoading] = useState(null);
   const [authFeedback, setAuthFeedback] = useState(null); // { type: 'success' | 'error', message: string }
 
-  const isGoogleAuthenticating = Boolean(propIsAuthenticating || localIsAuthenticating);
-  const isAnyLoading = isEmailLoading || isGoogleAuthenticating;
+  const isLoading = Boolean(actionLoading || propIsAuthenticating);
 
-  // Capture ?ref= query parameter from ad URL and persist
+  // Capture ?ref= query parameter from URL and persist in storage
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
@@ -70,72 +76,183 @@ export default function Signup({
     } catch (_) {}
   };
 
-  // Primary Auth: Supabase Email Magic Link
-  const handleEmailSubmit = async (e) => {
-    if (e && e.preventDefault) e.preventDefault();
-    if (isAnyLoading) return;
-
+  const validateInputs = () => {
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail) {
       setAuthFeedback({
         type: 'error',
-        message: 'Please enter your email address to continue.'
+        message: 'Please enter your email address.'
       });
-      return;
+      return null;
     }
 
-    // Basic email format check
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
       setAuthFeedback({
         type: 'error',
         message: 'Please enter a valid email address (e.g. name@school.edu).'
       });
-      return;
+      return null;
     }
 
-    setIsEmailLoading(true);
+    if (!password) {
+      setAuthFeedback({
+        type: 'error',
+        message: 'Please enter your password.'
+      });
+      return null;
+    }
+
+    if (password.length < 6) {
+      setAuthFeedback({
+        type: 'error',
+        message: 'Password is too short. It must be at least 6 characters long.'
+      });
+      return null;
+    }
+
+    return trimmedEmail;
+  };
+
+  // 1. Primary Auth: Sign Up (supabase.auth.signUp)
+  const handleSignUp = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (isLoading) return;
+
+    const validEmail = validateInputs();
+    if (!validEmail) return;
+
+    setActionLoading('signup');
     setAuthFeedback(null);
     prepareStorage();
 
     try {
-      const emailRedirectTo = `${window.location.origin}/auth/callback`;
-      const { error } = await supabase.auth.signInWithOtp({
-        email: trimmedEmail,
+      const { data, error } = await supabase.auth.signUp({
+        email: validEmail,
+        password: password,
         options: {
-          emailRedirectTo
+          emailRedirectTo: `${window.location.origin}/onboarding`
         }
       });
 
       if (error) {
-        setAuthFeedback({
-          type: 'error',
-          message: error.message || 'Failed to send magic link. Please try again.'
-        });
-      } else {
+        const errorMsg = error.message || '';
+        if (
+          errorMsg.toLowerCase().includes('already registered') ||
+          errorMsg.toLowerCase().includes('already exists') ||
+          errorMsg.toLowerCase().includes('user already exists')
+        ) {
+          setAuthFeedback({
+            type: 'error',
+            message: 'An account with this email already exists. Click "Log In" to access it.'
+          });
+        } else if (errorMsg.toLowerCase().includes('password')) {
+          setAuthFeedback({
+            type: 'error',
+            message: errorMsg
+          });
+        } else {
+          setAuthFeedback({
+            type: 'error',
+            message: errorMsg || 'Sign up failed. Please try again.'
+          });
+        }
+        setActionLoading(null);
+        return;
+      }
+
+      if (data?.session) {
         setAuthFeedback({
           type: 'success',
-          message: `Magic login link sent to ${trimmedEmail}! Please check your email inbox to log in.`
+          message: 'Account created successfully! Routing to setup...'
         });
-        setEmail('');
+        setTimeout(() => {
+          navigate('/onboarding');
+        }, 400);
+      } else if (data?.user) {
+        setAuthFeedback({
+          type: 'success',
+          message: 'Account registered! Please check your email to confirm your account, or log in.'
+        });
+        setActionLoading(null);
       }
     } catch (err) {
-      console.error('Email magic link login error:', err);
+      console.error('Sign up error:', err);
       setAuthFeedback({
         type: 'error',
-        message: 'Something went wrong while sending the link. Please try again.'
+        message: 'An unexpected error occurred during sign up. Please try again.'
       });
-    } finally {
-      setIsEmailLoading(false);
+      setActionLoading(null);
     }
   };
 
-  // Secondary Auth: Google OAuth
+  // 2. Primary Auth: Log In (supabase.auth.signInWithPassword)
+  const handleLogin = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (isLoading) return;
+
+    const validEmail = validateInputs();
+    if (!validEmail) return;
+
+    setActionLoading('login');
+    setAuthFeedback(null);
+    prepareStorage();
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: validEmail,
+        password: password
+      });
+
+      if (error) {
+        const errorMsg = error.message || '';
+        if (
+          errorMsg.toLowerCase().includes('invalid login credentials') ||
+          errorMsg.toLowerCase().includes('invalid credentials')
+        ) {
+          setAuthFeedback({
+            type: 'error',
+            message: 'Invalid email or password. Please verify your details or click "Sign Up" to create an account.'
+          });
+        } else {
+          setAuthFeedback({
+            type: 'error',
+            message: errorMsg || 'Login failed. Please check your credentials.'
+          });
+        }
+        setActionLoading(null);
+        return;
+      }
+
+      setAuthFeedback({
+        type: 'success',
+        message: 'Welcome back! Logging you in...'
+      });
+
+      setTimeout(() => {
+        const cached = localStorage.getItem('campus_cached_user');
+        if (cached) {
+          navigate('/feed');
+        } else {
+          navigate('/onboarding');
+        }
+      }, 350);
+    } catch (err) {
+      console.error('Login error:', err);
+      setAuthFeedback({
+        type: 'error',
+        message: 'An unexpected error occurred during log in. Please try again.'
+      });
+      setActionLoading(null);
+    }
+  };
+
+  // 3. Secondary Auth: Google OAuth
   const handleGoogleClick = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    if (isAnyLoading) return;
+    if (isLoading) return;
 
-    setLocalIsAuthenticating(true);
+    setActionLoading('google');
     setAuthFeedback(null);
     prepareStorage();
 
@@ -144,7 +261,7 @@ export default function Signup({
         await loginWithGoogle();
       } catch (err) {
         console.error('Google OAuth error:', err);
-        setLocalIsAuthenticating(false);
+        setActionLoading(null);
       }
       return;
     }
@@ -167,7 +284,7 @@ export default function Signup({
           type: 'error',
           message: 'Google Login Failed: ' + error.message
         });
-        setLocalIsAuthenticating(false);
+        setActionLoading(null);
         return;
       }
 
@@ -180,7 +297,7 @@ export default function Signup({
         type: 'error',
         message: 'Google login failed. Please try again.'
       });
-      setLocalIsAuthenticating(false);
+      setActionLoading(null);
     }
   };
 
@@ -220,10 +337,10 @@ export default function Signup({
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
-        className="w-full max-w-[420px] z-10 flex flex-col items-center text-center my-auto py-4 sm:py-6"
+        className="w-full max-w-[420px] z-10 flex flex-col items-center text-center my-auto py-3 sm:py-5"
       >
         {/* Pill Badge */}
-        <div className="inline-flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-800 rounded-full px-3.5 py-1.5 mb-4 text-xs font-extrabold text-zinc-200 shadow-lg shadow-black/50">
+        <div className="inline-flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-800 rounded-full px-3.5 py-1.5 mb-3.5 text-xs font-extrabold text-zinc-200 shadow-lg shadow-black/50">
           <Sparkles size={13} className="text-amber-400 shrink-0" />
           <span>The 100% Anonymous School Network</span>
         </div>
@@ -233,66 +350,126 @@ export default function Signup({
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-emerald-950/40 border border-emerald-600/50 text-emerald-400 text-xs font-bold px-3.5 py-1.5 rounded-full inline-flex items-center gap-1.5 mb-3.5"
+            className="bg-emerald-950/40 border border-emerald-600/50 text-emerald-400 text-xs font-bold px-3.5 py-1.5 rounded-full inline-flex items-center gap-1.5 mb-3"
           >
             <span>🎁</span> Invited by @{referralCode} • Priority Access
           </motion.div>
         )}
 
         {/* Hero Title */}
-        <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight mb-2.5 text-white">
+        <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight mb-2 text-white">
           Answer viral polls.
           <br />
           <span className="text-zinc-400">Discover admirers.</span>
         </h1>
 
         {/* Subtitle */}
-        <p className="text-sm text-zinc-400 leading-relaxed mb-6 max-w-[340px] font-medium">
+        <p className="text-sm text-zinc-400 leading-relaxed mb-5 max-w-[340px] font-medium">
           See who voted for you in school polls, vote anonymously for your classmates, and enter the
           inner campus circle.
         </p>
 
         {/* Auth Card Container */}
         <div className="w-full bg-[#0f0f12]/90 backdrop-blur-xl border border-zinc-800 rounded-3xl p-5 sm:p-6 shadow-2xl shadow-black ring-1 ring-white/5 text-left box-border">
-          {/* PRIMARY AUTH: Email Magic Link Form */}
-          <form onSubmit={handleEmailSubmit} className="w-full flex flex-col gap-3">
-            <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 px-0.5">
-              Email Address
-            </label>
-            <div className="relative w-full">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@school.edu or email"
-                autoComplete="email"
-                inputMode="email"
-                disabled={isAnyLoading}
-                className="w-full bg-zinc-900/90 border border-zinc-800 focus:border-zinc-500 focus:bg-zinc-900 text-white placeholder-zinc-500 text-sm sm:text-base rounded-2xl pl-10 pr-4 py-3.5 outline-none focus:ring-2 focus:ring-zinc-400/20 transition-all font-medium disabled:opacity-60 disabled:cursor-not-allowed"
-              />
+          {/* PRIMARY AUTH: Email & Password Form */}
+          <form onSubmit={handleSignUp} className="w-full flex flex-col gap-3.5">
+            {/* Email Field */}
+            <div className="w-full flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 px-0.5">
+                Email Address
+              </label>
+              <div className="relative w-full">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@school.edu or personal"
+                  autoComplete="email"
+                  inputMode="email"
+                  disabled={isLoading}
+                  className="w-full bg-zinc-900/90 border border-zinc-800 focus:border-zinc-500 focus:bg-zinc-900 text-white placeholder-zinc-500 text-sm sm:text-base rounded-2xl pl-10 pr-4 py-3 outline-none focus:ring-2 focus:ring-zinc-400/20 transition-all font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                />
+              </div>
             </div>
 
-            <motion.button
-              whileTap={isAnyLoading ? {} : { scale: 0.98 }}
-              whileHover={isAnyLoading ? {} : { scale: 1.01 }}
-              disabled={isAnyLoading}
-              type="submit"
-              className="w-full bg-white hover:bg-zinc-100 active:bg-zinc-200 text-black font-black text-sm sm:text-base py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md shadow-white/10 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-            >
-              {isEmailLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-black shrink-0" />
-                  <span>Sending link...</span>
-                </>
-              ) : (
-                <>
-                  <span>Continue with Email</span>
-                  <ArrowRight className="w-4 h-4 text-black shrink-0" />
-                </>
-              )}
-            </motion.button>
+            {/* Password Field */}
+            <div className="w-full flex flex-col gap-1.5">
+              <div className="flex items-center justify-between px-0.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                  Password
+                </label>
+                <span className="text-[11px] text-zinc-500 font-medium">Min 6 characters</span>
+              </div>
+              <div className="relative w-full">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  disabled={isLoading}
+                  className="w-full bg-zinc-900/90 border border-zinc-800 focus:border-zinc-500 focus:bg-zinc-900 text-white placeholder-zinc-500 text-sm sm:text-base rounded-2xl pl-10 pr-11 py-3 outline-none focus:ring-2 focus:ring-zinc-400/20 transition-all font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 p-1 cursor-pointer transition-colors"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons: Sign Up & Log In */}
+            <div className="grid grid-cols-2 gap-2.5 pt-1">
+              {/* Sign Up Button */}
+              <motion.button
+                whileTap={isLoading ? {} : { scale: 0.98 }}
+                whileHover={isLoading ? {} : { scale: 1.01 }}
+                disabled={isLoading}
+                type="submit"
+                className="w-full bg-white hover:bg-zinc-100 active:bg-zinc-200 text-black font-black text-sm py-3.5 px-3 rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-white/10 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {actionLoading === 'signup' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-black shrink-0" />
+                    <span>Signing up...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-4 h-4 text-black shrink-0" />
+                    <span>Sign Up</span>
+                  </>
+                )}
+              </motion.button>
+
+              {/* Log In Button */}
+              <motion.button
+                whileTap={isLoading ? {} : { scale: 0.98 }}
+                whileHover={isLoading ? {} : { scale: 1.01 }}
+                disabled={isLoading}
+                type="button"
+                onClick={handleLogin}
+                className="w-full bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-700/90 border border-zinc-700 text-white font-black text-sm py-3.5 px-3 rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {actionLoading === 'login' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-white shrink-0" />
+                    <span>Logging in...</span>
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-4 h-4 text-zinc-300 shrink-0" />
+                    <span>Log In</span>
+                  </>
+                )}
+              </motion.button>
+            </div>
           </form>
 
           {/* Feedback Messages (Success / Error) */}
@@ -321,7 +498,7 @@ export default function Signup({
           </AnimatePresence>
 
           {/* Visual Divider ("or") */}
-          <div className="relative my-5 flex items-center justify-center">
+          <div className="relative my-4 sm:my-5 flex items-center justify-center">
             <div className="w-full border-t border-zinc-800" />
             <span className="absolute bg-[#0f0f12] px-3 text-xs font-bold uppercase tracking-wider text-zinc-500">
               or
@@ -330,18 +507,18 @@ export default function Signup({
 
           {/* SECONDARY AUTH: Google OAuth Button */}
           <motion.button
-            whileTap={isAnyLoading ? {} : { scale: 0.98 }}
-            whileHover={isAnyLoading ? {} : { scale: 1.01 }}
+            whileTap={isLoading ? {} : { scale: 0.98 }}
+            whileHover={isLoading ? {} : { scale: 1.01 }}
             onClick={handleGoogleClick}
-            disabled={isAnyLoading}
+            disabled={isLoading}
             type="button"
             id="ad-signup-google-btn"
-            className="w-full bg-zinc-900/90 hover:bg-zinc-800 active:bg-zinc-800/80 border border-zinc-700/80 text-white font-extrabold text-sm sm:text-base py-3.5 px-4 rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full bg-zinc-900/90 hover:bg-zinc-800 active:bg-zinc-800/80 border border-zinc-700/80 text-white font-extrabold text-sm py-3.5 px-4 rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
-            {isGoogleAuthenticating ? (
+            {actionLoading === 'google' ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin text-white shrink-0" />
-                <span className="tracking-tight">Connecting...</span>
+                <span className="tracking-tight">Connecting to Google...</span>
               </>
             ) : (
               <>
@@ -363,7 +540,7 @@ export default function Signup({
                     fill="#EA4335"
                   />
                 </svg>
-                <span className="tracking-tight">Sign Up with Google</span>
+                <span className="tracking-tight">Continue with Google</span>
               </>
             )}
           </motion.button>
@@ -383,19 +560,6 @@ export default function Signup({
             </span>
           </div>
         </div>
-
-        {/* Existing account alternative link */}
-        <p className="mt-5 text-xs sm:text-sm text-zinc-500 font-medium">
-          Already have an account?{' '}
-          <span
-            onClick={isAnyLoading ? undefined : handleGoogleClick}
-            className={`text-white font-bold underline cursor-pointer hover:text-zinc-200 transition-colors ${
-              isAnyLoading ? 'opacity-50 pointer-events-none' : ''
-            }`}
-          >
-            Log in with Google
-          </span>
-        </p>
       </motion.main>
 
       {/* Footer Navigation & Legal Links */}
