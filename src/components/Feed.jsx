@@ -8,6 +8,46 @@ import { Share2 } from 'lucide-react';
 import { MASTER_CLASS_OPTIONS, JUNIOR_CLASS_OPTIONS, SENIOR_CLASS_OPTIONS, isJuniorUser } from '../constants/classes';
 import { supabase } from '../supabase';
 
+// Hardcoded seed target names for St. Kabir
+export const stKabirSeedNames = [
+  "Varis",
+  "Ravneet",
+  "Divanshu",
+  "Ishant",
+  "Abhijot Brar",
+  "Ishmeet",
+  "Piyush",
+  "Harsh",
+  "Uday",
+  "Gurdaas",
+  "Manav",
+  "Navdeep singh",
+  "Navjot Sidhu",
+  "Gurman",
+  "Sahib",
+  "Ramu",
+  "Shivam",
+  "Anshuman",
+  "Dilshaan Sidhu",
+  "Fateh",
+  "Jaskaran",
+  "Ramneek Singh",
+  "Sanjay",
+  "lakhwinder",
+  "Hasmeet",
+  "Manpinder"
+];
+
+const SEED_AVATARS = ['😎', '⚡', '🔥', '✨', '🦊', '🚀', '👑', '🎯', '🦁', '⭐', '🎸', '🏆', '💎', '🎨', '🌟', '🧢', '🕶️', '🥇'];
+
+const getAvatarForSeedName = (name = '', index = 0) => {
+  let charCodeSum = 0;
+  for (let i = 0; i < name.length; i++) {
+    charCodeSum += name.charCodeAt(i);
+  }
+  return SEED_AVATARS[(charCodeSum + index) % SEED_AVATARS.length] || '😎';
+};
+
 const JUNIOR_FALLBACK_POLLS = [
   { id: 101, question: "Brings the best lunchbox that everyone attacks at recess?", is_crush_poll: false },
   { id: 102, question: "Always reminds the teacher about yesterday's homework?", is_crush_poll: false },
@@ -63,9 +103,104 @@ const filterPollsByAudience = (pollsList, isJunior) => {
   return filtered.length >= 4 ? filtered : fallback;
 };
 
+/**
+ * Combines live active Supabase users with the hardcoded stKabirSeedNames into a single list.
+ * Deduplicates names and handles, and excludes the current active voter so they don't vote for themselves.
+ */
+export const getCombinedCandidatePool = (liveSupabaseUsers = [], seedNames = stKabirSeedNames, currentVoter = null) => {
+  const combined = [];
+  const seenNames = new Set();
+  const seenHandles = new Set();
+
+  const voterId = currentVoter?.id ? String(currentVoter.id) : null;
+  const voterHandle = (currentVoter?.handle || '').toLowerCase().replace(/^@/, '').trim();
+  const voterName = (currentVoter?.name || '').toLowerCase().trim();
+
+  // 1. Process active registered Supabase users
+  for (const user of liveSupabaseUsers) {
+    if (!user) continue;
+    if (voterId && String(user.id) === voterId) continue;
+
+    const uName = (user.name || '').toLowerCase().trim();
+    const uHandle = (user.handle || '').toLowerCase().replace(/^@/, '').trim();
+
+    // Prevent matching self
+    if (voterName && uName === voterName) continue;
+    if (voterHandle && uHandle === voterHandle) continue;
+
+    combined.push({
+      ...user,
+      is_seed: false
+    });
+
+    if (uName) seenNames.add(uName);
+    if (uHandle) seenHandles.add(uHandle);
+  }
+
+  // 2. Mix in stKabirSeedNames (deduplicating against live users and current voter)
+  seedNames.forEach((name, index) => {
+    if (!name || typeof name !== 'string') return;
+    const cleanName = name.trim();
+    const lowerName = cleanName.toLowerCase();
+    const cleanHandle = lowerName.replace(/[^a-z0-9]/g, '');
+
+    // Skip if current voter is this person
+    if (voterName && lowerName === voterName) return;
+    if (voterHandle && cleanHandle === voterHandle) return;
+
+    // Skip if already represented by a live Supabase user or previous seed entry
+    if (seenNames.has(lowerName) || seenHandles.has(cleanHandle)) return;
+
+    seenNames.add(lowerName);
+    seenHandles.add(cleanHandle);
+
+    combined.push({
+      id: `seed-${cleanHandle || index}`,
+      name: cleanName,
+      handle: cleanHandle,
+      avatar: getAvatarForSeedName(cleanName, index),
+      profile_pic: null,
+      grade: currentVoter?.grade ? String(currentVoter.grade) : '11',
+      stream: currentVoter?.stream || 'St. Kabir',
+      institute: currentVoter?.institute || 'St. Kabir Convent Senior Secondary',
+      is_seed: true,
+      is_pro: false,
+      ring: 'gold',
+      selected_ring: 'gold'
+    });
+  });
+
+  return combined;
+};
+
+/**
+ * Randomly shuffles the candidate list and selects exactly `count` (default 4) unique options.
+ */
+export const generatePollOptions = (candidatesList = [], count = 4) => {
+  if (!candidatesList || candidatesList.length === 0) return [];
+
+  // Shuffle candidates array randomly
+  const shuffled = [...candidatesList].sort(() => 0.5 - Math.random());
+
+  const selected = [];
+  const seenKeys = new Set();
+
+  for (const candidate of shuffled) {
+    const key = (candidate.name || candidate.handle || '').toLowerCase().trim();
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      selected.push(candidate);
+    }
+    if (selected.length === count) break;
+  }
+
+  return selected;
+};
+
 const filterCandidates = (candidates, gradeFilter, isJunior = false) => {
-  // First, enforce strict cohort isolation (Juniors never see Seniors, Seniors never see Juniors)
+  // Cohort isolation for live users (Juniors vs Seniors), while keeping seed candidates eligible
   const cohortCandidates = (candidates || []).filter(c => {
+    if (c.is_seed) return true;
     const cIsJunior = isJuniorUser(c);
     return isJunior ? cIsJunior : !cIsJunior;
   });
@@ -76,6 +211,7 @@ const filterCandidates = (candidates, gradeFilter, isJunior = false) => {
 
   const f = gradeFilter.toLowerCase().trim();
   const subFiltered = cohortCandidates.filter(c => {
+    if (c.is_seed) return true; // Seed candidates remain available across classes
     const s = (c.stream || '').toLowerCase();
     const g = (c.grade || '').toString().toLowerCase();
     return s.includes(f) || g === f || f.includes(g);
@@ -93,12 +229,7 @@ const buildPollBatch = (pollsList, candidatesList, targetGrade, count = 12, isJu
 
   for (let i = 0; i < count; i++) {
     const poll = shuffledPolls[i % shuffledPolls.length];
-    let selectedOptions = [];
-    if (eligibleCandidates.length >= 4) {
-      selectedOptions = [...eligibleCandidates].sort(() => 0.5 - Math.random()).slice(0, 4);
-    } else {
-      selectedOptions = [...eligibleCandidates];
-    }
+    const selectedOptions = generatePollOptions(eligibleCandidates, 4);
     batch.push({
       poll,
       options: selectedOptions
@@ -108,20 +239,10 @@ const buildPollBatch = (pollsList, candidatesList, targetGrade, count = 12, isJu
   return batch;
 };
 
-const AURA_RING_OPTIONS = [
-  { id: 'gold', label: 'Gold Ring', color: '#d97706', desc: 'Championship aura' },
-  { id: 'neon', label: 'Blue Ring', color: '#2563eb', desc: 'Electric energy' },
-  { id: 'ruby', label: 'Ruby Red', color: '#dc2626', desc: 'Crimson flame' },
-  { id: 'purple', label: 'Cosmic Purple', color: '#7c3aed', desc: 'Ultraviolet nebula' },
-  { id: 'emerald', label: 'Emerald Green', color: '#059669', desc: 'Mystic jade' }
-];
-
 const fetchPollsFromSupabase = async (limit = 30, isJunior = false) => {
   const fallback = isJunior ? JUNIOR_FALLBACK_POLLS : SENIOR_FALLBACK_POLLS;
   if (!supabase) return fallback;
   try {
-    // Dynamic Table Routing & Zero Cross-Contamination:
-    // Junior queries ONLY polls2, Senior queries ONLY polls
     const targetTable = isJunior ? 'polls2' : 'polls';
     const { data, error } = await supabase
       .from(targetTable)
@@ -267,20 +388,27 @@ export default function Feed({
     setIsInitialLoading(true);
 
     try {
-      const [polls, candidates] = await Promise.all([
+      const [polls, liveCandidates] = await Promise.all([
         fetchPollsFromSupabase(30, isJunior),
         fetchCandidatesFromSupabase(institute, voterId, isJunior)
       ]);
 
-      pollsPoolRef.current = polls;
-      candidatesPoolRef.current = candidates;
+      // Mix live registered Supabase users with the stKabirSeedNames
+      const combinedCandidates = getCombinedCandidatePool(liveCandidates, stKabirSeedNames, user);
 
-      const batch = buildPollBatch(polls, candidates, grade, 12, isJunior);
+      pollsPoolRef.current = polls;
+      candidatesPoolRef.current = combinedCandidates;
+
+      const batch = buildPollBatch(polls, combinedCandidates, grade, 12, isJunior);
       setPollQueue(batch);
     } catch (err) {
       console.error('Initial batch fetch failed:', err);
       const fallbackList = isJunior ? JUNIOR_FALLBACK_POLLS : SENIOR_FALLBACK_POLLS;
-      const fallbackBatch = buildPollBatch(fallbackList, candidatesPoolRef.current || [], grade, 12, isJunior);
+      const combinedCandidates = candidatesPoolRef.current?.length > 0 
+        ? candidatesPoolRef.current 
+        : getCombinedCandidatePool([], stKabirSeedNames, user);
+      candidatesPoolRef.current = combinedCandidates;
+      const fallbackBatch = buildPollBatch(fallbackList, combinedCandidates, grade, 12, isJunior);
       setPollQueue(fallbackBatch);
     } finally {
       setIsInitialLoading(false);
@@ -301,8 +429,9 @@ export default function Feed({
       }
 
       let candidates = candidatesPoolRef.current;
-      if (!candidates || candidates.length === 0) {
-        candidates = await fetchCandidatesFromSupabase(userInstitute, userId, isJunior);
+      if (!candidates || candidates.length < 4) {
+        const live = await fetchCandidatesFromSupabase(userInstitute, userId, isJunior);
+        candidates = getCombinedCandidatePool(live, stKabirSeedNames, user);
         candidatesPoolRef.current = candidates;
       }
 
@@ -319,7 +448,6 @@ export default function Feed({
   const advanceToNextPoll = () => {
     setPollQueue(prevQueue => {
       const nextQueue = prevQueue.slice(1);
-      // Background refill triggered when reaching last 3 polls in queue
       if (nextQueue.length <= 3 && !isRefillingRef.current) {
         triggerBackgroundRefill(activeGradeFilter);
       }
@@ -341,7 +469,11 @@ export default function Feed({
   // Active Poll and Options from pre-fetched queue (with prop fallback)
   const currentItem = pollQueue[0] || null;
   const currentPoll = currentItem?.poll || propCurrentPoll || null;
-  const options = currentItem?.options || propOptions || [];
+  const options = (currentItem?.options && currentItem.options.length >= 4)
+    ? currentItem.options
+    : (propOptions && propOptions.length >= 4)
+      ? propOptions
+      : generatePollOptions(candidatesPoolRef.current?.length >= 4 ? candidatesPoolRef.current : getCombinedCandidatePool([], stKabirSeedNames, user), 4);
   const displayOptions = (options || []).slice(0, 4);
 
   // Only show skeleton loader when initial batch is truly loading and no poll exists yet
@@ -353,14 +485,14 @@ export default function Feed({
     setShuffleCount(prev => prev + 1);
 
     if (window.navigator?.vibrate) {
-      window.navigator.vibrate(10);
+      try { window.navigator.vibrate(10); } catch (_) {}
     }
 
-    if (candidatesPoolRef.current && candidatesPoolRef.current.length >= 4) {
-      const filtered = filterCandidates(candidatesPoolRef.current, activeGradeFilter, isJunior);
-      const cohortPool = (candidatesPoolRef.current || []).filter(c => isJunior ? isJuniorUser(c) : !isJuniorUser(c));
-      const eligible = filtered.length >= 4 ? filtered : cohortPool;
-      const shuffledOptions = [...eligible].sort(() => 0.5 - Math.random()).slice(0, 4);
+    const currentCandidatePool = candidatesPoolRef.current || [];
+    if (currentCandidatePool.length >= 4) {
+      const filtered = filterCandidates(currentCandidatePool, activeGradeFilter, isJunior);
+      const eligible = filtered.length >= 4 ? filtered : currentCandidatePool;
+      const shuffledOptions = generatePollOptions(eligible, 4);
 
       setPollQueue(prev => {
         if (!prev.length) return prev;
@@ -368,35 +500,77 @@ export default function Feed({
         return [{ ...first, options: shuffledOptions }, ...rest];
       });
     } else {
+      const fallbackPool = getCombinedCandidatePool([], stKabirSeedNames, user);
+      candidatesPoolRef.current = fallbackPool;
+      const shuffledOptions = generatePollOptions(fallbackPool, 4);
       setPollQueue(prev => {
         if (!prev.length) return prev;
         const [first, ...rest] = prev;
-        return [{ ...first, options: [...first.options].sort(() => 0.5 - Math.random()) }, ...rest];
+        return [{ ...first, options: shuffledOptions }, ...rest];
       });
     }
 
     if (onShuffle) onShuffle();
   };
 
+  /**
+   * Safe Vote Handler: Guarantees that clicking ANY option (seed name or registered Supabase user)
+   * records the vote in the database without throwing unhandled exceptions or crashing the app.
+   */
   const handleVoteClick = (candidate) => {
+    if (!candidate) return;
+
     setShuffleCount(0);
     setSelectedCandidate(candidate);
     setOptimisticVoted(true);
 
     if (window.navigator?.vibrate) {
-      window.navigator.vibrate(15);
+      try { window.navigator.vibrate(15); } catch (_) {}
     }
 
-    // Fire-and-forget asynchronous vote dispatch
+    // Determine safe receiver ID:
+    // If the candidate is a registered Supabase user with a valid UUID, use their ID.
+    // If it's a seed name (not a database user row), use null to avoid foreign key constraint failure.
+    const isRealUserUuid = Boolean(
+      candidate.id &&
+      !candidate.is_seed &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(candidate.id))
+    );
+    const dbReceiverId = isRealUserUuid ? candidate.id : null;
+
+    // Verify if currentPoll.id is a valid UUID
+    const isPollUuid = Boolean(
+      currentPoll?.id &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(currentPoll.id))
+    );
+    const dbPollId = isPollUuid ? currentPoll.id : null;
+
+    // 1. Dispatch asynchronous vote to parent App / backend
     if (onCastVote) {
-      onCastVote(candidate.id, currentPoll?.id);
+      try {
+        onCastVote(dbReceiverId, dbPollId || currentPoll?.id);
+      } catch (err) {
+        console.warn('onCastVote dispatch error handled safely:', err);
+      }
     }
-    if (supabase && user?.id && currentPoll?.id) {
-      supabase.from('votes').insert([{
-        poll_id: currentPoll.id,
-        voter_id: user.id,
-        receiver_id: candidate.id
-      }]).catch(err => console.warn('Vote background insert warning:', err));
+
+    // 2. Direct Supabase insert wrapped in async try/catch with .catch fallback
+    if (supabase && user?.id) {
+      (async () => {
+        try {
+          const votePayload = {
+            voter_id: user.id,
+            receiver_id: dbReceiverId,
+            poll_id: dbPollId
+          };
+          const { error } = await supabase.from('votes').insert([votePayload]);
+          if (error) {
+            console.warn('Supabase vote recording notification:', error.message);
+          }
+        } catch (err) {
+          console.warn('Supabase vote recording handled safely:', err);
+        }
+      })();
     }
 
     // Auto-advance after 1.2s if user doesn't manually tap "Next Question ➔"
@@ -418,7 +592,9 @@ export default function Feed({
   };
 
   const handleSkipClick = () => {
-    if (window.navigator?.vibrate) window.navigator.vibrate(8);
+    if (window.navigator?.vibrate) {
+      try { window.navigator.vibrate(8); } catch (_) {}
+    }
     if (autoAdvanceRef.current) {
       clearTimeout(autoAdvanceRef.current);
       autoAdvanceRef.current = null;
@@ -430,17 +606,25 @@ export default function Feed({
   };
 
   const handleGradeFilterSelect = (selectedGrade) => {
-    if (window.navigator?.vibrate) window.navigator.vibrate(8);
+    if (window.navigator?.vibrate) {
+      try { window.navigator.vibrate(8); } catch (_) {}
+    }
     setIsClassesOpen(false);
     setActiveGradeFilter(selectedGrade);
 
     // Instantly rebuild local queue from in-memory pool
+    const pool = candidatesPoolRef.current?.length >= 4
+      ? candidatesPoolRef.current
+      : getCombinedCandidatePool([], stKabirSeedNames, user);
+    candidatesPoolRef.current = pool;
+
     if (pollsPoolRef.current.length > 0) {
       const newBatch = buildPollBatch(
         pollsPoolRef.current,
-        candidatesPoolRef.current,
+        pool,
         selectedGrade,
-        12
+        12,
+        isJunior
       );
       setPollQueue(newBatch);
       setOptimisticVoted(false);
@@ -674,7 +858,7 @@ export default function Feed({
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#18181b', padding: '6px 14px', borderRadius: '16px', margin: '6px 0 16px 0', border: '1px solid #27272a' }}>
               <span style={{ fontSize: '13px', color: '#a1a1aa' }}>To:</span>
               <span style={{ fontSize: '13.5px', fontWeight: '800', color: '#ffffff' }}>
-                @{selectedCandidate.handle}
+                @{selectedCandidate.handle || selectedCandidate.name}
               </span>
             </div>
           )}
@@ -878,7 +1062,7 @@ export default function Feed({
                         padding: '0 4px',
                       }}
                     >
-                      @{opt.handle}
+                      @{opt.handle || opt.name}
                     </span>
                     {opt.stream && (
                       <span style={{ fontSize: '8.5px', color: '#a1a1aa', fontWeight: '600', marginTop: '1px' }}>
