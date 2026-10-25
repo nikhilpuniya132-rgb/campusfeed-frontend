@@ -102,14 +102,14 @@ export default function GodMode({
     <div
       style={{
         width: '100%',
-        maxWidth: '460px',
+        maxWidth: '448px',
         margin: '0 auto',
-        padding: '16px 14px 85px 14px',
+        padding: '8px 0 120px 0',
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        background: '#000000',
+        background: 'transparent',
         color: '#ffffff'
       }}
     >
@@ -126,14 +126,14 @@ export default function GodMode({
               left: '50%',
               transform: 'translateX(-50%)',
               zIndex: 9999,
-              background: '#18181b',
-              border: '1px solid #27272a',
+              background: '#000000',
+              border: '2px solid #ff007f',
               color: '#ffffff',
               padding: '10px 18px',
-              borderRadius: '12px',
+              borderRadius: '9999px',
               fontSize: '12.5px',
               fontWeight: '800',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+              boxShadow: '0 12px 30px rgba(0,0,0,0.7)',
               display: 'flex',
               alignItems: 'center',
               gap: '6px'
@@ -145,11 +145,21 @@ export default function GodMode({
         )}
       </AnimatePresence>
 
-      {/* VIP Crown Header */}
+      {/* VIP Crown Header - Un-boxed Floating Pitch Black Card */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        style={{ textAlign: 'center', marginBottom: '18px', width: '100%' }}
+        style={{
+          textAlign: 'center',
+          marginBottom: '18px',
+          width: '100%',
+          background: '#000000',
+          borderRadius: '2.5rem',
+          padding: '28px 24px',
+          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.75)',
+          border: '2px solid #ff007f',
+          boxSizing: 'border-box'
+        }}
       >
         <div
           style={{
@@ -158,13 +168,13 @@ export default function GodMode({
             gap: '6px',
             padding: '4px 14px',
             borderRadius: '20px',
-            background: hasLifetimeLegend ? 'rgba(245, 158, 11, 0.15)' : hasMonthAccess ? 'rgba(16, 185, 129, 0.15)' : '#18181b',
-            border: hasLifetimeLegend ? '1px solid rgba(245, 158, 11, 0.4)' : hasMonthAccess ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid #27272a',
-            color: hasLifetimeLegend ? '#fbbf24' : hasMonthAccess ? '#34d399' : '#d4d4d8',
+            background: hasLifetimeLegend ? 'rgba(245, 158, 11, 0.2)' : hasMonthAccess ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 0, 127, 0.15)',
+            border: hasLifetimeLegend ? '1px solid rgba(245, 158, 11, 0.5)' : hasMonthAccess ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(255, 0, 127, 0.4)',
+            color: hasLifetimeLegend ? '#fbbf24' : hasMonthAccess ? '#34d399' : '#ff007f',
             fontSize: '11px',
             fontWeight: '900',
             letterSpacing: '0.04em',
-            marginBottom: '8px'
+            marginBottom: '10px'
           }}
         >
           <span>{hasLifetimeLegend ? '👑' : hasMonthAccess ? <Sword size={13} strokeWidth={2} /> : '👤'}</span>{' '}
@@ -173,9 +183,9 @@ export default function GodMode({
 
         <h2
           style={{
-            fontSize: '24px',
+            fontSize: '26px',
             fontWeight: '900',
-            margin: '0 0 6px 0',
+            margin: '0 0 8px 0',
             color: '#ffffff',
             letterSpacing: '-0.5px'
           }}
@@ -191,7 +201,7 @@ export default function GodMode({
             color: '#a1a1aa',
             fontSize: '13px',
             lineHeight: '1.45',
-            margin: 0,
+            margin: '0 0 16px 0',
             padding: '0 8px'
           }}
         >
@@ -201,36 +211,36 @@ export default function GodMode({
             ? 'Basic utility powers active for 1 month! Invite 25 friends for Lifetime Legend.'
             : 'Invite classmates to unlock unlimited voting, voter reveals, and custom polls.'}
         </p>
-      </motion.div>
 
-      {/* Universal Share Button */}
-      <div style={{ width: '100%', marginBottom: '18px' }}>
+        {/* Universal Share Button */}
         <motion.button
           whileTap={{ scale: 0.98 }}
+          whileHover={{ scale: 1.02 }}
           onClick={handleNativeShare}
           type="button"
           aria-label="Share"
           style={{
             width: '100%',
-            background: '#ffffff',
-            border: '1px solid #ffffff',
-            color: '#000000',
-            padding: '12px 18px',
-            borderRadius: '14px',
-            fontSize: '13.5px',
-            fontWeight: '800',
+            background: '#ff007f',
+            border: 'none',
+            color: '#ffffff',
+            padding: '14px 20px',
+            borderRadius: '9999px',
+            fontSize: '14px',
+            fontWeight: '900',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
-            boxShadow: 'none'
+            boxShadow: '0 0 20px rgba(255, 0, 127, 0.55)',
+            transition: 'all 0.2s ease'
           }}
         >
-          <Share2 size={16} strokeWidth={2} />
-          <span>Share</span>
+          <Share2 size={16} strokeWidth={2.4} />
+          <span>Share to Unlock</span>
         </motion.button>
-      </div>
+      </motion.div>
 
       {/* ======================================================== */}
       {/* 4 TAP-TO-EXPAND COLLAPSIBLE SUB-MENUS (ACCORDIONS)       */}
@@ -240,11 +250,11 @@ export default function GodMode({
         {/* SUB-MENU 1: UTILITY FEATURES UNLOCKED */}
         <div
           style={{
-            background: '#09090b',
+            background: '#000000',
             border: hasMonthAccess ? '2px solid #10b981' : '1px solid #27272a',
-            borderRadius: '18px',
+            borderRadius: '2rem',
             overflow: 'hidden',
-            boxShadow: 'none'
+            boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.65)'
           }}
         >
           <button
@@ -252,11 +262,11 @@ export default function GodMode({
             onClick={() => toggleSubmenu('utility')}
             style={{
               width: '100%',
-              padding: '15px 16px',
+              padding: '16px 18px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: '#09090b',
+              background: '#000000',
               border: 'none',
               cursor: 'pointer',
               textAlign: 'left'

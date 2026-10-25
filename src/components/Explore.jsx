@@ -213,40 +213,50 @@ export default function Explore({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '16px 0 85px 0',
+        padding: '8px 0 120px 0',
         boxSizing: 'border-box',
-        background: '#000000',
+        background: 'transparent',
         color: '#ffffff'
       }}
     >
-      {/* 80% SCREEN FOCUS CONTAINER (80/20 Rule: 80% content focus, 20% clean margins) */}
+      {/* SCREEN FOCUS CONTAINER */}
       <div
         style={{
-          width: '80%',
-          maxWidth: '480px',
+          width: '100%',
+          maxWidth: '448px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'stretch',
           boxSizing: 'border-box'
         }}
       >
-        {/* 1. Header (Gen-Z Aesthetic: Large, Bold Modern Typography) */}
-        <div style={{ textAlign: 'left', marginBottom: '20px' }}>
+        {/* 1. Header (Pitch Black Floating Pill) */}
+        <div
+          style={{
+            textAlign: 'left',
+            marginBottom: '16px',
+            background: '#000000',
+            borderRadius: '2rem',
+            padding: '20px 24px',
+            boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.65)',
+            border: '2px solid #000000'
+          }}
+        >
           <div
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '3px 10px',
+              padding: '4px 12px',
               borderRadius: '20px',
-              background: '#18181b',
-              border: '1px solid #27272a',
-              color: '#ffffff',
+              background: 'rgba(0, 144, 255, 0.15)',
+              border: '1px solid rgba(0, 144, 255, 0.4)',
+              color: '#0090ff',
               fontSize: '10px',
               fontWeight: '900',
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
-              marginBottom: '6px'
+              marginBottom: '8px'
             }}
           >
             <span>🔥</span>
@@ -255,7 +265,7 @@ export default function Explore({
 
           <h1
             style={{
-              fontSize: '32px',
+              fontSize: '28px',
               fontWeight: '950',
               color: '#ffffff',
               margin: '0 0 4px 0',
@@ -278,21 +288,21 @@ export default function Explore({
           </p>
         </div>
 
-        {/* 2. Bold Search Input */}
+        {/* 2. Bold Search Input (Un-boxed Floating Card with rounded-[2.5rem]) */}
         <div style={{ position: 'relative', marginBottom: '18px' }}>
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              background: '#18181b',
-              border: '2px solid #27272a',
-              borderRadius: '18px',
-              padding: '0 14px',
-              boxShadow: 'none',
-              transition: 'border-color 0.2s ease'
+              background: '#000000',
+              border: '2px solid rgba(0, 144, 255, 0.5)',
+              borderRadius: '2.5rem',
+              padding: '4px 20px',
+              boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.65)',
+              transition: 'all 0.2s ease'
             }}
           >
-            <span style={{ fontSize: '15px', color: '#ffffff', marginRight: '8px', fontWeight: '900' }}>🔍</span>
+            <span style={{ fontSize: '16px', color: '#0090ff', marginRight: '10px', fontWeight: '900' }}>🔍</span>
             <input
               type="text"
               placeholder="Search classmates @handle..."
@@ -300,7 +310,7 @@ export default function Explore({
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 width: '100%',
-                padding: '13px 0',
+                padding: '14px 0',
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',

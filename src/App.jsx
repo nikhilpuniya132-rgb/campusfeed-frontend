@@ -49,6 +49,73 @@ const AURA_RINGS = {
 };
 
 
+// Static class map for route backgrounds to ensure Tailwind compiles and does not purge
+const bgMap = {
+  '/feed': 'bg-[#00ff41]',
+  '/explore': 'bg-[#0090ff]',
+  '/pro': 'bg-[#ff007f]',
+  '/profile': 'bg-[#f8f9fa]'
+};
+
+const ROUTE_THEMES = {
+  poll: {
+    bgClass: 'bg-[#00ff41]',
+    bgColor: '#00ff41', // Neon Green
+    accentColor: '#00ff41',
+    glowColor: 'rgba(0, 255, 65, 0.9)',
+    textColor: '#000000',
+    title: 'Feed'
+  },
+  explore: {
+    bgClass: 'bg-[#0090ff]',
+    bgColor: '#0090ff', // Electric Blue
+    accentColor: '#0090ff',
+    glowColor: 'rgba(0, 144, 255, 0.9)',
+    textColor: '#ffffff',
+    title: 'Explore'
+  },
+  pro: {
+    bgClass: 'bg-[#ff007f]',
+    bgColor: '#ff007f', // Neon Pink
+    accentColor: '#ff007f',
+    glowColor: 'rgba(255, 0, 127, 0.9)',
+    textColor: '#ffffff',
+    title: 'God Mode'
+  },
+  profile: {
+    bgClass: 'bg-[#f8f9fa]',
+    bgColor: '#f8f9fa', // Off-White
+    accentColor: '#00ff41',
+    glowColor: 'rgba(0, 255, 65, 0.8)',
+    textColor: '#000000',
+    title: 'Profile'
+  },
+  publicProfile: {
+    bgClass: 'bg-[#0090ff]',
+    bgColor: '#0090ff',
+    accentColor: '#0090ff',
+    glowColor: 'rgba(0, 144, 255, 0.9)',
+    textColor: '#ffffff',
+    title: 'Classmate'
+  },
+  captains: {
+    bgClass: 'bg-[#ffe600]',
+    bgColor: '#ffe600',
+    accentColor: '#ffe600',
+    glowColor: 'rgba(255, 230, 0, 0.9)',
+    textColor: '#000000',
+    title: 'Leaderboard'
+  },
+  inbox: {
+    bgClass: 'bg-[#ff007f]',
+    bgColor: '#ff007f',
+    accentColor: '#ff007f',
+    glowColor: 'rgba(255, 0, 127, 0.9)',
+    textColor: '#ffffff',
+    title: 'Inbox'
+  }
+};
+
 const pageVariants = {
   initial: { opacity: 0, scale: 0.98, y: 10 },
   animate: { opacity: 1, scale: 1, y: 0 },
@@ -1175,56 +1242,55 @@ export default function App() {
     );
   }
 
+  const activeRoute = (view === 'poll' || view === 'feed')
+    ? '/feed'
+    : (view === 'pro' || view === 'vip')
+    ? '/pro'
+    : (view === 'explore')
+    ? '/explore'
+    : (view === 'profile')
+    ? '/profile'
+    : '/feed';
+
+  const currentBgClass = bgMap[activeRoute] || bgMap['/feed'];
+  const activeTheme = ROUTE_THEMES[view] || ROUTE_THEMES.poll;
+
   return (
-    <div className="gas-app-shell" style={{ background: '#000000', color: '#ffffff' }}>
-      <div className="gas-app-container" style={{ background: '#000000', color: '#ffffff', borderColor: '#262626' }}>
+    <div
+      className={`gas-app-shell ${currentBgClass} min-h-screen w-full transition-colors duration-500`}
+      style={{
+        transition: 'background-color 500ms cubic-bezier(0.4, 0, 0.2, 1)',
+        minHeight: '100vh',
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        position: 'relative',
+        overflowX: 'hidden'
+      }}
+    >
+      <div className="gas-app-container w-full max-w-md flex flex-col min-h-screen relative">
         {installPrompt && (
           <div
-            style={{
-              background: '#161616',
-              borderBottom: '1px solid #262626',
-              padding: '10px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              fontSize: '12px',
-              zIndex: 100,
-              flexShrink: 0
-            }}
+            className="w-full max-w-md mx-auto mt-2 px-4 py-2.5 bg-black/90 backdrop-blur-md rounded-2xl border border-gray-800 shadow-xl flex items-center justify-between text-xs z-50 box-border"
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fff', fontWeight: '700' }}>
+            <div className="flex items-center gap-2 text-white font-bold">
               <span>📲</span>
               <span>Install App to Home Screen</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => {
                   installPrompt.prompt();
                   setInstallPrompt(null);
                 }}
-                style={{
-                  background: '#ffffff',
-                  color: '#000000',
-                  border: 'none',
-                  borderRadius: '12px',
-                  padding: '5px 12px',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  fontSize: '11.5px'
-                }}
+                className="bg-white text-black rounded-xl px-3 py-1 font-black text-xs hover:bg-gray-200 transition-colors border-none cursor-pointer"
               >
                 Install
               </button>
               <button
                 onClick={() => setInstallPrompt(null)}
-                style={{
-                  background: 'transparent',
-                  color: '#888888',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  padding: '2px 4px'
-                }}
+                className="text-gray-400 hover:text-white text-sm px-1 bg-transparent border-none cursor-pointer"
               >
                 ✕
               </button>
@@ -1232,105 +1298,57 @@ export default function App() {
           </div>
         )}
 
-        <header
-          className="gas-app-header"
-          style={{
-            position: 'relative',
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 16px',
-            height: '52px',
-            background: '#000000',
-            borderBottom: '1px solid #262626',
-            boxSizing: 'border-box',
-            flexShrink: 0,
-            zIndex: 30
-          }}
-        >
-          {/* Top-Left Element: thin outline + (Plus) icon */}
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setShowAddPollModal(true)}
-            aria-label="Add Poll"
-            title="Add Poll"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-              borderRadius: '10px'
-            }}
-          >
-            <Plus size={24} strokeWidth={1.8} />
-          </motion.button>
+        {/* Floating Glassmorphic Pill Header */}
+        <header className="gas-app-header-wrapper">
+          <div className="gas-app-header-pill">
+            {/* Top-Left Element: + icon */}
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.88 }}
+              whileHover={{ scale: 1.05 }}
+              onClick={() => setShowAddPollModal(true)}
+              aria-label="Add Poll"
+              title="Add Poll"
+              className="p-1.5 rounded-full text-white/90 hover:text-white hover:bg-white/10 transition-colors border-none bg-transparent cursor-pointer flex items-center justify-center"
+            >
+              <Plus size={22} strokeWidth={2.4} />
+            </motion.button>
 
-          {/* Center Brand */}
-          <div
-            style={{
-              fontSize: '18px',
-              fontWeight: '900',
-              letterSpacing: '-0.03em',
-              color: '#ffffff',
-              userSelect: 'none'
-            }}
-          >
-            CenterInsider
-          </div>
-
-          {/* Top-Right Element: thin outline Heart icon (no text) with red dot badge */}
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setShowNotifications(prev => !prev)}
-            aria-label="Notifications"
-            title="Notifications"
-            style={{
-              position: 'relative',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-              borderRadius: '10px'
-            }}
-          >
-            <Heart size={23} strokeWidth={1.8} />
-            {pendingRequests.length > 0 && (
-              <span
-                style={{
-                  position: 'absolute',
-                  bottom: '2px',
-                  right: '2px',
-                  background: '#ef4444',
-                  color: '#ffffff',
-                  borderRadius: '50%',
-                  minWidth: '15px',
-                  height: '15px',
-                  padding: '0 3px',
-                  fontSize: '9px',
-                  fontWeight: '900',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1.5px solid #ffffff',
-                  boxSizing: 'border-box',
-                  lineHeight: 1
-                }}
-              >
-                {pendingRequests.length}
+            {/* Center Brand */}
+            <div
+              onClick={() => handleNav('poll')}
+              className="flex items-center gap-1.5 cursor-pointer select-none group"
+            >
+              <span className="text-lg font-black tracking-tight text-white group-hover:scale-105 transition-transform">
+                CenterInsider
               </span>
-            )}
-          </motion.button>
+              <span
+                className="w-2 h-2 rounded-full transition-colors duration-500"
+                style={{
+                  backgroundColor: activeTheme.accentColor,
+                  boxShadow: `0 0 10px ${activeTheme.accentColor}`
+                }}
+              />
+            </div>
+
+            {/* Top-Right Element: Heart icon with red badge */}
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.88 }}
+              whileHover={{ scale: 1.05 }}
+              onClick={() => setShowNotifications(prev => !prev)}
+              aria-label="Notifications"
+              title="Notifications"
+              className="relative p-1.5 rounded-full text-white/90 hover:text-white hover:bg-white/10 transition-colors border-none bg-transparent cursor-pointer flex items-center justify-center"
+            >
+              <Heart size={22} strokeWidth={2.2} />
+              {pendingRequests.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-[#ef4444] text-white rounded-full min-w-[16px] h-[16px] px-1 text-[9px] font-black flex items-center justify-center border-2 border-black animate-pulse">
+                  {pendingRequests.length}
+                </span>
+              )}
+            </motion.button>
+          </div>
         </header>
 
         <main className="gas-app-body">
@@ -1481,8 +1499,14 @@ export default function App() {
           </Suspense>
         </main>
 
-        <nav className="gas-bottom-dock" aria-label="Main Navigation">
-          {/* a) Home (Outline Icon) -> Feed */}
+        <nav
+          className="fixed bottom-6 left-6 right-6 max-w-md mx-auto bg-black/90 backdrop-blur-md rounded-full shadow-2xl flex justify-around py-4 border border-gray-800 z-50"
+          style={{
+            boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.75), 0 0 25px rgba(0, 0, 0, 0.5)'
+          }}
+          aria-label="Main Navigation"
+        >
+          {/* a) Home (Outline Icon) -> Feed (Neon Green Glow) */}
           <motion.div
             whileTap={{ scale: 0.86 }}
             onClick={() => handleNav('poll')}
@@ -1490,13 +1514,22 @@ export default function App() {
             aria-label="Feed"
             role="button"
           >
-            <Home size={24} strokeWidth={view === 'poll' ? 2.4 : 1.8} color={view === 'poll' ? '#ffffff' : '#71717a'} />
+            <Home
+              size={24}
+              strokeWidth={view === 'poll' ? 2.5 : 1.8}
+              color={view === 'poll' ? '#00ff41' : '#71717a'}
+              style={view === 'poll' ? { filter: 'drop-shadow(0 0 8px #00ff41)' } : {}}
+            />
             {view === 'poll' && (
-              <motion.div layoutId="activeDockGlow" className="gas-dock-glow-pill" />
+              <motion.div
+                layoutId="activeDockGlow"
+                className="gas-dock-glow-pill"
+                style={{ backgroundColor: '#00ff41', boxShadow: '0 0 10px #00ff41' }}
+              />
             )}
           </motion.div>
 
-          {/* b) Magnifying Glass (Outline Icon) -> Explore */}
+          {/* b) Magnifying Glass (Outline Icon) -> Explore (Electric Blue Glow) */}
           <motion.div
             whileTap={{ scale: 0.86 }}
             onClick={() => handleNav('explore')}
@@ -1504,13 +1537,22 @@ export default function App() {
             aria-label="Explore"
             role="button"
           >
-            <Search size={24} strokeWidth={view === 'explore' ? 2.4 : 1.8} color={view === 'explore' ? '#ffffff' : '#71717a'} />
+            <Search
+              size={24}
+              strokeWidth={view === 'explore' ? 2.5 : 1.8}
+              color={view === 'explore' ? '#0090ff' : '#71717a'}
+              style={view === 'explore' ? { filter: 'drop-shadow(0 0 8px #0090ff)' } : {}}
+            />
             {view === 'explore' && (
-              <motion.div layoutId="activeDockGlow" className="gas-dock-glow-pill" />
+              <motion.div
+                layoutId="activeDockGlow"
+                className="gas-dock-glow-pill"
+                style={{ backgroundColor: '#0090ff', boxShadow: '0 0 10px #0090ff' }}
+              />
             )}
           </motion.div>
 
-          {/* c) Crown (Outline Icon) -> God Mode */}
+          {/* c) Crown (Outline Icon) -> God Mode (Neon Pink Glow) */}
           <motion.div
             whileTap={{ scale: 0.86 }}
             onClick={() => handleNav('pro')}
@@ -1518,13 +1560,22 @@ export default function App() {
             aria-label="God Mode"
             role="button"
           >
-            <Crown size={24} strokeWidth={view === 'pro' ? 2.4 : 1.8} color={view === 'pro' ? '#ffffff' : '#71717a'} />
+            <Crown
+              size={24}
+              strokeWidth={view === 'pro' ? 2.5 : 1.8}
+              color={view === 'pro' ? '#ff007f' : '#71717a'}
+              style={view === 'pro' ? { filter: 'drop-shadow(0 0 8px #ff007f)' } : {}}
+            />
             {view === 'pro' && (
-              <motion.div layoutId="activeDockGlow" className="gas-dock-glow-pill" />
+              <motion.div
+                layoutId="activeDockGlow"
+                className="gas-dock-glow-pill"
+                style={{ backgroundColor: '#ff007f', boxShadow: '0 0 10px #ff007f' }}
+              />
             )}
           </motion.div>
 
-          {/* d) Profile Avatar (Circular Image wrapper) -> Profile */}
+          {/* d) Profile Avatar -> Profile (Neon Glow) */}
           <motion.div
             whileTap={{ scale: 0.86 }}
             onClick={() => handleNav('profile')}
@@ -1534,16 +1585,17 @@ export default function App() {
           >
             <div
               style={{
-                width: '27px',
-                height: '27px',
+                width: '28px',
+                height: '28px',
                 borderRadius: '50%',
                 padding: '1.5px',
-                border: view === 'profile' ? '2px solid #ffffff' : '2px solid transparent',
+                border: view === 'profile' ? '2px solid #00ff41' : '2px solid transparent',
+                boxShadow: view === 'profile' ? '0 0 10px rgba(0, 255, 65, 0.8)' : 'none',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 boxSizing: 'border-box',
-                transition: 'border-color 0.15s ease'
+                transition: 'all 0.15s ease'
               }}
             >
               {user?.profile_pic ? (
@@ -1570,12 +1622,16 @@ export default function App() {
                     fontSize: '13px'
                   }}
                 >
-                  {user?.avatar || <User size={15} strokeWidth={1.8} color={view === 'profile' ? '#ffffff' : '#71717a'} />}
+                  {user?.avatar || <User size={15} strokeWidth={1.8} color={view === 'profile' ? '#00ff41' : '#71717a'} />}
                 </div>
               )}
             </div>
             {view === 'profile' && (
-              <motion.div layoutId="activeDockGlow" className="gas-dock-glow-pill" />
+              <motion.div
+                layoutId="activeDockGlow"
+                className="gas-dock-glow-pill"
+                style={{ backgroundColor: '#00ff41', boxShadow: '0 0 10px #00ff41' }}
+              />
             )}
           </motion.div>
         </nav>

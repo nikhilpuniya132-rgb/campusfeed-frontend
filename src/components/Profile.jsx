@@ -371,26 +371,27 @@ export default function Profile({
   };
 
   return (
-    <div style={{ padding: '12px 14px 85px 14px', maxWidth: '440px', margin: '0 auto', boxSizing: 'border-box', position: 'relative', background: '#000000', color: '#ffffff', minHeight: '100%' }}>
+    <div style={{ padding: '8px 0 120px 0', maxWidth: '448px', margin: '0 auto', boxSizing: 'border-box', position: 'relative', background: 'transparent', color: '#ffffff', minHeight: '100%' }}>
       
       {/* Top Bar: Unified Share Button & Settings 3-Dots Menu */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', position: 'relative', marginBottom: '8px' }} ref={settingsMenuRef}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', position: 'relative', marginBottom: '12px' }} ref={settingsMenuRef}>
         <motion.button
           whileTap={{ scale: 0.92 }}
           onClick={handleNativeShare}
           aria-label="Share Profile"
           title="Share Profile / Invite"
           style={{
-            background: '#18181b',
-            border: '1px solid #27272a',
-            borderRadius: '12px',
-            width: '36px',
-            height: '36px',
+            background: '#000000',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: '9999px',
+            width: '40px',
+            height: '40px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
             color: '#ffffff',
+            boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
             transition: 'border-color 0.15s ease'
           }}
         >
@@ -402,11 +403,11 @@ export default function Profile({
           onClick={() => setShowSettingsMenu(!showSettingsMenu)}
           aria-label="Settings"
           style={{
-            background: '#18181b',
-            border: '1px solid #27272a',
-            borderRadius: '12px',
-            width: '36px',
-            height: '36px',
+            background: '#000000',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: '9999px',
+            width: '40px',
+            height: '40px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -414,7 +415,8 @@ export default function Profile({
             color: '#ffffff',
             fontSize: '18px',
             fontWeight: '900',
-            lineHeight: 1
+            lineHeight: 1,
+            boxShadow: '0 8px 20px rgba(0,0,0,0.4)'
           }}
         >
           •••
@@ -430,15 +432,15 @@ export default function Profile({
               transition={{ duration: 0.12 }}
               style={{
                 position: 'absolute',
-                top: '44px',
+                top: '48px',
                 right: 0,
-                background: '#09090b',
+                background: '#000000',
                 border: '1px solid #27272a',
-                borderRadius: '16px',
+                borderRadius: '20px',
                 padding: '6px',
                 minWidth: '170px',
                 zIndex: 50,
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.6)'
+                boxShadow: '0 12px 35px rgba(0, 0, 0, 0.7)'
               }}
             >
               <button
@@ -501,8 +503,17 @@ export default function Profile({
         </AnimatePresence>
       </div>
 
-      {/* 1. INSTAGRAM-STYLE PROFILE HEADER */}
-      <div style={{ marginBottom: '18px' }}>
+      {/* 1. INSTAGRAM-STYLE PROFILE HEADER (Floating Pitch Black Card with rounded-[2.5rem]) */}
+      <div
+        style={{
+          marginBottom: '18px',
+          background: '#000000',
+          borderRadius: '2.5rem',
+          padding: '24px 20px',
+          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.75)',
+          border: '2px solid #000000'
+        }}
+      >
         {/* Horizontal Row: Avatar on Left, Stats on Right */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', marginBottom: '14px' }}>
           {/* Avatar (Left) */}

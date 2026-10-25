@@ -673,65 +673,46 @@ export default function Feed({
     );
   }
 
+  const NEON_OPTION_THEMES = [
+    { border: 'border-[#ff007f]', color: '#ff007f', shadow: 'rgba(255, 0, 127, 0.45)' }, // 1. Pink
+    { border: 'border-[#0090ff]', color: '#0090ff', shadow: 'rgba(0, 144, 255, 0.45)' }, // 2. Blue
+    { border: 'border-[#ffe600]', color: '#ffe600', shadow: 'rgba(255, 230, 0, 0.45)' }, // 3. Yellow
+    { border: 'border-[#00ff41]', color: '#00ff41', shadow: 'rgba(0, 255, 65, 0.45)' }  // 4. Green
+  ];
+
   return (
     <div
+      className="w-full max-w-md mx-auto flex flex-col gap-6 mb-32 box-border"
       style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        width: '100%',
-        maxWidth: '440px',
-        margin: '0 auto',
-        padding: '4px 12px 62px 12px',
         boxSizing: 'border-box',
-        background: '#000000',
         color: '#ffffff'
       }}
     >
-      {/* Classes Filter */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          marginBottom: '6px',
-          position: 'relative',
-          zIndex: 40,
-          width: '100%'
-        }}
-      >
-        {/* Classes Dropdown */}
-        <div ref={classesDropdownRef} style={{ position: 'relative', width: '100%' }}>
+      {/* 1. Classes Filter Floating Pill */}
+      <div className="relative z-40 w-full">
+        <div ref={classesDropdownRef} className="relative w-full">
           <motion.button
             whileTap={{ scale: 0.97 }}
             type="button"
             onClick={() => setIsClassesOpen(prev => !prev)}
+            className="w-full flex items-center justify-between px-5 py-3 rounded-full bg-black text-white font-black text-xs shadow-xl border border-white/10 hover:border-white/25 transition-all cursor-pointer box-border"
             style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '9px 14px',
-              borderRadius: '14px',
-              border: '1.5px solid #27272a',
-              background: '#18181b',
-              color: '#ffffff',
-              fontWeight: '800',
-              fontSize: '12.5px',
-              cursor: 'pointer',
-              boxShadow: 'none',
-              transition: 'all 0.15s ease'
+              boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.5)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-              <span style={{ fontSize: '13px' }}>🎓</span>
-              <span style={{ color: '#a1a1aa', fontWeight: '700', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div className="flex items-center gap-2 overflow-hidden">
+              <span className="text-sm">🎓</span>
+              <span className="text-zinc-400 font-bold text-[11px] uppercase tracking-wider">
                 Classes:
               </span>
-              <span style={{ fontWeight: '800', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span className="font-black text-white text-xs truncate max-w-[190px]">
                 {currentClassLabel}
               </span>
             </div>
-            <span style={{ fontSize: '10px', color: '#a1a1aa', transition: 'transform 0.2s ease', transform: isClassesOpen ? 'rotate(180deg)' : 'none' }}>
+            <span
+              className="text-[10px] text-zinc-400 transition-transform duration-200"
+              style={{ transform: isClassesOpen ? 'rotate(180deg)' : 'none' }}
+            >
               ▼
             </span>
           </motion.button>
@@ -743,52 +724,29 @@ export default function Feed({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -6, scale: 0.98 }}
                 transition={{ duration: 0.15 }}
+                className="absolute top-[calc(100%+8px)] left-0 right-0 max-h-64 overflow-y-auto bg-black border border-zinc-800 rounded-3xl shadow-2xl p-2 z-50 box-border"
                 style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 6px)',
-                  left: 0,
-                  right: 0,
-                  maxHeight: '260px',
-                  overflowY: 'auto',
-                  background: '#09090b',
-                  border: '1.5px solid #27272a',
-                  borderRadius: '16px',
-                  boxShadow: '0 12px 30px rgba(0, 0, 0, 0.6)',
-                  zIndex: 100,
-                  padding: '6px',
-                  scrollbarWidth: 'thin'
+                  boxShadow: '0 20px 45px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(255,255,255,0.08)'
                 }}
               >
-                <div style={{ padding: '6px 10px 4px 10px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', color: '#71717a', letterSpacing: '0.05em' }}>
+                <div className="px-3 py-1.5 text-[10px] font-black uppercase text-zinc-400 tracking-wider">
                   Filter By Class / Stream
                 </div>
 
                 <button
                   type="button"
                   onClick={() => handleGradeFilterSelect('all')}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '9px 12px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: (!activeGradeFilter || activeGradeFilter === 'all') ? '#27272a' : 'transparent',
-                    color: (!activeGradeFilter || activeGradeFilter === 'all') ? '#ffffff' : '#d4d4d8',
-                    fontWeight: '800',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: '2px',
-                    transition: 'background 0.12s ease'
-                  }}
+                  className={`w-full text-left px-3.5 py-2.5 rounded-xl border-none font-extrabold text-xs cursor-pointer flex items-center justify-between mb-1 transition-colors ${
+                    (!activeGradeFilter || activeGradeFilter === 'all')
+                      ? 'bg-zinc-800 text-white'
+                      : 'bg-transparent text-zinc-300 hover:bg-zinc-900'
+                  }`}
                 >
                   <span>🏫 {isJunior ? 'All Junior Classes (6-9)' : 'All Senior Classes (10-12+)'}</span>
-                  {(!activeGradeFilter || activeGradeFilter === 'all') && <span>✓</span>}
+                  {(!activeGradeFilter || activeGradeFilter === 'all') && <span className="text-[#00ff41]">✓</span>}
                 </button>
 
-                <div style={{ height: '1px', background: '#27272a', margin: '4px 0' }} />
+                <div className="h-px bg-zinc-800 my-1" />
 
                 {availableClassOptions.map((c) => {
                   const isSelected = activeGradeFilter?.toLowerCase() === c.toLowerCase();
@@ -797,26 +755,14 @@ export default function Feed({
                       key={c}
                       type="button"
                       onClick={() => handleGradeFilterSelect(c)}
-                      style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '9px 12px',
-                        borderRadius: '10px',
-                        border: 'none',
-                        background: isSelected ? '#27272a' : 'transparent',
-                        color: isSelected ? '#ffffff' : '#d4d4d8',
-                        fontWeight: '700',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: '2px',
-                        transition: 'background 0.12s ease'
-                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl border-none font-bold text-xs cursor-pointer flex items-center justify-between mb-1 transition-colors ${
+                        isSelected
+                          ? 'bg-zinc-800 text-white'
+                          : 'bg-transparent text-zinc-300 hover:bg-zinc-900'
+                      }`}
                     >
                       <span>{c}</span>
-                      {isSelected && <span>✓</span>}
+                      {isSelected && <span className="text-[#00ff41]">✓</span>}
                     </button>
                   );
                 })}
@@ -829,306 +775,179 @@ export default function Feed({
       {isLoading ? (
         <SkeletonPollCard />
       ) : isVoteFinished ? (
-        /* Optimistic Success Screen */
+        /* Optimistic Success Screen - Floating Pitch Black Card */
         <motion.div
-          initial={{ opacity: 0, scale: 0.98, y: 8 }}
+          initial={{ opacity: 0, scale: 0.96, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.25 }}
+          className="w-full bg-black rounded-[2.5rem] shadow-2xl p-8 text-center flex flex-col items-center justify-center min-h-[360px] relative border-2 border-black box-border"
           style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            minHeight: '280px',
-            background: '#09090b',
-            border: '1px solid #27272a',
-            borderRadius: '24px',
-            padding: '32px 20px',
-            boxShadow: 'none'
+            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.75), 0 10px 25px -5px rgba(0, 0, 0, 0.45)'
           }}
         >
-          <div style={{ fontSize: '46px', marginBottom: '8px' }}>🔥</div>
-          <h2 style={{ color: '#ffffff', fontSize: '22px', fontWeight: '900', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+          <div className="text-6xl mb-3 animate-bounce">🔥</div>
+          <h2 className="text-white text-3xl font-black tracking-tight mb-2">
             Flame Sent!
           </h2>
-          
+
           {selectedCandidate && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#18181b', padding: '6px 14px', borderRadius: '16px', margin: '6px 0 16px 0', border: '1px solid #27272a' }}>
-              <span style={{ fontSize: '13px', color: '#a1a1aa' }}>To:</span>
-              <span style={{ fontSize: '13.5px', fontWeight: '800', color: '#ffffff' }}>
+            <div className="inline-flex items-center gap-2 bg-zinc-900 px-4 py-2 rounded-full border border-zinc-700/80 my-3 shadow-md">
+              <span className="text-xs text-zinc-400 font-bold">To:</span>
+              <span className="text-sm font-black text-white">
                 @{selectedCandidate.handle || selectedCandidate.name}
               </span>
             </div>
           )}
 
-          <p style={{ color: '#a1a1aa', fontSize: '13px', maxWidth: '270px', margin: '0 0 24px 0', lineHeight: '1.4' }}>
+          <p className="text-zinc-400 text-xs max-w-[270px] mx-auto mb-8 leading-relaxed">
             Delivered anonymously. They won't know it was you unless they unlock via 3 recruits or God Mode!
           </p>
 
           <motion.button
             whileTap={{ scale: 0.96 }}
+            whileHover={{ scale: 1.02 }}
             onClick={handleNextClick}
-            style={{
-              padding: '14px 32px',
-              borderRadius: '16px',
-              border: '1px solid #ffffff',
-              background: '#ffffff',
-              color: '#000000',
-              fontSize: '14.5px',
-              fontWeight: '800',
-              cursor: 'pointer',
-              boxShadow: 'none'
-            }}
+            className="w-full py-4 px-8 rounded-full bg-[#00ff41] text-black font-black text-base shadow-[0_0_25px_rgba(0,255,65,0.6)] hover:brightness-110 cursor-pointer transition-all border-none"
           >
             Next Question ➔
           </motion.button>
         </motion.div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          {/* Question Card (40% Vertical Ratio) */}
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
-            style={{
-              flex: 4,
-              minHeight: 0,
-              background: '#09090b',
-              border: '1px solid #27272a',
-              borderRadius: '20px',
-              padding: '16px 14px',
-              textAlign: 'center',
-              marginBottom: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: 'none',
-              position: 'relative',
-              boxSizing: 'border-box'
-            }}
+        /* 2. Central Floating Poll Card (Obsidian Contrast on Neon Green) */
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="w-full bg-black rounded-[2.5rem] shadow-2xl p-8 flex flex-col relative text-white border-2 border-black box-border"
+          style={{
+            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.75), 0 12px 28px -6px rgba(0, 0, 0, 0.45)'
+          }}
+        >
+          {/* Top Share Icon Button */}
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.08 }}
+            onClick={handleSharePoll}
+            title="Share Question"
+            aria-label="Share Question"
+            className="absolute top-7 right-7 w-9 h-9 rounded-full bg-zinc-900/90 border border-zinc-700/80 flex items-center justify-center text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors cursor-pointer"
           >
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={handleSharePoll}
-              title="Share Question"
-              aria-label="Share Question"
-              style={{
-                position: 'absolute',
-                top: '10px',
-                right: '10px',
-                background: '#18181b',
-                border: '1px solid #27272a',
-                borderRadius: '10px',
-                width: '30px',
-                height: '30px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: '#ffffff',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <Share2 size={15} strokeWidth={2} />
-            </motion.button>
+            <Share2 size={16} strokeWidth={2} />
+          </motion.button>
 
-            <h3
-              style={{
-                fontSize: 'clamp(21px, 5.4vw, 26px)',
-                fontWeight: '900',
-                color: '#ffffff',
-                lineHeight: '1.25',
-                margin: 0,
-                padding: '0 16px',
-                letterSpacing: '-0.02em'
-              }}
-            >
-              "{currentPoll?.question || 'Who is most likely to crack NEET on the first attempt?'}"
-            </h3>
-          </motion.div>
+          {/* Poll Tag Badge */}
+          <div className="flex items-center gap-2 mb-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] font-black uppercase tracking-wider bg-[#00ff41]/15 text-[#00ff41] border border-[#00ff41]/40">
+              <span>⚡</span> QUESTION
+            </span>
+          </div>
 
-          {/* Bottom Area (60% Vertical Ratio: Candidates, Profile Pics, Actions) */}
-          <div style={{ flex: 6, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 0 }}>
-            {/* 4 Classmate Candidate Buttons or Empty State */}
-            {displayOptions.length < 4 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '14px 10px',
-                  textAlign: 'center',
-                  background: '#09090b',
-                  border: '1px solid #27272a',
-                  borderRadius: '16px',
-                  marginBottom: '4px',
-                  boxShadow: 'none'
-                }}
+          {/* Question Text with Generous Internal Breathing Room */}
+          <h3 className="text-2xl sm:text-[26px] font-black text-white text-center leading-snug tracking-tight my-6 px-2 min-h-[72px] flex items-center justify-center">
+            "{currentPoll?.question || 'Who is most likely to crack NEET on the first attempt?'}"
+          </h3>
+
+          {/* 3. 4 Choice Candidate Buttons with 2px Solid Neon Borders */}
+          {displayOptions.length < 4 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="w-full bg-zinc-950/80 border border-zinc-800 rounded-3xl p-6 text-center flex flex-col items-center justify-center my-4"
+            >
+              <div className="text-3xl mb-2">👥</div>
+              <p className="text-xs text-zinc-300 font-semibold max-w-[280px] mb-4 leading-relaxed">
+                Not enough members in {user?.institute || 'your institute'} to unlock polls. Invite more students to start voting.
+              </p>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleSharePoll}
+                className="bg-white text-black font-extrabold text-xs px-5 py-2.5 rounded-full inline-flex items-center gap-2 cursor-pointer hover:bg-zinc-200 transition-colors border-none"
               >
-                <div style={{ fontSize: '24px', marginBottom: '4px' }}>👥</div>
-                <p
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    color: '#e4e4e7',
-                    lineHeight: '1.3',
-                    maxWidth: '280px',
-                    margin: '0 0 8px 0'
-                  }}
-                >
-                  Not enough members in {user?.institute || 'your institute'} to unlock polls. Invite more students to start voting.
-                </p>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleSharePoll}
-                  style={{
-                    background: '#18181b',
-                    color: '#ffffff',
-                    border: '1px solid #3f3f46',
-                    borderRadius: '10px',
-                    padding: '6px 14px',
-                    fontSize: '11.5px',
-                    fontWeight: '800',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px'
-                  }}
-                >
-                  <Share2 size={13} strokeWidth={2} />
-                  <span>Invite Classmates</span>
-                </motion.button>
-              </motion.div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '4px', flex: 1 }}>
-                {displayOptions.map((opt) => (
+                <Share2 size={14} strokeWidth={2.2} />
+                <span>Invite Classmates</span>
+              </motion.button>
+            </motion.div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3.5 mb-6">
+              {displayOptions.map((opt, idx) => {
+                const neon = NEON_OPTION_THEMES[idx % NEON_OPTION_THEMES.length];
+                return (
                   <motion.button
                     key={opt.id}
-                    whileTap={{ scale: 0.96 }}
-                    transition={{ duration: 0.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ duration: 0.12 }}
                     onClick={() => handleVoteClick(opt)}
+                    className="relative bg-black rounded-2xl py-4 px-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 min-h-[118px] select-none group border-2 box-border"
                     style={{
-                      background: '#18181b',
-                      border: '1px solid #27272a',
-                      borderRadius: '14px',
-                      padding: '6px 4px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#ffffff',
-                      cursor: 'pointer',
-                      outline: 'none',
-                      minHeight: 0,
-                      boxSizing: 'border-box',
-                      userSelect: 'none',
-                      transition: 'all 0.15s ease',
-                      boxShadow: 'none'
+                      backgroundColor: '#000000',
+                      borderColor: neon.color,
+                      borderWidth: '2px',
+                      borderStyle: 'solid',
+                      boxShadow: `0 4px 15px -2px rgba(0, 0, 0, 0.4)`
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#3f3f46';
-                      e.currentTarget.style.background = '#27272a';
+                      e.currentTarget.style.boxShadow = `0 0 20px ${neon.shadow}`;
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = '#27272a';
-                      e.currentTarget.style.background = '#18181b';
+                      e.currentTarget.style.boxShadow = '0 4px 15px -2px rgba(0, 0, 0, 0.4)';
                     }}
                   >
                     {renderProfilePic
-                      ? renderProfilePic(opt.profile_pic, opt.avatar, opt.is_pro, opt.selected_ring || opt.ring, 36, Boolean(opt.invites >= 25 || opt.recruits >= 25 || opt.is_god_mode || opt.is_legend))
+                      ? renderProfilePic(opt.profile_pic, opt.avatar, opt.is_pro, opt.selected_ring || opt.ring, 42, Boolean(opt.invites >= 25 || opt.recruits >= 25 || opt.is_god_mode || opt.is_legend))
                       : (
-                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
+                        <div className="w-11 h-11 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center text-xl">
                           {opt.avatar || '😎'}
                         </div>
                       )}
-                    <span
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: '800',
-                        color: '#ffffff',
-                        marginTop: '2px',
-                        textAlign: 'center',
-                        lineHeight: '1.15',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        maxWidth: '100%',
-                        padding: '0 4px',
-                      }}
-                    >
+                    <span className="font-black text-sm tracking-tight text-white mt-2.5 text-center leading-tight truncate max-w-full px-1">
                       @{opt.handle || opt.name}
                     </span>
                     {opt.stream && (
-                      <span style={{ fontSize: '8.5px', color: '#a1a1aa', fontWeight: '600', marginTop: '1px' }}>
+                      <span className="text-[10px] text-zinc-400 font-semibold mt-0.5 truncate max-w-full">
                         {opt.stream}
                       </span>
                     )}
                   </motion.button>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
+          )}
 
-            {/* Bottom Controls */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: displayOptions.length < 4 ? 'flex-end' : 'space-between', paddingTop: '2px' }}>
-              {displayOptions.length >= 4 && (
-                <motion.button
-                  whileTap={{ scale: 0.94 }}
-                  disabled={shuffleCount >= 3}
-                  onClick={handleShuffleClick}
-                  style={{
-                    background: shuffleCount >= 3 ? '#121214' : '#18181b',
-                    border: '1px solid #27272a',
-                    color: shuffleCount >= 3 ? '#71717a' : '#e4e4e7',
-                    padding: '6px 12px',
-                    borderRadius: '10px',
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    cursor: shuffleCount >= 3 ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    opacity: shuffleCount >= 3 ? 0.6 : 1,
-                  }}
-                >
-                  <span>🔀</span>
-                  <span>
-                    {shuffleCount >= 3 ? 'No shuffles' : `Shuffle (${3 - shuffleCount})`}
-                  </span>
-                </motion.button>
-              )}
-
+          {/* 4. Bottom Controls: Shuffle & Skip */}
+          <div className="flex items-center justify-between pt-1">
+            {displayOptions.length >= 4 && (
               <motion.button
                 whileTap={{ scale: 0.94 }}
-                onClick={handleSkipClick}
-                style={{
-                  background: '#18181b',
-                  border: '1px solid #27272a',
-                  color: '#e4e4e7',
-                  padding: '6px 12px',
-                  borderRadius: '10px',
-                  fontSize: '11px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
+                disabled={shuffleCount >= 3}
+                onClick={handleShuffleClick}
+                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-bold transition-all border ${
+                  shuffleCount >= 3
+                    ? 'bg-zinc-950 text-zinc-600 border-zinc-800 cursor-not-allowed opacity-50'
+                    : 'bg-zinc-900/90 text-zinc-200 border-zinc-700/80 hover:border-zinc-500 cursor-pointer'
+                }`}
               >
-                Skip ⏭️
+                <span>🔀</span>
+                <span>{shuffleCount >= 3 ? 'No shuffles' : `Shuffle (${3 - shuffleCount})`}</span>
               </motion.button>
-            </div>
+            )}
+
+            <motion.button
+              whileTap={{ scale: 0.94 }}
+              onClick={handleSkipClick}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-bold bg-zinc-900/90 text-zinc-200 border border-zinc-700/80 hover:border-zinc-500 cursor-pointer ml-auto transition-all"
+            >
+              <span>Skip</span>
+              <span>⏭️</span>
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Dynamic Academic Sponsorship Banner */}
-      <SponsorBanner isJunior={isJunior} user={user} city="Bathinda" hub={user?.coaching_hub || user?.hub || 'Ajit Road Hub'} />
+      <div className="w-full">
+        <SponsorBanner isJunior={isJunior} user={user} city="Bathinda" hub={user?.coaching_hub || user?.hub || 'Ajit Road Hub'} />
+      </div>
     </div>
   );
 }
