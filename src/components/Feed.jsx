@@ -682,27 +682,27 @@ export default function Feed({
 
   return (
     <div
-      className="w-full max-w-md mx-auto flex flex-col gap-6 mb-32 box-border"
+      className="w-full max-w-md mx-auto flex-1 flex flex-col justify-center gap-2 md:gap-3 box-border overflow-hidden"
       style={{
         boxSizing: 'border-box',
         color: '#ffffff'
       }}
     >
       {/* 1. Classes Filter Floating Pill */}
-      <div className="relative z-40 w-full">
+      <div className="relative z-40 w-full shrink-0">
         <div ref={classesDropdownRef} className="relative w-full">
           <motion.button
             whileTap={{ scale: 0.97 }}
             type="button"
             onClick={() => setIsClassesOpen(prev => !prev)}
-            className="w-full flex items-center justify-between px-5 py-3 rounded-full bg-black text-white font-black text-xs shadow-xl border border-white/10 hover:border-white/25 transition-all cursor-pointer box-border"
+            className="w-full flex items-center justify-between px-4 py-2 rounded-full bg-black text-white font-black text-xs shadow-xl border border-white/10 hover:border-white/25 transition-all cursor-pointer box-border"
             style={{
-              boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.5)'
+              boxShadow: '0 8px 25px -4px rgba(0, 0, 0, 0.5)'
             }}
           >
-            <div className="flex items-center gap-2 overflow-hidden">
-              <span className="text-sm">🎓</span>
-              <span className="text-zinc-400 font-bold text-[11px] uppercase tracking-wider">
+            <div className="flex items-center gap-1.5 overflow-hidden">
+              <span className="text-xs">🎓</span>
+              <span className="text-zinc-400 font-bold text-[10px] uppercase tracking-wider">
                 Classes:
               </span>
               <span className="font-black text-white text-xs truncate max-w-[190px]">
@@ -724,7 +724,7 @@ export default function Feed({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -6, scale: 0.98 }}
                 transition={{ duration: 0.15 }}
-                className="absolute top-[calc(100%+8px)] left-0 right-0 max-h-64 overflow-y-auto bg-black border border-zinc-800 rounded-3xl shadow-2xl p-2 z-50 box-border"
+                className="absolute top-[calc(100%+6px)] left-0 right-0 max-h-56 overflow-y-auto bg-black border border-zinc-800 rounded-3xl shadow-2xl p-2 z-50 box-border"
                 style={{
                   boxShadow: '0 20px 45px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(255,255,255,0.08)'
                 }}
@@ -736,7 +736,7 @@ export default function Feed({
                 <button
                   type="button"
                   onClick={() => handleGradeFilterSelect('all')}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-xl border-none font-extrabold text-xs cursor-pointer flex items-center justify-between mb-1 transition-colors ${
+                  className={`w-full text-left px-3.5 py-2 rounded-xl border-none font-extrabold text-xs cursor-pointer flex items-center justify-between mb-1 transition-colors ${
                     (!activeGradeFilter || activeGradeFilter === 'all')
                       ? 'bg-zinc-800 text-white'
                       : 'bg-transparent text-zinc-300 hover:bg-zinc-900'
@@ -755,7 +755,7 @@ export default function Feed({
                       key={c}
                       type="button"
                       onClick={() => handleGradeFilterSelect(c)}
-                      className={`w-full text-left px-3.5 py-2.5 rounded-xl border-none font-bold text-xs cursor-pointer flex items-center justify-between mb-1 transition-colors ${
+                      className={`w-full text-left px-3.5 py-2 rounded-xl border-none font-bold text-xs cursor-pointer flex items-center justify-between mb-1 transition-colors ${
                         isSelected
                           ? 'bg-zinc-800 text-white'
                           : 'bg-transparent text-zinc-300 hover:bg-zinc-900'
@@ -777,29 +777,29 @@ export default function Feed({
       ) : isVoteFinished ? (
         /* Optimistic Success Screen - Floating Pitch Black Card */
         <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 10 }}
+          initial={{ opacity: 0, scale: 0.96, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className="w-full bg-black rounded-[2.5rem] shadow-2xl p-8 text-center flex flex-col items-center justify-center min-h-[360px] relative border-2 border-black box-border"
+          transition={{ duration: 0.22 }}
+          className="w-full bg-black rounded-3xl md:rounded-[2.5rem] shadow-2xl p-4 md:p-8 text-center flex flex-col items-center justify-center relative border-2 border-black box-border"
           style={{
             boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.75), 0 10px 25px -5px rgba(0, 0, 0, 0.45)'
           }}
         >
-          <div className="text-6xl mb-3 animate-bounce">🔥</div>
-          <h2 className="text-white text-3xl font-black tracking-tight mb-2">
+          <div className="text-4xl md:text-5xl mb-1.5 animate-bounce">🔥</div>
+          <h2 className="text-white text-xl md:text-2xl font-black tracking-tight mb-1">
             Flame Sent!
           </h2>
 
           {selectedCandidate && (
-            <div className="inline-flex items-center gap-2 bg-zinc-900 px-4 py-2 rounded-full border border-zinc-700/80 my-3 shadow-md">
-              <span className="text-xs text-zinc-400 font-bold">To:</span>
-              <span className="text-sm font-black text-white">
+            <div className="inline-flex items-center gap-1.5 bg-zinc-900 px-3 py-1.5 rounded-full border border-zinc-700/80 my-2 shadow-md">
+              <span className="text-[11px] text-zinc-400 font-bold">To:</span>
+              <span className="text-xs md:text-sm font-black text-white">
                 @{selectedCandidate.handle || selectedCandidate.name}
               </span>
             </div>
           )}
 
-          <p className="text-zinc-400 text-xs max-w-[270px] mx-auto mb-8 leading-relaxed">
+          <p className="text-zinc-400 text-[11px] md:text-xs max-w-[260px] mx-auto mb-4 md:mb-6 leading-relaxed">
             Delivered anonymously. They won't know it was you unless they unlock via 3 recruits or God Mode!
           </p>
 
@@ -807,7 +807,7 @@ export default function Feed({
             whileTap={{ scale: 0.96 }}
             whileHover={{ scale: 1.02 }}
             onClick={handleNextClick}
-            className="w-full py-4 px-8 rounded-full bg-[#00ff41] text-black font-black text-base shadow-[0_0_25px_rgba(0,255,65,0.6)] hover:brightness-110 cursor-pointer transition-all border-none"
+            className="w-full py-3 md:py-3.5 px-6 rounded-full bg-[#00ff41] text-black font-black text-sm md:text-base shadow-[0_0_20px_rgba(0,255,65,0.5)] hover:brightness-110 cursor-pointer transition-all border-none"
           >
             Next Question ➔
           </motion.button>
@@ -815,10 +815,10 @@ export default function Feed({
       ) : (
         /* 2. Central Floating Poll Card (Obsidian Contrast on Neon Green) */
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className="w-full bg-black rounded-[2.5rem] shadow-2xl p-8 flex flex-col relative text-white border-2 border-black box-border"
+          transition={{ duration: 0.22 }}
+          className="w-full bg-black rounded-3xl md:rounded-[2.5rem] shadow-2xl p-4 md:p-8 flex flex-col justify-between relative text-white border-2 border-black box-border"
           style={{
             boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.75), 0 12px 28px -6px rgba(0, 0, 0, 0.45)'
           }}
@@ -830,45 +830,45 @@ export default function Feed({
             onClick={handleSharePoll}
             title="Share Question"
             aria-label="Share Question"
-            className="absolute top-6 right-6 w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-zinc-900/90 border border-zinc-700/80 flex items-center justify-center text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors cursor-pointer"
+            className="absolute top-3.5 right-3.5 md:top-6 md:right-6 w-8 h-8 md:w-10 md:h-10 rounded-full bg-zinc-900/90 border border-zinc-700/80 flex items-center justify-center text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors cursor-pointer"
           >
-            <Share2 size={18} strokeWidth={2.2} />
+            <Share2 size={16} strokeWidth={2.2} />
           </motion.button>
 
           {/* Poll Tag Badge */}
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] font-black uppercase tracking-wider bg-[#00ff41]/15 text-[#00ff41] border border-[#00ff41]/40">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#00ff41]/15 text-[#00ff41] border border-[#00ff41]/40">
               <span>⚡</span> QUESTION
             </span>
           </div>
 
-          {/* Question Text with Generous Internal Breathing Room */}
-          <h3 className="text-2xl sm:text-[26px] font-black text-white text-center leading-snug tracking-tight my-6 px-2 min-h-[72px] flex items-center justify-center">
+          {/* Question Text with Tightened Leading & Responsive Mobile Font */}
+          <h3 className="text-lg md:text-2xl font-black text-white text-center leading-tight tracking-tight my-2 md:my-3 px-1 min-h-[44px] md:min-h-[56px] flex items-center justify-center">
             "{currentPoll?.question || 'Who is most likely to crack NEET on the first attempt?'}"
           </h3>
 
           {/* 3. 4 Choice Candidate Buttons with 2px Solid Neon Borders */}
           {displayOptions.length < 4 ? (
             <motion.div
-              initial={{ opacity: 0, y: 6 }}
+              initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="w-full bg-zinc-950/80 border border-zinc-800 rounded-3xl p-6 text-center flex flex-col items-center justify-center my-4"
+              className="w-full bg-zinc-950/80 border border-zinc-800 rounded-2xl p-4 text-center flex flex-col items-center justify-center my-2"
             >
-              <div className="text-3xl mb-2">👥</div>
-              <p className="text-xs text-zinc-300 font-semibold max-w-[280px] mb-4 leading-relaxed">
+              <div className="text-2xl mb-1">👥</div>
+              <p className="text-xs text-zinc-300 font-semibold max-w-[280px] mb-3 leading-relaxed">
                 Not enough members in {user?.institute || 'your institute'} to unlock polls. Invite more students to start voting.
               </p>
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSharePoll}
-                className="bg-white text-black font-extrabold text-xs px-5 py-3 min-h-[44px] rounded-full inline-flex items-center gap-2 cursor-pointer hover:bg-zinc-200 transition-colors border-none"
+                className="bg-white text-black font-extrabold text-xs px-4 py-2 rounded-full inline-flex items-center gap-2 cursor-pointer hover:bg-zinc-200 transition-colors border-none"
               >
-                <Share2 size={14} strokeWidth={2.2} />
+                <Share2 size={13} strokeWidth={2.2} />
                 <span>Invite Classmates</span>
               </motion.button>
             </motion.div>
           ) : (
-            <div className="grid grid-cols-2 gap-3.5 mb-6">
+            <div className="grid grid-cols-2 gap-2 mb-2 md:mb-4">
               {displayOptions.map((opt, idx) => {
                 const neon = NEON_OPTION_THEMES[idx % NEON_OPTION_THEMES.length];
                 const optKey = opt.id || `opt-${opt.handle || opt.name || idx}-${idx}`;
@@ -879,7 +879,7 @@ export default function Feed({
                     whileHover={{ scale: 1.02 }}
                     transition={{ duration: 0.12 }}
                     onClick={() => handleVoteClick(opt)}
-                    className="relative bg-black rounded-2xl py-4 px-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 min-h-[118px] select-none group border-2 box-border"
+                    className="relative bg-black rounded-2xl py-2 px-2 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 min-h-[76px] md:min-h-[96px] select-none group border-2 box-border"
                     style={{
                       backgroundColor: '#000000',
                       borderColor: neon.color,
@@ -895,17 +895,17 @@ export default function Feed({
                     }}
                   >
                     {renderProfilePic
-                      ? renderProfilePic(opt.profile_pic, opt.avatar, opt.is_pro, opt.selected_ring || opt.ring, 42, Boolean(opt.invites >= 25 || opt.recruits >= 25 || opt.is_god_mode || opt.is_legend))
+                      ? renderProfilePic(opt.profile_pic, opt.avatar, opt.is_pro, opt.selected_ring || opt.ring, 34, Boolean(opt.invites >= 25 || opt.recruits >= 25 || opt.is_god_mode || opt.is_legend))
                       : (
-                        <div className="w-11 h-11 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center text-xl">
+                        <div className="w-9 h-9 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center text-lg">
                           {opt.avatar || '😎'}
                         </div>
                       )}
-                    <span className="font-black text-sm tracking-tight text-white mt-2.5 text-center leading-tight truncate max-w-full px-1">
+                    <span className="font-black text-xs md:text-sm tracking-tight text-white mt-1 text-center leading-tight truncate max-w-full px-1">
                       @{opt.handle || opt.name}
                     </span>
                     {opt.stream && (
-                      <span className="text-[10px] text-zinc-400 font-semibold mt-0.5 truncate max-w-full">
+                      <span className="text-[9px] md:text-[10px] text-zinc-400 font-semibold truncate max-w-full leading-none">
                         {opt.stream}
                       </span>
                     )}
@@ -916,13 +916,13 @@ export default function Feed({
           )}
 
           {/* 4. Bottom Controls: Shuffle & Skip */}
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center justify-between pt-0.5">
             {displayOptions.length >= 4 && (
               <motion.button
                 whileTap={{ scale: 0.94 }}
                 disabled={shuffleCount >= 3}
                 onClick={handleShuffleClick}
-                className={`flex items-center gap-1.5 px-4 py-3 min-h-[44px] rounded-full text-xs font-bold transition-all border ${
+                className={`flex items-center gap-1 px-3 py-1.5 md:py-2 rounded-full text-xs font-bold transition-all border ${
                   shuffleCount >= 3
                     ? 'bg-zinc-950 text-zinc-600 border-zinc-800 cursor-not-allowed opacity-50'
                     : 'bg-zinc-900/90 text-zinc-200 border-zinc-700/80 hover:border-zinc-500 cursor-pointer'
@@ -936,7 +936,7 @@ export default function Feed({
             <motion.button
               whileTap={{ scale: 0.94 }}
               onClick={handleSkipClick}
-              className="flex items-center gap-1.5 px-4 py-3 min-h-[44px] rounded-full text-xs font-bold bg-zinc-900/90 text-zinc-200 border border-zinc-700/80 hover:border-zinc-500 cursor-pointer ml-auto transition-all"
+              className="flex items-center gap-1 px-3.5 py-1.5 md:py-2 rounded-full text-xs font-bold bg-zinc-900/90 text-zinc-200 border border-zinc-700/80 hover:border-zinc-500 cursor-pointer ml-auto transition-all"
             >
               <span>Skip</span>
               <span>⏭️</span>
@@ -946,7 +946,7 @@ export default function Feed({
       )}
 
       {/* Dynamic Academic Sponsorship Banner */}
-      <div className="w-full">
+      <div className="w-full shrink-0">
         <SponsorBanner isJunior={isJunior} user={user} city="Bathinda" hub={user?.coaching_hub || user?.hub || 'Ajit Road Hub'} />
       </div>
     </div>

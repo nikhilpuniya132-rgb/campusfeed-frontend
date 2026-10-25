@@ -372,7 +372,7 @@ export default function Profile({
   };
 
   return (
-    <div style={{ padding: '8px 0 120px 0', maxWidth: '448px', margin: '0 auto', boxSizing: 'border-box', position: 'relative', background: 'transparent', color: '#ffffff', minHeight: '100%' }}>
+    <div style={{ padding: '4px 0 calc(70px + env(safe-area-inset-bottom, 10px)) 0', maxWidth: '448px', margin: '0 auto', boxSizing: 'border-box', position: 'relative', background: 'transparent', color: '#ffffff', minHeight: '100%' }}>
       
       {/* Top Bar: Unified Share Button & Settings 3-Dots Menu */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', position: 'relative', marginBottom: '12px' }} ref={settingsMenuRef}>

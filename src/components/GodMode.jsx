@@ -107,7 +107,7 @@ export default function GodMode({
         width: '100%',
         maxWidth: '448px',
         margin: '0 auto',
-        padding: '8px 0 120px 0',
+        padding: '4px 0 calc(70px + env(safe-area-inset-bottom, 10px)) 0',
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',

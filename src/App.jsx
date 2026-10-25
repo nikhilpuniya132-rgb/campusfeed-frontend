@@ -1265,22 +1265,15 @@ export default function App() {
 
   return (
     <div
-      className={`gas-app-shell ${currentBgClass} min-h-screen w-full transition-colors duration-500`}
+      className={`gas-app-shell ${currentBgClass} h-[100dvh] w-full overflow-hidden flex flex-col relative transition-colors duration-500`}
       style={{
-        transition: 'background-color 500ms cubic-bezier(0.4, 0, 0.2, 1)',
-        minHeight: '100vh',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        position: 'relative',
-        overflowX: 'hidden'
+        transition: 'background-color 500ms cubic-bezier(0.4, 0, 0.2, 1)'
       }}
     >
-      <div className="gas-app-container w-full max-w-md flex flex-col min-h-screen relative">
+      <div className="gas-app-container w-full max-w-md h-full flex flex-col relative overflow-hidden">
         {installPrompt && (
           <div
-            className="w-full max-w-md mx-auto mt-2 px-4 py-2.5 bg-black/90 backdrop-blur-md rounded-2xl border border-gray-800 shadow-xl flex items-center justify-between text-xs z-50 box-border"
+            className="w-full max-w-md mx-auto mt-2 px-4 py-2 bg-black/90 backdrop-blur-md rounded-2xl border border-gray-800 shadow-xl flex items-center justify-between text-xs z-50 box-border shrink-0"
           >
             <div className="flex items-center gap-2 text-white font-bold">
               <span>📲</span>
@@ -1307,7 +1300,7 @@ export default function App() {
         )}
 
         {/* Floating Glassmorphic Pill Header */}
-        <header className="gas-app-header-wrapper">
+        <header className="gas-app-header-wrapper shrink-0">
           <div className="gas-app-header-pill">
             {/* Top-Left Element: + icon */}
             <motion.button
@@ -1319,7 +1312,7 @@ export default function App() {
               title="Add Poll"
               className="p-1.5 rounded-full text-white/90 hover:text-white hover:bg-white/10 transition-colors border-none bg-transparent cursor-pointer flex items-center justify-center"
             >
-              <Plus size={22} strokeWidth={2.4} />
+              <Plus size={20} strokeWidth={2.4} />
             </motion.button>
 
             {/* Center Brand */}
@@ -1327,7 +1320,7 @@ export default function App() {
               onClick={() => handleNav('poll')}
               className="flex items-center gap-1.5 cursor-pointer select-none group"
             >
-              <span className="text-lg font-black tracking-tight text-white group-hover:scale-105 transition-transform">
+              <span className="text-base md:text-lg font-black tracking-tight text-white group-hover:scale-105 transition-transform">
                 CenterInsider
               </span>
               <span
@@ -1349,7 +1342,7 @@ export default function App() {
               title="Notifications"
               className="relative p-1.5 rounded-full text-white/90 hover:text-white hover:bg-white/10 transition-colors border-none bg-transparent cursor-pointer flex items-center justify-center"
             >
-              <Heart size={22} strokeWidth={2.2} />
+              <Heart size={20} strokeWidth={2.2} />
               {pendingRequests.length > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 bg-[#ef4444] text-white rounded-full min-w-[16px] h-[16px] px-1 text-[9px] font-black flex items-center justify-center border-2 border-black animate-pulse">
                   {pendingRequests.length}
@@ -1359,11 +1352,11 @@ export default function App() {
           </div>
         </header>
 
-        <main className="gas-app-body">
-          <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '340px', width: '100%' }}><HamsterLoader message="Loading..." /></div>}>
+        <main className="gas-app-body flex-1 flex flex-col justify-center overflow-hidden">
+          <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%' }}><HamsterLoader message="Loading..." /></div>}>
             <AnimatePresence mode="wait">
               {view === 'poll' && (
-                <motion.div key="poll" {...pageVariants} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <motion.div key="poll" {...pageVariants} className="flex-1 flex flex-col justify-center w-full overflow-hidden">
                   <Feed
                     user={user}
                     currentPoll={currentPoll}
@@ -1393,7 +1386,7 @@ export default function App() {
               )}
 
               {view === 'inbox' && (
-                <motion.div key="inbox" {...pageVariants}>
+                <motion.div key="inbox" {...pageVariants} className="flex-1 flex flex-col justify-center w-full overflow-hidden">
                   <Inbox
                     user={user}
                     inbox={inbox}
@@ -1410,7 +1403,7 @@ export default function App() {
               )}
 
               {view === 'pro' && (
-                <motion.div key="pro" {...pageVariants} style={{ width: '100%', overflowY: 'auto' }}>
+                <motion.div key="pro" {...pageVariants} className="flex-1 flex flex-col justify-center w-full overflow-y-auto">
                   <GodMode
                     user={user}
                     onUpgrade={handleUpgrade}
@@ -1427,7 +1420,7 @@ export default function App() {
               )}
 
               {view === 'explore' && (
-                <motion.div key="explore" {...pageVariants}>
+                <motion.div key="explore" {...pageVariants} className="flex-1 flex flex-col justify-center w-full overflow-y-auto">
                   <Explore
                     currentUser={user}
                     API={API}
@@ -1440,7 +1433,7 @@ export default function App() {
               )}
 
               {view === 'profile' && (
-                <motion.div key="profile" {...pageVariants}>
+                <motion.div key="profile" {...pageVariants} className="flex-1 flex flex-col justify-center w-full overflow-y-auto">
                   <Profile
                     user={user}
                     profileData={profileData}
@@ -1462,27 +1455,29 @@ export default function App() {
               )}
 
               {view === 'publicProfile' && (
-                <motion.div key="publicProfile" {...pageVariants} style={{ padding: '24px 16px', textAlign: 'center' }}>
+                <motion.div key="publicProfile" {...pageVariants} className="flex-1 flex flex-col justify-center w-full overflow-hidden px-4 text-center">
                   {publicProfile ? (
                     <div>
-                      <div style={{ marginBottom: '16px' }}>
-                        {renderProfilePic(publicProfile.profile_pic, publicProfile.avatar, publicProfile.is_pro, publicProfile.ring, 100, Boolean(publicProfile.invites >= 25 || publicProfile.recruits >= 25 || publicProfile.is_god_mode || publicProfile.is_legend))}
+                      <div style={{ marginBottom: '12px' }}>
+                        {renderProfilePic(publicProfile.profile_pic, publicProfile.avatar, publicProfile.is_pro, publicProfile.ring, 80, Boolean(publicProfile.invites >= 25 || publicProfile.recruits >= 25 || publicProfile.is_god_mode || publicProfile.is_legend))}
                       </div>
-                      <h2 style={{ margin: '0 0 6px 0', fontWeight: '900', color: publicProfile.is_pro ? '#fbbf24' : '#fff' }}>
+                      <h2 style={{ margin: '0 0 4px 0', fontWeight: '900', color: publicProfile.is_pro ? '#fbbf24' : '#fff' }}>
                         @{publicProfile.handle}
                       </h2>
-                      <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '20px' }}>
+                      <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '16px' }}>
                         {publicProfile.bio || (publicProfile.institute ? `${publicProfile.institute} • ${publicProfile.stream || 'Bathinda'}` : 'Bathinda Coaching Network')}
                       </p>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 85, 0, 0.15)', padding: '6px 14px', borderRadius: '20px', color: '#ff8800', fontWeight: '800' }}>
                         <span>🔥</span> {publicProfile.total_votes || 0} Flames Received
                       </div>
-                      <button
-                        style={{ marginTop: '30px', padding: '12px 24px', borderRadius: '14px', border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff', fontWeight: '800', cursor: 'pointer' }}
-                        onClick={() => setView('explore')}
-                      >
-                        ← Back to Explore
-                      </button>
+                      <div style={{ marginTop: '20px' }}>
+                        <button
+                          style={{ padding: '10px 20px', borderRadius: '14px', border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff', fontWeight: '800', cursor: 'pointer' }}
+                          onClick={() => setView('explore')}
+                        >
+                          ← Back to Explore
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <p>Loading profile...</p>
@@ -1491,7 +1486,7 @@ export default function App() {
               )}
 
               {view === 'captains' && (
-                <motion.div key="captains" {...pageVariants}>
+                <motion.div key="captains" {...pageVariants} className="flex-1 flex flex-col justify-center w-full overflow-hidden">
                   <BatchCaptainsLeaderboard
                     user={user}
                     API={API}
@@ -1508,9 +1503,9 @@ export default function App() {
         </main>
 
         <nav
-          className="fixed left-6 right-6 max-w-md mx-auto bg-black/90 backdrop-blur-md rounded-full shadow-2xl flex justify-around py-4 border border-gray-800 z-50"
+          className="fixed left-4 right-4 md:left-6 md:right-6 bottom-3 md:bottom-6 max-w-md mx-auto bg-black/90 backdrop-blur-md rounded-full shadow-2xl flex justify-around py-2.5 md:py-3 border border-gray-800 z-50"
           style={{
-            bottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))',
+            bottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))',
             boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.75), 0 0 25px rgba(0, 0, 0, 0.5)'
           }}
           aria-label="Main Navigation"

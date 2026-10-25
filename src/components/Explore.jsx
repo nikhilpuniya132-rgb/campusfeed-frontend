@@ -213,7 +213,7 @@ export default function Explore({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '8px 0 calc(120px + env(safe-area-inset-bottom, 20px)) 0',
+        padding: '4px 0 calc(70px + env(safe-area-inset-bottom, 10px)) 0',
         boxSizing: 'border-box',
         background: 'transparent',
         color: '#ffffff',
