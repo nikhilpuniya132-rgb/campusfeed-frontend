@@ -1191,7 +1191,7 @@ export default function App() {
       preSelectedSchool: preSchool
     } : null);
     return (
-      <div className="gas-landing-wrapper" style={{ background: '#000000', color: '#ffffff' }}>
+      <div className="gas-landing-wrapper bg-[#eaff00] min-h-screen w-full flex items-center justify-center" style={{ background: '#eaff00' }}>
         <OnboardingWizard
           googleUser={wizardUser}
           API={API}

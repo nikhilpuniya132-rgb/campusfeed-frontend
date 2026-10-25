@@ -306,613 +306,419 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
 
   return (
     <div
+      className="min-h-screen w-full bg-[#eaff00] flex flex-col justify-center items-center p-4 selection:bg-black selection:text-[#eaff00]"
       style={{
-        position: 'relative',
-        zIndex: 10,
-        width: '100%',
-        maxWidth: '440px',
-        margin: '0 auto',
-        padding: '16px 16px 32px 16px',
         minHeight: '100svh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        boxSizing: 'border-box',
-        background: '#ffffff',
-        color: '#000000',
+        width: '100%',
+        background: '#eaff00',
         fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Outfit', 'Inter', Roboto, sans-serif"
       }}
     >
-      {/* Account Info & Sign Out Button */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: '#f9fafb',
-          border: '1px solid #e5e7eb',
-          borderRadius: '12px',
-          padding: '8px 12px',
-          marginBottom: '16px',
-          fontSize: '12px'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-          <span style={{ fontSize: '14px' }}>👤</span>
-          <span
-            style={{
-              color: '#374151',
-              fontWeight: '700',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: '190px'
-            }}
-          >
-            {currentUserEmail || googleUser?.email || googleUser?.name || 'Google Account'}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={handleSignOut}
-          style={{
-            background: '#ffffff',
-            color: '#dc2626',
-            border: '1px solid #fecaca',
-            borderRadius: '8px',
-            padding: '5px 12px',
-            fontSize: '12px',
-            fontWeight: '700',
-            cursor: 'pointer'
-          }}
-        >
-          Sign Out
-        </button>
-      </div>
-
-      {/* Step Indicator */}
-      <div style={{ marginBottom: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-          {step > 1 ? (
-            <button
-              type="button"
-              onClick={prevStep}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#6b7280',
-                fontSize: '13px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                padding: '4px 0',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <span>←</span> Back
-            </button>
-          ) : (
-            <div style={{ width: '48px' }} />
-          )}
-
-          <span
-            style={{
-              fontSize: '11px',
-              fontWeight: '900',
-              letterSpacing: '0.08em',
-              color: '#6b7280',
-              textTransform: 'uppercase'
-            }}
-          >
-            Step {step} of 4
-          </span>
-
-          <span
-            style={{
-              fontSize: '10.5px',
-              color: '#111827',
-              fontWeight: '900',
-              letterSpacing: '0.04em'
-            }}
-          >
-            ⚡ INSTANT ONBOARDING
-          </span>
-        </div>
-
-        {/* Step Progress Line */}
+      <div className="w-full max-w-[440px] flex flex-col my-auto relative z-10 py-4">
+        {/* Account Info & Sign Out Button (Glassmorphic Dark Pill) */}
         <div
-          style={{
-            width: '100%',
-            height: '3px',
-            background: '#e5e7eb',
-            borderRadius: '2px',
-            overflow: 'hidden'
-          }}
+          className="flex items-center justify-between bg-black/50 backdrop-blur-md border border-black/20 rounded-2xl px-4 py-2.5 mb-4 shadow-lg text-white"
         >
-          <motion.div
-            animate={{ width: `${(step / 4) * 100}%` }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            style={{ height: '100%', background: '#0df259' }}
-          />
+          <div className="flex items-center gap-2 overflow-hidden">
+            <span className="text-sm">👤</span>
+            <span className="text-xs font-bold text-white/90 truncate max-w-[190px]">
+              {currentUserEmail || googleUser?.email || googleUser?.name || 'Google Account'}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="text-xs font-bold text-red-400 hover:text-red-300 bg-black/40 border border-red-500/30 rounded-xl px-3 py-1 cursor-pointer transition-colors"
+          >
+            Sign Out
+          </button>
         </div>
-      </div>
 
-      {/* Main Container Card */}
-      <div
-        style={{
-          background: '#ffffff',
-          border: '2px solid #000000',
-          borderRadius: '24px',
-          padding: '28px 20px',
-          minHeight: '400px',
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'relative',
-          boxSizing: 'border-box',
-          boxShadow: '6px 6px 0px #000000'
-        }}
-      >
-        <AnimatePresence mode="wait" custom={direction}>
-
-          {/* STEP 1: FULL NAME & CLASS (SCHOOL SELECTION REMOVED) */}
-          {step === 1 && (
-            <motion.div
-              key="step1"
-              custom={direction}
-              variants={stepVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
-              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '22px', fontWeight: '950', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.03em' }}>
-                  Your Profile Details
-                </h2>
-                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, fontWeight: '600' }}>
-                  Confirm your name and class to enter school polls.
-                </p>
-              </div>
-
-              <div style={{ margin: 'auto 0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#000000', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter your full name"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    autoFocus
-                    style={{
-                      width: '100%',
-                      padding: '13px 14px',
-                      borderRadius: '14px',
-                      border: '2px solid #000000',
-                      background: '#f9fafb',
-                      color: '#000000',
-                      fontSize: '15px',
-                      fontWeight: '800',
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="onboarding-class-select" style={{ fontSize: '11px', fontWeight: '800', color: '#000000', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
-                    Select Class
-                  </label>
-                  <select
-                    id="onboarding-class-select"
-                    value={stream}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setStream(val);
-                      setGrade(getGradeFromStream(val));
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '13px 14px',
-                      borderRadius: '14px',
-                      border: '2px solid #000000',
-                      background: '#f9fafb',
-                      color: '#000000',
-                      fontWeight: '800',
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  >
-                    {CLASS_OPTIONS.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {errorMsg && (
-                <p style={{ color: '#ef4444', fontSize: '12.5px', textAlign: 'center', margin: '8px 0 0 0', fontWeight: '700' }}>
-                  {errorMsg}
-                </p>
-              )}
-
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={nextStep}
-                style={{
-                  width: '100%',
-                  marginTop: '22px',
-                  padding: '15px',
-                  borderRadius: '16px',
-                  border: '2px solid #000000',
-                  background: '#0df259',
-                  color: '#000000',
-                  fontSize: '15px',
-                  fontWeight: '950',
-                  cursor: 'pointer',
-                  boxShadow: '3px 3px 0px #000000'
-                }}
+        {/* Step Indicator & Glowing Neon Progress Bar */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2.5">
+            {step > 1 ? (
+              <button
+                type="button"
+                onClick={prevStep}
+                className="bg-transparent border-none text-black font-extrabold text-xs cursor-pointer p-0 flex items-center gap-1 hover:opacity-80 transition-opacity"
               >
-                Next: Create Username ➔
-              </motion.button>
-            </motion.div>
-          )}
+                <span>←</span> Back
+              </button>
+            ) : (
+              <div className="w-12" />
+            )}
 
-          {/* STEP 2: USERNAME CREATION */}
-          {step === 2 && (
+            <span className="text-[11px] font-black tracking-widest text-black/80 uppercase">
+              Step {step} of 4
+            </span>
+
+            <span className="text-[11px] font-black tracking-wider text-black flex items-center gap-1">
+              ⚡ INSTANT ONBOARDING
+            </span>
+          </div>
+
+          {/* Step Progress Line */}
+          <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
             <motion.div
-              key="step2"
-              custom={direction}
-              variants={stepVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
-              <div style={{ textAlign: 'center', marginBottom: '22px' }}>
-                <h2 style={{ fontSize: '22px', fontWeight: '950', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.03em' }}>
-                  Create your Username
-                </h2>
-                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, fontWeight: '600' }}>
-                  Your @handle is how classmates tag you in polls and add you.
-                </p>
-              </div>
+              animate={{ width: `${(step / 4) * 100}%` }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              className="h-full bg-[#00ff41] shadow-[0_0_12px_#00ff41]"
+            />
+          </div>
+        </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', margin: 'auto 0' }}>
-                <div>
-                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#000000', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
-                    Username (Handle)
-                  </label>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ position: 'absolute', left: '16px', color: '#000000', fontWeight: '900', fontSize: '16px' }}>
-                      @
-                    </span>
+        {/* Main Container Card (Pitch Black Floating Card with Extreme Border Radius) */}
+        <div
+          className="bg-black text-white rounded-[2.5rem] shadow-2xl p-7 sm:p-8 min-h-[420px] flex flex-col relative border-2 border-black"
+        >
+          <AnimatePresence mode="wait" custom={direction}>
+
+            {/* STEP 1: FULL NAME & CLASS */}
+            {step === 1 && (
+              <motion.div
+                key="step1"
+                custom={direction}
+                variants={stepVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="flex-1 flex flex-col justify-between"
+              >
+                <div className="text-center mb-5">
+                  <h2 className="text-2xl font-black text-white tracking-tight mb-1.5">
+                    Your Profile Details
+                  </h2>
+                  <p className="text-sm text-gray-400 font-semibold m-0">
+                    Confirm your name and class to enter school polls.
+                  </p>
+                </div>
+
+                <div className="my-auto flex flex-col gap-4">
+                  <div>
+                    <label className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider block mb-2">
+                      Full Name
+                    </label>
                     <input
                       type="text"
-                      placeholder="username"
-                      value={handle}
-                      onChange={e => {
-                        setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''));
-                        setErrorMsg('');
-                      }}
+                      placeholder="Enter your full name"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
                       autoFocus
-                      style={{
-                        width: '100%',
-                        padding: '14px 16px 14px 34px',
-                        borderRadius: '14px',
-                        border: errorMsg ? '2px solid #ef4444' : '2px solid #000000',
-                        background: '#f9fafb',
-                        color: '#000000',
-                        fontSize: '15px',
-                        fontWeight: '800',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
+                      className="w-full bg-[#111] text-white border border-gray-800 rounded-2xl p-4 font-bold text-base outline-none focus:border-[#00ff41] focus:ring-1 focus:ring-[#00ff41] transition-all placeholder:text-gray-600 box-border"
                     />
                   </div>
-                  {errorMsg && (
-                    <span style={{ color: '#ef4444', fontSize: '12px', fontWeight: '700', marginTop: '6px', display: 'block' }}>
-                      ⚠️ {errorMsg}
-                    </span>
-                  )}
-                </div>
-              </div>
 
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={nextStep}
-                style={{
-                  width: '100%',
-                  marginTop: '24px',
-                  padding: '15px',
-                  borderRadius: '16px',
-                  border: '2px solid #000000',
-                  background: '#0df259',
-                  color: '#000000',
-                  fontSize: '15px',
-                  fontWeight: '950',
-                  cursor: 'pointer',
-                  boxShadow: '3px 3px 0px #000000'
-                }}
-              >
-                Next: Choose Gender ➔
-              </motion.button>
-            </motion.div>
-          )}
-
-          {/* STEP 3: GENDER SELECTION (PASSWORD STEP COMPLETELY REMOVED) */}
-          {step === 3 && (
-            <motion.div
-              key="step3"
-              custom={direction}
-              variants={stepVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
-              <div style={{ textAlign: 'center', marginBottom: '22px' }}>
-                <h2 style={{ fontSize: '22px', fontWeight: '950', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.03em' }}>
-                  Select your Gender
-                </h2>
-                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, fontWeight: '600' }}>
-                  Determines your flame color on anonymous voting feeds.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', margin: 'auto 0' }}>
-                {[
-                  { id: 'boy', label: 'Boy', emoji: '😎', flameNote: 'Blue Flame on votes' },
-                  { id: 'girl', label: 'Girl', emoji: '🌸', flameNote: 'Pink Flame on votes' },
-                  { id: 'non-binary', label: 'Non-binary', emoji: '✨', flameNote: 'Gold Flame on votes' }
-                ].map(item => {
-                  const isSelected = gender === item.id;
-                  return (
-                    <motion.button
-                      key={item.id}
-                      type="button"
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        setGender(item.id);
-                        setAvatarEmoji(item.emoji);
+                  <div>
+                    <label htmlFor="onboarding-class-select" className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider block mb-2">
+                      Select Class
+                    </label>
+                    <select
+                      id="onboarding-class-select"
+                      value={stream}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setStream(val);
+                        setGrade(getGradeFromStream(val));
                       }}
-                      style={{
-                        padding: '14px 16px',
-                        borderRadius: '16px',
-                        border: isSelected ? '2.5px solid #000000' : '1.5px solid #e5e7eb',
-                        background: isSelected ? '#0df259' : '#ffffff',
-                        color: '#000000',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        cursor: 'pointer',
-                        boxShadow: isSelected ? '3px 3px 0px #000000' : 'none'
-                      }}
+                      className="w-full bg-[#111] text-white border border-gray-800 rounded-2xl p-4 font-bold text-base outline-none focus:border-[#00ff41] focus:ring-1 focus:ring-[#00ff41] transition-all cursor-pointer box-border"
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ fontSize: '22px' }}>{item.emoji}</span>
-                        <div style={{ textAlign: 'left' }}>
-                          <span style={{ fontSize: '15px', fontWeight: '900', display: 'block' }}>
-                            {item.label}
-                          </span>
-                          <span style={{ fontSize: '12px', color: isSelected ? '#000000' : '#6b7280', fontWeight: '700' }}>
-                            {item.flameNote}
-                          </span>
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '50%',
-                          border: '2px solid #000000',
-                          background: isSelected ? '#000000' : '#ffffff',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={nextStep}
-                style={{
-                  width: '100%',
-                  marginTop: '24px',
-                  padding: '15px',
-                  borderRadius: '16px',
-                  border: '2px solid #000000',
-                  background: '#0df259',
-                  color: '#000000',
-                  fontSize: '15px',
-                  fontWeight: '950',
-                  cursor: 'pointer',
-                  boxShadow: '3px 3px 0px #000000'
-                }}
-              >
-                Next: Profile Picture ➔
-              </motion.button>
-            </motion.div>
-          )}
-
-          {/* STEP 4: PROFILE PICTURE & FINISH */}
-          {step === 4 && (
-            <motion.div
-              key="step4"
-              custom={direction}
-              variants={stepVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
-              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '22px', fontWeight: '950', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.03em' }}>
-                  Profile Picture
-                </h2>
-                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, fontWeight: '600' }}>
-                  Choose a photo or emoji icon for your anonymous card.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: 'auto 0' }}>
-                <div style={{ position: 'relative', marginBottom: '14px' }}>
-                  {profilePic ? (
-                    <img
-                      src={profilePic}
-                      alt="profile preview"
-                      style={{
-                        width: '92px',
-                        height: '92px',
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                        border: '3px solid #000000'
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        width: '92px',
-                        height: '92px',
-                        borderRadius: '50%',
-                        background: '#f3f4f6',
-                        border: '3px solid #000000',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '46px'
-                      }}
-                    >
-                      {avatarEmoji}
-                    </div>
-                  )}
-
-                  {profilePic && (
-                    <button
-                      type="button"
-                      onClick={() => setProfilePic('')}
-                      style={{
-                        position: 'absolute',
-                        bottom: '0px',
-                        right: '-4px',
-                        background: '#ffffff',
-                        border: '2px solid #000000',
-                        borderRadius: '50%',
-                        width: '24px',
-                        height: '24px',
-                        color: '#ef4444',
-                        fontSize: '11px',
-                        fontWeight: '900',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      title="Remove photo"
-                    >
-                      ✕
-                    </button>
-                  )}
+                      {CLASS_OPTIONS.map((c) => (
+                        <option key={c} value={c} className="bg-[#111] text-white">
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
-                <label
-                  style={{
-                    padding: '8px 18px',
-                    borderRadius: '12px',
-                    background: '#f3f4f6',
-                    border: '2px solid #000000',
-                    color: '#000000',
-                    fontSize: '13px',
-                    fontWeight: '800',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    marginBottom: '18px'
-                  }}
+                {errorMsg && (
+                  <p className="text-red-400 text-xs font-bold text-center mt-3 bg-red-950/40 border border-red-800/50 rounded-xl p-2.5">
+                    {errorMsg}
+                  </p>
+                )}
+
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={nextStep}
+                  className="w-full mt-6 bg-[#00ff41] text-black font-black text-base py-4 px-6 rounded-2xl shadow-xl hover:brightness-105 active:scale-95 transition-transform cursor-pointer border-none flex items-center justify-center gap-2"
                 >
-                  <span>📷</span>
-                  <span>{profilePic ? 'Change Photo' : 'Upload Photo'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    style={{ display: 'none' }}
-                  />
-                </label>
+                  <span>Next: Create Username</span>
+                  <span>➔</span>
+                </motion.button>
+              </motion.div>
+            )}
 
-                <div>
-                  <span style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', textAlign: 'center', marginBottom: '8px' }}>
-                    Or pick an avatar icon
-                  </span>
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    {['😎', '🌸', '⚡', '👑', '🦄', '🚀'].map(emoji => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        onClick={() => {
-                          setAvatarEmoji(emoji);
-                          setProfilePic('');
+            {/* STEP 2: USERNAME CREATION */}
+            {step === 2 && (
+              <motion.div
+                key="step2"
+                custom={direction}
+                variants={stepVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="flex-1 flex flex-col justify-between"
+              >
+                <div className="text-center mb-5">
+                  <h2 className="text-2xl font-black text-white tracking-tight mb-1.5">
+                    Create your Username
+                  </h2>
+                  <p className="text-sm text-gray-400 font-semibold m-0">
+                    Your @handle is how classmates tag you in polls and add you.
+                  </p>
+                </div>
+
+                <div className="my-auto flex flex-col gap-4">
+                  <div>
+                    <label className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider block mb-2">
+                      Username (Handle)
+                    </label>
+                    <div className="relative flex items-center">
+                      <span className="absolute left-4 text-[#00ff41] font-black text-lg select-none">
+                        @
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="username"
+                        value={handle}
+                        onChange={e => {
+                          setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+                          setErrorMsg('');
                         }}
-                        style={{
-                          width: '38px',
-                          height: '38px',
-                          borderRadius: '12px',
-                          border: (!profilePic && avatarEmoji === emoji) ? '2.5px solid #000000' : '1px solid #e5e7eb',
-                          background: (!profilePic && avatarEmoji === emoji) ? '#0df259' : '#ffffff',
-                          fontSize: '18px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
+                        autoFocus
+                        className={`w-full bg-[#111] text-white rounded-2xl py-4 pr-4 pl-10 font-bold text-base outline-none transition-all placeholder:text-gray-600 box-border ${
+                          errorMsg ? 'border-2 border-red-500' : 'border border-gray-800 focus:border-[#00ff41] focus:ring-1 focus:ring-[#00ff41]'
+                        }`}
+                      />
+                    </div>
+                    {errorMsg && (
+                      <span className="text-red-400 text-xs font-bold mt-2 block">
+                        ⚠️ {errorMsg}
+                      </span>
+                    )}
                   </div>
                 </div>
-              </div>
 
-              {errorMsg && (
-                <p style={{ color: '#ef4444', fontSize: '12.5px', textAlign: 'center', margin: '8px 0 0 0', fontWeight: '700' }}>
-                  {errorMsg}
-                </p>
-              )}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={nextStep}
+                  className="w-full mt-6 bg-[#00ff41] text-black font-black text-base py-4 px-6 rounded-2xl shadow-xl hover:brightness-105 active:scale-95 transition-transform cursor-pointer border-none flex items-center justify-center gap-2"
+                >
+                  <span>Next: Choose Gender</span>
+                  <span>➔</span>
+                </motion.button>
+              </motion.div>
+            )}
 
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                disabled={isSubmitting}
-                onClick={handleFinish}
-                style={{
-                  width: '100%',
-                  marginTop: '24px',
-                  padding: '16px',
-                  borderRadius: '16px',
-                  border: '2px solid #000000',
-                  background: '#0df259',
-                  color: '#000000',
-                  fontSize: '16px',
-                  fontWeight: '950',
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                  opacity: isSubmitting ? 0.6 : 1,
-                  boxShadow: '3px 3px 0px #000000'
-                }}
+            {/* STEP 3: GENDER SELECTION */}
+            {step === 3 && (
+              <motion.div
+                key="step3"
+                custom={direction}
+                variants={stepVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="flex-1 flex flex-col justify-between"
               >
-                {isSubmitting ? 'Entering Feed...' : 'Finish Setup & Enter Feed ➔'}
-              </motion.button>
-            </motion.div>
-          )}
+                <div className="text-center mb-5">
+                  <h2 className="text-2xl font-black text-white tracking-tight mb-1.5">
+                    Select your Gender
+                  </h2>
+                  <p className="text-sm text-gray-400 font-semibold m-0">
+                    Determines your flame color on anonymous voting feeds.
+                  </p>
+                </div>
 
-        </AnimatePresence>
+                <div className="my-auto flex flex-col gap-3">
+                  {[
+                    {
+                      id: 'boy',
+                      label: 'Boy',
+                      emoji: '😎',
+                      flameNote: 'Blue Flame on votes',
+                      selectedClasses: 'bg-[#0090ff] text-black border-2 border-black font-black shadow-[0_0_20px_rgba(0,144,255,0.4)]'
+                    },
+                    {
+                      id: 'girl',
+                      label: 'Girl',
+                      emoji: '🌸',
+                      flameNote: 'Pink Flame on votes',
+                      selectedClasses: 'bg-[#ff007f] text-black border-2 border-black font-black shadow-[0_0_20px_rgba(255,0,127,0.4)]'
+                    },
+                    {
+                      id: 'non-binary',
+                      label: 'Non-binary',
+                      emoji: '✨',
+                      flameNote: 'Gold Flame on votes',
+                      selectedClasses: 'bg-[#eaff00] text-black border-2 border-black font-black shadow-[0_0_20px_rgba(234,255,0,0.4)]'
+                    }
+                  ].map(item => {
+                    const isSelected = gender === item.id;
+                    return (
+                      <motion.button
+                        key={item.id}
+                        type="button"
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          setGender(item.id);
+                          setAvatarEmoji(item.emoji);
+                        }}
+                        className={`p-4 rounded-2xl flex items-center justify-between cursor-pointer transition-all ${
+                          isSelected
+                            ? item.selectedClasses
+                            : 'bg-[#111] border border-gray-800 text-white hover:border-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{item.emoji}</span>
+                          <div className="text-left">
+                            <span className="text-base font-black block">
+                              {item.label}
+                            </span>
+                            <span className={`text-xs font-bold ${isSelected ? 'text-black/80' : 'text-gray-400'}`}>
+                              {item.flameNote}
+                            </span>
+                          </div>
+                        </div>
+                        <div
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                            isSelected
+                              ? 'border-black bg-black'
+                              : 'border-gray-700 bg-transparent'
+                          }`}
+                        >
+                          {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={nextStep}
+                  className="w-full mt-6 bg-[#00ff41] text-black font-black text-base py-4 px-6 rounded-2xl shadow-xl hover:brightness-105 active:scale-95 transition-transform cursor-pointer border-none flex items-center justify-center gap-2"
+                >
+                  <span>Next: Profile Picture</span>
+                  <span>➔</span>
+                </motion.button>
+              </motion.div>
+            )}
+
+            {/* STEP 4: PROFILE PICTURE & FINISH */}
+            {step === 4 && (
+              <motion.div
+                key="step4"
+                custom={direction}
+                variants={stepVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="flex-1 flex flex-col justify-between"
+              >
+                <div className="text-center mb-5">
+                  <h2 className="text-2xl font-black text-white tracking-tight mb-1.5">
+                    Profile Picture
+                  </h2>
+                  <p className="text-sm text-gray-400 font-semibold m-0">
+                    Choose a photo or emoji icon for your anonymous card.
+                  </p>
+                </div>
+
+                <div className="my-auto flex flex-col items-center">
+                  <div className="relative mb-4">
+                    {profilePic ? (
+                      <img
+                        src={profilePic}
+                        alt="profile preview"
+                        className="w-24 h-24 rounded-full object-cover border-4 border-[#00ff41] shadow-[0_0_20px_rgba(0,255,65,0.4)]"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-[#111] border-4 border-gray-800 flex items-center justify-center text-5xl shadow-inner">
+                        {avatarEmoji}
+                      </div>
+                    )}
+
+                    {profilePic && (
+                      <button
+                        type="button"
+                        onClick={() => setProfilePic('')}
+                        className="absolute bottom-0 right-0 bg-black text-red-400 border border-red-500/40 rounded-full w-6 h-6 flex items-center justify-center text-xs font-black cursor-pointer shadow-md hover:bg-red-500 hover:text-white transition-colors"
+                        title="Remove photo"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  <label className="px-5 py-3 rounded-2xl bg-[#111] hover:bg-[#1a1a1a] border border-gray-800 hover:border-[#00ff41] text-white text-sm font-bold cursor-pointer inline-flex items-center gap-2 mb-5 transition-all shadow-md">
+                    <span>📷</span>
+                    <span>{profilePic ? 'Change Photo' : 'Upload Photo'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+
+                  <div>
+                    <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider block text-center mb-2.5">
+                      Or pick an avatar icon
+                    </span>
+                    <div className="flex gap-2.5 justify-center flex-wrap">
+                      {['😎', '🌸', '⚡', '👑', '🦄', '🚀'].map(emoji => {
+                        const isChosen = !profilePic && avatarEmoji === emoji;
+                        return (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => {
+                              setAvatarEmoji(emoji);
+                              setProfilePic('');
+                            }}
+                            className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl cursor-pointer transition-all ${
+                              isChosen
+                                ? 'bg-[#00ff41] text-black border-2 border-black scale-110 shadow-[0_0_15px_rgba(0,255,65,0.5)] font-black'
+                                : 'bg-[#111] border border-gray-800 text-white hover:border-gray-600'
+                            }`}
+                          >
+                            {emoji}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {errorMsg && (
+                  <p className="text-red-400 text-xs font-bold text-center mt-3 bg-red-950/40 border border-red-800/50 rounded-xl p-2.5">
+                    {errorMsg}
+                  </p>
+                )}
+
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  disabled={isSubmitting}
+                  onClick={handleFinish}
+                  className="w-full mt-6 bg-[#00ff41] text-black font-black text-base py-4 px-6 rounded-2xl shadow-xl hover:brightness-105 active:scale-95 transition-transform cursor-pointer border-none flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <span>Entering Feed...</span>
+                  ) : (
+                    <>
+                      <span>Finish Setup & Enter Feed</span>
+                      <span>➔</span>
+                    </>
+                  )}
+                </motion.button>
+              </motion.div>
+            )}
+
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
