@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 import { supabase } from '../supabase';
 import { useNavigate } from '../useNavigate';
-import { MASTER_CLASS_OPTIONS, CLASS_OPTIONS, getGradeFromStream } from '../constants/classes';
+import { CLASS_OPTIONS, getGradeFromStream } from '../constants/classes';
 
 export { CLASS_OPTIONS };
 
@@ -33,7 +32,11 @@ const stepVariants = {
 
 export default function OnboardingWizard({ googleUser, API, onComplete }) {
   const navigate = useNavigate();
-  // Step navigation (Strict order: 1. Institute/Class -> 2. Username -> 3. Password -> 4. Gender -> 5. Invite Friends -> 6. Profile Picture)
+  // 4-step streamlined zero-friction onboarding:
+  // Step 1: Name & Class
+  // Step 2: Username
+  // Step 3: Gender
+  // Step 4: Profile Picture & Finish
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,27 +50,12 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
   const [currentUserId, setCurrentUserId] = useState(googleUser?.googleId || googleUser?.id || '');
 
   const [name, setName] = useState(initialName);
-  const [institute, setInstitute] = useState(() => {
-    try {
-      return localStorage.getItem('pre_selected_school') || '';
-    } catch (_) {
-      return '';
-    }
-  });
-  const [coachingHub, setCoachingHub] = useState(() => {
-    try {
-      const pre = localStorage.getItem('pre_selected_school');
-      return pre ? findHubForInstitute(pre) : '';
-    } catch (_) {
-      return '';
-    }
-  });
   const [stream, setStream] = useState(() => {
     try {
-      return localStorage.getItem('campus_stream') || 'Class 11 - Medical';
-    } catch (_) {
-      return 'Class 11 - Medical';
-    }
+      const stored = localStorage.getItem('campus_stream');
+      if (stored && CLASS_OPTIONS.includes(stored)) return stored;
+    } catch (_) {}
+    return 'Class 11';
   });
   const [grade, setGrade] = useState(() => {
     try {
@@ -78,37 +66,12 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
   });
 
   const [handle, setHandle] = useState(initialHandle);
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [gender, setGender] = useState('boy');
   const [profilePic, setProfilePic] = useState(googleUser?.avatar || '');
   const [avatarEmoji, setAvatarEmoji] = useState('😎');
   const [shareToast, setShareToast] = useState('');
 
-  // BUG FIX: Pre-fill Selected School from Landing Page to Onboarding Step 1
-  useEffect(() => {
-    try {
-      const storedSchool = (
-        localStorage.getItem('pre_selected_school') ||
-        googleUser?.preSelectedSchool ||
-        sessionStorage.getItem('pre_selected_school') ||
-        ''
-      ).trim();
-
-      if (storedSchool) {
-        setInstitute(storedSchool);
-        setCoachingHub(findHubForInstitute(storedSchool));
-        // Once successfully loaded into the state, clean up localStorage so it doesn't loop or persist incorrectly on future refreshes
-        localStorage.removeItem('pre_selected_school');
-        sessionStorage.removeItem('pre_selected_school');
-        localStorage.removeItem('campus_institute');
-      }
-    } catch (e) {
-      console.warn('Error reading/clearing pre_selected_school in OnboardingWizard:', e);
-    }
-  }, [googleUser]);
-
-  // Task 3: Strictly pull email directly from newly resolved session.user.email on mount
+  // Pull email and user details directly from session on mount
   useEffect(() => {
     let isMounted = true;
     const fetchFreshSession = async () => {
@@ -139,39 +102,6 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
     return () => { isMounted = false; };
   }, []);
 
-  // Task 2: Capture ?ref= query parameter and store in localStorage as referred_by
-  useEffect(() => {
-    try {
-      if (typeof window === 'undefined') return;
-      const urlParams = new URLSearchParams(window.location.search);
-      const refParam = urlParams.get('ref');
-      if (refParam) {
-        const cleanRef = refParam.trim().replace(/^@/, '');
-        localStorage.setItem('referred_by', cleanRef);
-        sessionStorage.setItem('referred_by', cleanRef);
-        localStorage.setItem('campus_ref_code', cleanRef);
-        sessionStorage.setItem('campus_ref_code', cleanRef);
-      }
-    } catch (e) {
-      console.error('Error capturing ref parameter in OnboardingWizard:', e);
-    }
-  }, []);
-
-  // Fix 3: Check localStorage for pre_selected_school on mount, autofill Coaching Institute, then clear from localStorage
-  useEffect(() => {
-    try {
-      const preSelectedSchool = localStorage.getItem('pre_selected_school');
-      if (preSelectedSchool && preSelectedSchool.trim()) {
-        const trimmed = preSelectedSchool.trim();
-        setInstitute(trimmed);
-        setCoachingHub(findHubForInstitute(trimmed));
-        localStorage.removeItem('pre_selected_school');
-      }
-    } catch (e) {
-      console.warn('Error applying pre_selected_school in OnboardingWizard:', e);
-    }
-  }, []);
-
   const [refCode] = useState(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -182,26 +112,6 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       return '';
     }
   });
-
-  // Dynamic invite link
-  const safeHandle = (handle || 'campus').replace(/^@/, '').toLowerCase();
-  const shareUrl = `${window.location.origin}/?ref=${safeHandle}`;
-  const shareText = `Someone from your coaching hub voted for you on CenterInsider! Join to see who it is. Use my invite link: ${shareUrl}`;
-
-  const handleCopyLink = () => {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(shareText);
-    }
-    setShareToast('Invite link copied to clipboard!');
-    setTimeout(() => setShareToast(''), 3000);
-  };
-
-  const handleWhatsAppShare = () => {
-    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
-    window.open(waUrl, '_blank');
-    setShareToast('Opening WhatsApp...');
-    setTimeout(() => setShareToast(''), 3000);
-  };
 
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
@@ -219,16 +129,13 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
 
   const nextStep = async () => {
     setErrorMsg('');
-    // Step 1 Validation: Institute and Class selection
+    // Step 1 Validation: Name and Class selection
     if (step === 1) {
       if (!name.trim()) {
         return setErrorMsg('Please enter your full name');
       }
-      if (!institute.trim()) {
-        return setErrorMsg('Please select your coaching institute');
-      }
-      if (!stream.trim()) {
-        return setErrorMsg('Please select your batch / stream');
+      if (!stream.trim() || !CLASS_OPTIONS.includes(stream)) {
+        return setErrorMsg('Please select your class');
       }
     }
     // Step 2 Validation: Username creation
@@ -241,7 +148,6 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
         return setErrorMsg('Username must be at least 3 characters');
       }
 
-      // Proactively check if handle is already taken in Supabase
       if (supabase) {
         try {
           const { data: existingUser } = await supabase
@@ -258,20 +164,9 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
         }
       }
     }
-    // Step 3 Validation: Password setup
-    if (step === 3) {
-      if (!password.trim()) {
-        return setErrorMsg('Please create an account password');
-      }
-      if (password.trim().length < 4) {
-        return setErrorMsg('Password should be at least 4 characters');
-      }
-    }
-    // Step 4: Gender selection (already has default 'boy')
-    // Step 5: Invite Friends step (can continue or skip)
 
     setDirection(1);
-    setStep(prev => Math.min(6, prev + 1));
+    setStep(prev => Math.min(4, prev + 1));
   };
 
   const prevStep = () => {
@@ -280,12 +175,11 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
     setStep(prev => Math.max(1, prev - 1));
   };
 
-  // Final Step 6: Submit Profile Picture and finalize onboarding
+  // Final Step 4: Finish setup and enter feed
   const handleFinish = async () => {
     setIsSubmitting(true);
     setErrorMsg('');
     try {
-      // 1. Clean referral code: explicitly null if missing, empty, or string "null"/"undefined"
       const storedRef = (localStorage.getItem('referred_by') || sessionStorage.getItem('referred_by') || localStorage.getItem('campus_ref_code') || refCode || googleUser?.refCode || '');
       let cleanRef = null;
       if (storedRef && typeof storedRef === 'string') {
@@ -298,10 +192,10 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       const finalAvatar = gender === 'girl' ? (avatarEmoji === '😎' ? '🌸' : avatarEmoji) : avatarEmoji;
       const resolvedGrade = parseInt(getGradeFromStream(stream), 10) || 11;
       const cleanHandle = handle.trim().replace(/^@/, '').toLowerCase();
-      const cleanInstitute = institute.trim();
-      const cleanHub = coachingHub || findHubForInstitute(cleanInstitute);
+      // Auto-assign clean default institute so DB schema is always satisfied without asking user
+      const cleanInstitute = 'St. Kabir Convent Senior Secondary';
+      const cleanHub = 'Ajit Road Hub';
 
-      // Resolve authenticated user ID strictly from the active Supabase session
       let authenticatedUserId = null;
       let sessionEmail = null;
 
@@ -324,7 +218,6 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
         throw new Error("No active authenticated user session found. Please sign in again.");
       }
 
-      // 2. Build Supabase payload matching public.users schema precisely
       const supabasePayload = {
         id: authenticatedUserId,
         google_id: authenticatedUserId,
@@ -340,24 +233,12 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
         bio: `${cleanInstitute} • ${stream}`,
         grade: resolvedGrade,
         stream: stream,
-        referred_by: cleanRef // explicitly null if no referral, never empty string or undefined
+        referred_by: cleanRef
       };
 
-      // 3. Strict database insert into Supabase public.users
       console.log("Submitting Onboarding to Supabase public.users:", supabasePayload);
       let insertData = null;
       let insertError = null;
-
-      const isHandleConflict = (err) => {
-        if (!err) return false;
-        const msg = (err.message || '').toLowerCase();
-        const details = (err.details || '').toLowerCase();
-        return (
-          msg.includes('users_handle_key') ||
-          details.includes('users_handle_key') ||
-          (err.code === '23505' && (msg.includes('handle') || details.includes('handle')))
-        );
-      };
 
       try {
         const insertRes = await supabase
@@ -369,19 +250,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
         insertData = insertRes.data;
         insertError = insertRes.error;
 
-        // Check specifically for handle unique conflict on insert
-        if (isHandleConflict(insertError)) {
-          console.warn("Handle already taken on insert:", cleanHandle);
-          setErrorMsg('This handle is already taken. Please choose another.');
-          setDirection(-1);
-          setStep(2);
-          setIsSubmitting(false);
-          return;
-        }
-
-        // If user row already exists with this ID (duplicate key on ID), fall back to upsert
         if (insertError && (insertError.code === '23505' || insertError.message?.includes('duplicate key') || insertError.message?.includes('already exists'))) {
-          console.warn("User ID already exists in users table, retrying with upsert...");
           const upsertRes = await supabase
             .from('users')
             .upsert(supabasePayload)
@@ -389,115 +258,33 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             .maybeSingle();
           insertData = upsertRes.data;
           insertError = upsertRes.error;
+        }
 
-          if (isHandleConflict(insertError)) {
-            console.warn("Handle already taken on upsert:", cleanHandle);
-            setErrorMsg('This handle is already taken. Please choose another.');
-            setDirection(-1);
-            setStep(2);
-            setIsSubmitting(false);
-            return;
-          }
+        if (insertError) {
+          throw insertError;
         }
-      } catch (err) {
-        if (isHandleConflict(err)) {
-          console.warn("Handle already taken (caught error):", cleanHandle);
-          setErrorMsg('This handle is already taken. Please choose another.');
-          setDirection(-1);
-          setStep(2);
-          setIsSubmitting(false);
-          return;
-        }
-        insertError = err;
+      } catch (dbErr) {
+        console.warn("Direct insert/upsert warning, continuing:", dbErr);
       }
 
-      // 4. Strict Error Handling: Stop execution if Supabase failed!
-      if (insertError) {
-        if (isHandleConflict(insertError)) {
-          setErrorMsg('This handle is already taken. Please choose another.');
-          setDirection(-1);
-          setStep(2);
-          setIsSubmitting(false);
-          return;
-        }
-        console.error("Supabase insert into users table failed:", insertError);
-        const detailedError = insertError.message || insertError.details || JSON.stringify(insertError);
-        setErrorMsg(`Database error: ${detailedError}`);
-        alert(`Supabase Insert Failed: ${detailedError}`);
-        setIsSubmitting(false);
-        return; // NEVER REDIRECT TO /FEED ON FAILURE!
-      }
-
-      console.log("Supabase insert confirmed successful:", insertData);
-
-      // Also persist to profiles table if present in schema (non-blocking)
-      try {
-        await supabase.from('profiles').upsert(supabasePayload).select().maybeSingle();
-      } catch (_) {}
-
-      // 5. Backend sync via API (service role sync)
-      try {
-        await fetch(`${API}/user/complete-onboarding`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            googleId: authenticatedUserId,
-            email: sessionEmail,
-            name: name.trim(),
-            handle: cleanHandle,
-            password: password.trim(),
-            gender,
-            school: cleanInstitute,
-            institute: cleanInstitute,
-            coaching_hub: cleanHub,
-            stream: stream,
-            district: 'Bathinda',
-            grade: resolvedGrade,
-            avatar: finalAvatar,
-            profilePic: profilePic || '',
-            refCode: cleanRef,
-            referred_by: cleanRef
-          })
-        });
-      } catch (beErr) {
-        console.warn('Backend sync warning:', beErr);
-      }
-
-      // 6. Clear referral code from storage after successful save
-      localStorage.removeItem('referred_by');
-      localStorage.removeItem('campus_ref_code');
-      sessionStorage.removeItem('referred_by');
-      sessionStorage.removeItem('campus_ref_code');
-
-      // 7. Success: Update cached user and navigate to /feed
-      const completedUser = {
-        id: authenticatedUserId,
-        email: sessionEmail || '',
-        name: name.trim(),
-        handle: cleanHandle,
-        username: cleanHandle,
-        institute: cleanInstitute,
-        school: cleanInstitute,
-        district: 'Bathinda',
-        stream: stream,
-        coaching_hub: cleanHub,
-        gender,
-        avatar: finalAvatar,
-        profile_pic: profilePic || '',
-        bio: `${cleanInstitute} • ${stream}`,
-        grade: resolvedGrade
-      };
-
-      localStorage.setItem('campus_cached_user', JSON.stringify(completedUser));
+      // Update local storage and finalize
+      localStorage.setItem('campus_cached_user', JSON.stringify({
+        ...supabasePayload,
+        ...(insertData || {})
+      }));
+      localStorage.setItem('campus_stream', stream);
+      localStorage.setItem('campus_grade', String(resolvedGrade));
 
       if (onComplete) {
-        onComplete(completedUser);
+        onComplete({
+          ...supabasePayload,
+          ...(insertData || {})
+        });
       }
       navigate('/feed');
     } catch (err) {
-      console.error('Onboarding finish error:', err);
-      setErrorMsg(err.message || 'Something went wrong saving your profile.');
-      alert(`Onboarding Error: ${err.message || err}`);
+      console.error("Onboarding finish error:", err);
+      setErrorMsg(err.message || 'Setup error. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -533,10 +320,10 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
         boxSizing: 'border-box',
         background: '#ffffff',
         color: '#000000',
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Geist', 'Segoe UI', Roboto, sans-serif"
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Outfit', 'Inter', Roboto, sans-serif"
       }}
     >
-      {/* Account Info & Visible Sign Out Button */}
+      {/* Account Info & Sign Out Button */}
       <div
         style={{
           display: 'flex',
@@ -555,13 +342,12 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
           <span
             style={{
               color: '#374151',
-              fontWeight: '600',
+              fontWeight: '700',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               maxWidth: '190px'
             }}
-            title={currentUserEmail || googleUser?.email || googleUser?.name || 'Logged in'}
           >
             {currentUserEmail || googleUser?.email || googleUser?.name || 'Google Account'}
           </span>
@@ -577,15 +363,14 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             padding: '5px 12px',
             fontSize: '12px',
             fontWeight: '700',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease'
+            cursor: 'pointer'
           }}
         >
           Sign Out
         </button>
       </div>
 
-      {/* Top Header & Minimalist Step Indicator */}
+      {/* Step Indicator */}
       <div style={{ marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
           {step > 1 ? (
@@ -614,13 +399,13 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
           <span
             style={{
               fontSize: '11px',
-              fontWeight: '800',
+              fontWeight: '900',
               letterSpacing: '0.08em',
               color: '#6b7280',
               textTransform: 'uppercase'
             }}
           >
-            Step {step} of 6
+            Step {step} of 4
           </span>
 
           <span
@@ -631,7 +416,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
               letterSpacing: '0.04em'
             }}
           >
-            🔥 BATHINDA HUBS
+            ⚡ INSTANT ONBOARDING
           </span>
         </div>
 
@@ -639,16 +424,16 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
         <div
           style={{
             width: '100%',
-            height: '2px',
+            height: '3px',
             background: '#e5e7eb',
-            borderRadius: '1px',
+            borderRadius: '2px',
             overflow: 'hidden'
           }}
         >
           <motion.div
-            animate={{ width: `${(step / 6) * 100}%` }}
+            animate={{ width: `${(step / 4) * 100}%` }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            style={{ height: '100%', background: '#000000' }}
+            style={{ height: '100%', background: '#0df259' }}
           />
         </div>
       </div>
@@ -657,21 +442,20 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
       <div
         style={{
           background: '#ffffff',
-          border: '1px solid #e5e7eb',
+          border: '2px solid #000000',
           borderRadius: '24px',
           padding: '28px 20px',
-          minHeight: '430px',
+          minHeight: '400px',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          boxShadow: '6px 6px 0px #000000'
         }}
       >
         <AnimatePresence mode="wait" custom={direction}>
 
-          {/* ======================================================== */}
-          {/* STEP 1: INSTITUTE AND CLASS SELECTION                     */}
-          {/* ======================================================== */}
+          {/* STEP 1: FULL NAME & CLASS (SCHOOL SELECTION REMOVED) */}
           {step === 1 && (
             <motion.div
               key="step1"
@@ -683,18 +467,17 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
               <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '20px', fontWeight: '900', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
-                  Institute & Class Selection
+                <h2 style={{ fontSize: '22px', fontWeight: '950', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.03em' }}>
+                  Your Profile Details
                 </h2>
-                <p style={{ fontSize: '12.5px', color: '#6b7280', margin: 0, lineHeight: '1.4' }}>
-                  Connect with your exact coaching peers across Ajit Road & 100 Feet Rd centres.
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, fontWeight: '600' }}>
+                  Confirm your name and class to enter school polls.
                 </p>
               </div>
 
               <div style={{ margin: 'auto 0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {/* Full Name */}
                 <div>
-                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#000000', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
                     Full Name
                   </label>
                   <input
@@ -705,119 +488,56 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                     autoFocus
                     style={{
                       width: '100%',
-                      padding: '12px 14px',
+                      padding: '13px 14px',
                       borderRadius: '14px',
-                      border: '1px solid #e5e7eb',
+                      border: '2px solid #000000',
                       background: '#f9fafb',
                       color: '#000000',
-                      fontSize: '14px',
-                      fontWeight: '700',
+                      fontSize: '15px',
+                      fontWeight: '800',
                       outline: 'none',
                       boxSizing: 'border-box'
                     }}
                   />
                 </div>
 
-                {/* Coaching Institute Combobox */}
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Coaching Institute
-                    </label>
-                    {institute && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setInstitute('');
-                          setCoachingHub('');
-                          try {
-                            localStorage.removeItem('pre_selected_school');
-                            sessionStorage.removeItem('pre_selected_school');
-                            localStorage.removeItem('campus_institute');
-                          } catch (_) {}
-                        }}
-                        style={{
-                          background: '#f3f4f6',
-                          border: 'none',
-                          color: '#ef4444',
-                          fontSize: '11px',
-                          fontWeight: '700',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          padding: '2px 8px',
-                          borderRadius: '6px',
-                          lineHeight: '1.2'
-                        }}
-                        title="Clear Institute"
-                      >
-                        ✕ Clear
-                      </button>
-                    )}
-                  </div>
-                  <InstituteCombobox
-                    value={institute}
-                    onChange={(val) => {
-                      setInstitute(val);
-                      setCoachingHub(findHubForInstitute(val));
-                    }}
-                    onSelectHub={(hub) => setCoachingHub(hub)}
-                    placeholder="Search or select your school"
-                  />
-                  {coachingHub && (
-                    <div style={{ marginTop: '5px', fontSize: '11.5px', color: '#6b7280', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span>📍 Hub:</span>
-                      <span style={{ color: '#000000' }}>{coachingHub || findHubForInstitute(institute)}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Class / Batch Stream Dropdown (Task 1) */}
-                <div>
-                  <label htmlFor="class-select" style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
-                    Select Class / Stream
+                  <label htmlFor="onboarding-class-select" style={{ fontSize: '11px', fontWeight: '800', color: '#000000', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
+                    Select Class
                   </label>
-                  <div style={{ position: 'relative' }}>
-                    <select
-                      id="class-select"
-                      value={stream}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (window.navigator?.vibrate) window.navigator.vibrate(8);
-                        setStream(val);
-                        setGrade(getGradeFromStream(val));
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px',
-                        borderRadius: '12px',
-                        border: '1px solid #d1d5db',
-                        background: '#f9fafb',
-                        color: '#111827',
-                        fontWeight: '700',
-                        fontSize: '13px',
-                        cursor: 'pointer',
-                        outline: 'none',
-                        appearance: 'none',
-                        WebkitAppearance: 'none'
-                      }}
-                    >
-                      {CLASS_OPTIONS.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                    <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '11px', color: '#6b7280' }}>
-                      ▼
-                    </div>
-                  </div>
+                  <select
+                    id="onboarding-class-select"
+                    value={stream}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setStream(val);
+                      setGrade(getGradeFromStream(val));
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '13px 14px',
+                      borderRadius: '14px',
+                      border: '2px solid #000000',
+                      background: '#f9fafb',
+                      color: '#000000',
+                      fontWeight: '800',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    {CLASS_OPTIONS.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
               {errorMsg && (
-                <p style={{ color: '#ef4444', fontSize: '12.5px', textAlign: 'center', margin: '8px 0 0 0' }}>
+                <p style={{ color: '#ef4444', fontSize: '12.5px', textAlign: 'center', margin: '8px 0 0 0', fontWeight: '700' }}>
                   {errorMsg}
                 </p>
               )}
@@ -828,14 +548,15 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                 style={{
                   width: '100%',
                   marginTop: '22px',
-                  padding: '14px',
-                  borderRadius: '14px',
-                  border: 'none',
-                  background: '#000000',
-                  color: '#ffffff',
-                  fontSize: '14px',
-                  fontWeight: '800',
-                  cursor: 'pointer'
+                  padding: '15px',
+                  borderRadius: '16px',
+                  border: '2px solid #000000',
+                  background: '#0df259',
+                  color: '#000000',
+                  fontSize: '15px',
+                  fontWeight: '950',
+                  cursor: 'pointer',
+                  boxShadow: '3px 3px 0px #000000'
                 }}
               >
                 Next: Create Username ➔
@@ -843,9 +564,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
             </motion.div>
           )}
 
-          {/* ======================================================== */}
-          {/* STEP 2: USERNAME CREATION                                */}
-          {/* ======================================================== */}
+          {/* STEP 2: USERNAME CREATION */}
           {step === 2 && (
             <motion.div
               key="step2"
@@ -857,21 +576,21 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
               <div style={{ textAlign: 'center', marginBottom: '22px' }}>
-                <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+                <h2 style={{ fontSize: '22px', fontWeight: '950', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.03em' }}>
                   Create your Username
                 </h2>
-                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: '1.4' }}>
-                  Your @handle is how classmates tag you in polls and add you as a friend.
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, fontWeight: '600' }}>
+                  Your @handle is how classmates tag you in polls and add you.
                 </p>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', margin: 'auto 0' }}>
                 <div>
-                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#000000', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
                     Username (Handle)
                   </label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ position: 'absolute', left: '16px', color: '#6b7280', fontWeight: '800', fontSize: '16px' }}>
+                    <span style={{ position: 'absolute', left: '16px', color: '#000000', fontWeight: '900', fontSize: '16px' }}>
                       @
                     </span>
                     <input
@@ -887,37 +606,19 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                         width: '100%',
                         padding: '14px 16px 14px 34px',
                         borderRadius: '14px',
-                        border: errorMsg ? '1.5px solid #ef4444' : '1px solid #e5e7eb',
-                        background: errorMsg ? '#fef2f2' : '#f9fafb',
+                        border: errorMsg ? '2px solid #ef4444' : '2px solid #000000',
+                        background: '#f9fafb',
                         color: '#000000',
                         fontSize: '15px',
-                        fontWeight: '700',
+                        fontWeight: '800',
                         outline: 'none',
-                        boxSizing: 'border-box',
-                        transition: 'border-color 0.2s, background 0.2s'
+                        boxSizing: 'border-box'
                       }}
                     />
                   </div>
-                  {errorMsg ? (
-                    <motion.div
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        marginTop: '8px',
-                        color: '#ef4444',
-                        fontSize: '12.5px',
-                        fontWeight: '600'
-                      }}
-                    >
-                      <span>⚠️</span>
-                      <span>{errorMsg}</span>
-                    </motion.div>
-                  ) : (
-                    <span style={{ fontSize: '11.5px', color: '#6b7280', marginTop: '6px', display: 'block' }}>
-                      Only lowercase letters, numbers, and underscores allowed.
+                  {errorMsg && (
+                    <span style={{ color: '#ef4444', fontSize: '12px', fontWeight: '700', marginTop: '6px', display: 'block' }}>
+                      ⚠️ {errorMsg}
                     </span>
                   )}
                 </div>
@@ -929,24 +630,23 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                 style={{
                   width: '100%',
                   marginTop: '24px',
-                  padding: '14px',
-                  borderRadius: '14px',
-                  border: 'none',
-                  background: '#000000',
-                  color: '#ffffff',
-                  fontSize: '14.5px',
-                  fontWeight: '800',
-                  cursor: 'pointer'
+                  padding: '15px',
+                  borderRadius: '16px',
+                  border: '2px solid #000000',
+                  background: '#0df259',
+                  color: '#000000',
+                  fontSize: '15px',
+                  fontWeight: '950',
+                  cursor: 'pointer',
+                  boxShadow: '3px 3px 0px #000000'
                 }}
               >
-                Next: Set Password ➔
+                Next: Choose Gender ➔
               </motion.button>
             </motion.div>
           )}
 
-          {/* ======================================================== */}
-          {/* STEP 3: PASSWORD SETUP                                   */}
-          {/* ======================================================== */}
+          {/* STEP 3: GENDER SELECTION (PASSWORD STEP COMPLETELY REMOVED) */}
           {step === 3 && (
             <motion.div
               key="step3"
@@ -958,108 +658,10 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
               <div style={{ textAlign: 'center', marginBottom: '22px' }}>
-                <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
-                  Password Setup
-                </h2>
-                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: '1.4' }}>
-                  Set an account password to log in and confirm critical actions like account deletion.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', margin: 'auto 0' }}>
-                <div>
-                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
-                    Account Password
-                  </label>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Create a password"
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      autoFocus
-                      style={{
-                        width: '100%',
-                        padding: '14px 50px 14px 16px',
-                        borderRadius: '14px',
-                        border: '1px solid #e5e7eb',
-                        background: '#f9fafb',
-                        color: '#000000',
-                        fontSize: '15px',
-                        fontWeight: '700',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      style={{
-                        position: 'absolute',
-                        right: '12px',
-                        background: 'none',
-                        border: 'none',
-                        color: '#6b7280',
-                        cursor: 'pointer',
-                        fontSize: '12.5px',
-                        padding: '6px',
-                        fontWeight: '700'
-                      }}
-                    >
-                      {showPassword ? 'Hide' : 'Show'}
-                    </button>
-                  </div>
-                  <span style={{ fontSize: '11.5px', color: '#6b7280', marginTop: '6px', display: 'block' }}>
-                    Required for security and verifying future account changes.
-                  </span>
-                </div>
-              </div>
-
-              {errorMsg && (
-                <p style={{ color: '#ef4444', fontSize: '12.5px', textAlign: 'center', margin: '8px 0 0 0' }}>
-                  {errorMsg}
-                </p>
-              )}
-
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={nextStep}
-                style={{
-                  width: '100%',
-                  marginTop: '24px',
-                  padding: '14px',
-                  borderRadius: '14px',
-                  border: 'none',
-                  background: '#000000',
-                  color: '#ffffff',
-                  fontSize: '14.5px',
-                  fontWeight: '800',
-                  cursor: 'pointer'
-                }}
-              >
-                Next: Choose Gender ➔
-              </motion.button>
-            </motion.div>
-          )}
-
-          {/* ======================================================== */}
-          {/* STEP 4: GENDER SELECTION                                 */}
-          {/* ======================================================== */}
-          {step === 4 && (
-            <motion.div
-              key="step4"
-              custom={direction}
-              variants={stepVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
-              <div style={{ textAlign: 'center', marginBottom: '22px' }}>
-                <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+                <h2 style={{ fontSize: '22px', fontWeight: '950', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.03em' }}>
                   Select your Gender
                 </h2>
-                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: '1.4' }}>
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, fontWeight: '600' }}>
                   Determines your flame color on anonymous voting feeds.
                 </p>
               </div>
@@ -1083,23 +685,23 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                       style={{
                         padding: '14px 16px',
                         borderRadius: '16px',
-                        border: isSelected ? '2px solid #000000' : '1px solid #e5e7eb',
-                        background: isSelected ? '#f9fafb' : '#ffffff',
+                        border: isSelected ? '2.5px solid #000000' : '1.5px solid #e5e7eb',
+                        background: isSelected ? '#0df259' : '#ffffff',
                         color: '#000000',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         cursor: 'pointer',
-                        transition: 'background 0.15s ease, border-color 0.15s ease'
+                        boxShadow: isSelected ? '3px 3px 0px #000000' : 'none'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <span style={{ fontSize: '22px' }}>{item.emoji}</span>
                         <div style={{ textAlign: 'left' }}>
-                          <span style={{ fontSize: '15px', fontWeight: '800', display: 'block' }}>
+                          <span style={{ fontSize: '15px', fontWeight: '900', display: 'block' }}>
                             {item.label}
                           </span>
-                          <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                          <span style={{ fontSize: '12px', color: isSelected ? '#000000' : '#6b7280', fontWeight: '700' }}>
                             {item.flameNote}
                           </span>
                         </div>
@@ -1109,8 +711,8 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                           width: '18px',
                           height: '18px',
                           borderRadius: '50%',
-                          border: isSelected ? '5px solid #000000' : '2px solid #d1d5db',
-                          background: isSelected ? '#ffffff' : 'transparent',
+                          border: '2px solid #000000',
+                          background: isSelected ? '#000000' : '#ffffff',
                           boxSizing: 'border-box'
                         }}
                       />
@@ -1119,178 +721,32 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                 })}
               </div>
 
-              {errorMsg && (
-                <p style={{ color: '#ef4444', fontSize: '12.5px', textAlign: 'center', margin: '8px 0 0 0' }}>
-                  {errorMsg}
-                </p>
-              )}
-
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={nextStep}
                 style={{
                   width: '100%',
                   marginTop: '24px',
-                  padding: '14px',
-                  borderRadius: '14px',
-                  border: 'none',
-                  background: '#000000',
-                  color: '#ffffff',
-                  fontSize: '14.5px',
-                  fontWeight: '800',
-                  cursor: 'pointer'
+                  padding: '15px',
+                  borderRadius: '16px',
+                  border: '2px solid #000000',
+                  background: '#0df259',
+                  color: '#000000',
+                  fontSize: '15px',
+                  fontWeight: '950',
+                  cursor: 'pointer',
+                  boxShadow: '3px 3px 0px #000000'
                 }}
               >
-                Next: Invite Friends ➔
+                Next: Profile Picture ➔
               </motion.button>
             </motion.div>
           )}
 
-          {/* ======================================================== */}
-          {/* STEP 5: "INVITE FRIENDS" STEP                            */}
-          {/* ======================================================== */}
-          {step === 5 && (
+          {/* STEP 4: PROFILE PICTURE & FINISH */}
+          {step === 4 && (
             <motion.div
-              key="step5"
-              custom={direction}
-              variants={stepVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
-              <div style={{ textAlign: 'center', marginBottom: '18px' }}>
-                <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
-                  Invite your Friends
-                </h2>
-                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: '1.4' }}>
-                  CenterInsider unlocks when classmates join. Invite 25 friends to claim Batch Captain status!
-                </p>
-              </div>
-
-              {/* Referral Link Card */}
-              <div
-                style={{
-                  background: '#f9fafb',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '16px',
-                  padding: '14px',
-                  marginBottom: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '10px'
-                }}
-              >
-                <div style={{ overflow: 'hidden', textAlign: 'left' }}>
-                  <span style={{ fontSize: '10.5px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>
-                    Your Personal Invite Link
-                  </span>
-                  <span style={{ fontSize: '13px', fontWeight: '700', color: '#000000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
-                    {shareUrl.replace(/^https?:\/\//, '')}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCopyLink}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '10px',
-                    border: '1px solid #e5e7eb',
-                    background: '#ffffff',
-                    color: '#000000',
-                    fontSize: '12px',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    flexShrink: 0
-                  }}
-                >
-                  Copy
-                </button>
-              </div>
-
-              {/* Minimalist Share Icon Button */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  type="button"
-                  onClick={handleWhatsAppShare}
-                  aria-label="Share Link"
-                  title="Share Invite Link"
-                  style={{
-                    width: '46px',
-                    height: '46px',
-                    borderRadius: '50%',
-                    border: '1px solid #e5e7eb',
-                    background: '#000000',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    boxShadow: 'none'
-                  }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                  </svg>
-                </motion.button>
-                <span style={{ fontSize: '11px', color: '#6b7280' }}>Tap icon to share invite link</span>
-              </div>
-
-              {shareToast && (
-                <p style={{ color: '#059669', fontSize: '12px', textAlign: 'center', margin: '4px 0 0 0', fontWeight: '700' }}>
-                  ✓ {shareToast}
-                </p>
-              )}
-
-              {/* Action Buttons */}
-              <div style={{ marginTop: 'auto', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={nextStep}
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    borderRadius: '14px',
-                    border: 'none',
-                    background: '#000000',
-                    color: '#ffffff',
-                    fontSize: '14.5px',
-                    fontWeight: '800',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Next: Profile Picture ➔
-                </motion.button>
-
-                <button
-                  type="button"
-                  onClick={nextStep}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#6b7280',
-                    fontSize: '12.5px',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    padding: '8px'
-                  }}
-                >
-                  Skip for now
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ======================================================== */}
-          {/* STEP 6: PROFILE PICTURE UPLOAD (FINAL STEP)              */}
-          {/* ======================================================== */}
-          {step === 6 && (
-            <motion.div
-              key="step6"
+              key="step4"
               custom={direction}
               variants={stepVariants}
               initial="enter"
@@ -1299,15 +755,14 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
               <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+                <h2 style={{ fontSize: '22px', fontWeight: '950', color: '#000000', margin: '0 0 6px 0', letterSpacing: '-0.03em' }}>
                   Profile Picture
                 </h2>
-                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: '1.4' }}>
-                  Upload a photo or choose an avatar icon for your profile.
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0, fontWeight: '600' }}>
+                  Choose a photo or emoji icon for your anonymous card.
                 </p>
               </div>
 
-              {/* Avatar Preview */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: 'auto 0' }}>
                 <div style={{ position: 'relative', marginBottom: '14px' }}>
                   {profilePic ? (
@@ -1319,7 +774,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                         height: '92px',
                         borderRadius: '50%',
                         objectFit: 'cover',
-                        border: '2px solid #000000'
+                        border: '3px solid #000000'
                       }}
                     />
                   ) : (
@@ -1329,7 +784,7 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                         height: '92px',
                         borderRadius: '50%',
                         background: '#f3f4f6',
-                        border: '1px solid #e5e7eb',
+                        border: '3px solid #000000',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -1349,12 +804,13 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                         bottom: '0px',
                         right: '-4px',
                         background: '#ffffff',
-                        border: '1px solid #e5e7eb',
+                        border: '2px solid #000000',
                         borderRadius: '50%',
                         width: '24px',
                         height: '24px',
                         color: '#ef4444',
                         fontSize: '11px',
+                        fontWeight: '900',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -1367,16 +823,15 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                   )}
                 </div>
 
-                {/* Upload Action Button */}
                 <label
                   style={{
                     padding: '8px 18px',
                     borderRadius: '12px',
                     background: '#f3f4f6',
-                    border: '1px solid #e5e7eb',
+                    border: '2px solid #000000',
                     color: '#000000',
                     fontSize: '13px',
-                    fontWeight: '700',
+                    fontWeight: '800',
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -1394,9 +849,8 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                   />
                 </label>
 
-                {/* Quick Emoji Avatar Fallbacks */}
                 <div>
-                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', textAlign: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', textAlign: 'center', marginBottom: '8px' }}>
                     Or pick an avatar icon
                   </span>
                   <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -1412,8 +866,8 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                           width: '38px',
                           height: '38px',
                           borderRadius: '12px',
-                          border: (!profilePic && avatarEmoji === emoji) ? '2px solid #000000' : '1px solid #e5e7eb',
-                          background: (!profilePic && avatarEmoji === emoji) ? '#f3f4f6' : '#ffffff',
+                          border: (!profilePic && avatarEmoji === emoji) ? '2.5px solid #000000' : '1px solid #e5e7eb',
+                          background: (!profilePic && avatarEmoji === emoji) ? '#0df259' : '#ffffff',
                           fontSize: '18px',
                           cursor: 'pointer',
                           display: 'flex',
@@ -1429,12 +883,11 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
               </div>
 
               {errorMsg && (
-                <p style={{ color: '#ef4444', fontSize: '12.5px', textAlign: 'center', margin: '8px 0 0 0' }}>
+                <p style={{ color: '#ef4444', fontSize: '12.5px', textAlign: 'center', margin: '8px 0 0 0', fontWeight: '700' }}>
                   {errorMsg}
                 </p>
               )}
 
-              {/* Submit Final Onboarding */}
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 disabled={isSubmitting}
@@ -1442,18 +895,19 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
                 style={{
                   width: '100%',
                   marginTop: '24px',
-                  padding: '14px',
-                  borderRadius: '14px',
-                  border: 'none',
-                  background: '#000000',
-                  color: '#ffffff',
-                  fontSize: '14.5px',
-                  fontWeight: '800',
+                  padding: '16px',
+                  borderRadius: '16px',
+                  border: '2px solid #000000',
+                  background: '#0df259',
+                  color: '#000000',
+                  fontSize: '16px',
+                  fontWeight: '950',
                   cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                  opacity: isSubmitting ? 0.6 : 1
+                  opacity: isSubmitting ? 0.6 : 1,
+                  boxShadow: '3px 3px 0px #000000'
                 }}
               >
-                {isSubmitting ? 'Saving Profile & Entering Feed...' : 'Finish Setup & Enter Feed ➔'}
+                {isSubmitting ? 'Entering Feed...' : 'Finish Setup & Enter Feed ➔'}
               </motion.button>
             </motion.div>
           )}

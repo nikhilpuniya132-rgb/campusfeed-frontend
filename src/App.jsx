@@ -65,7 +65,7 @@ export default function App() {
   const [handle, setHandle] = useState('');
   const [password, setPassword] = useState('');
   const [grade, setGrade] = useState('11');
-  const [stream, setStream] = useState('Class 11 - Medical');
+  const [stream, setStream] = useState('Class 11');
   const [institute, setInstitute] = useState('');
   const [coachingHub, setCoachingHub] = useState('');
   const [avatar, setAvatar] = useState('😎');
@@ -555,7 +555,9 @@ export default function App() {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://centerinsider.vercel.app/onboarding',
+        redirectTo: (typeof window !== 'undefined' && window.location.origin.includes('localhost'))
+          ? `${window.location.origin}/onboarding`
+          : 'https://centerinsider.vercel.app/onboarding',
         skipBrowserRedirect: false,
         queryParams: {
           prompt: 'select_account',

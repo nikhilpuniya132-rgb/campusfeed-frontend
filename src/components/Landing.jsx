@@ -1,84 +1,33 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { motion, AnimatePresence, useScroll, useSpring, useTransform } from 'framer-motion';
-import AddToHomeScreenGuide from './AddToHomeScreenGuide';
-import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
-import { MASTER_CLASS_OPTIONS, getGradeFromStream } from '../constants/classes';
-
-const FAQS = [
-  {
-    q: "Is CenterInsider really anonymous?",
-    a: "Yes. When you vote for a classmate in a poll, your identity is completely hidden. They will only see that \"someone\" from their institute voted for them, along with your gender (e.g., \"A boy from your hub\")."
-  },
-  {
-    q: "How do I see who voted for me?",
-    a: "If you receive a 'Secret Flame', you can reveal the voter's identity by successfully inviting 3 friends to the app using your unique referral code or link."
-  },
-  {
-    q: "Why do I have to log in with Google?",
-    a: "We enforce Google authentication to keep the community safe and authentic. It prevents bots, fake accounts, and ensures that the polls represent real students in your coaching hub."
-  },
-  {
-    q: "Can people use this to bully others?",
-    a: "No. CenterInsider is built strictly on positivity. Users cannot create their own custom questions. All polls are pre-written by our team and are designed to be compliments, funny observations, or hype."
-  },
-  {
-    q: "How do I change my School or Coaching Institute?",
-    a: "Once you lock in your profile during onboarding, your institute is set to ensure poll accuracy. If you made a mistake, you must delete your account from the Profile tab and sign up again."
-  }
-];
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CLASS_OPTIONS, getGradeFromStream } from '../constants/classes';
+import { Sparkles, Flame, Zap, Crown, UserPlus, Heart, MessageSquare, Bell, Shield, X, Mail } from 'lucide-react';
 
 export default function Landing({
   grade = '11',
   setGrade = () => {},
-  stream = 'Class 11 - Medical',
+  stream = 'Class 11',
   setStream = () => {},
-  institute = '',
-  setInstitute = () => {},
-  coachingHub = 'Ajit Road Hub',
-  setCoachingHub = () => {},
   loginWithGoogle = () => {},
   isAuthenticating = false,
-  showManualLogin: propShowManualLogin,
-  setShowManualLogin: propSetShowManualLogin,
-  handle = '',
-  setHandle = () => {},
-  password = '',
-  setPassword = () => {},
-  login = () => {},
-  loginWithPassword,
-  legalView: propLegalView,
-  setLegalView: propSetLegalView,
-  activePlan: propActivePlan,
-  setActivePlan: propSetActivePlan,
-  handleUpgrade = () => {},
   installPrompt = null
 }) {
-  const [localShowManual, setLocalShowManual] = useState(false);
-  const showManualLogin = propShowManualLogin !== undefined ? propShowManualLogin : localShowManual;
-  const setShowManualLogin = propSetShowManualLogin || setLocalShowManual;
-
-  const [localLegalView, setLocalLegalView] = useState(null);
-  const legalView = propLegalView !== undefined ? propLegalView : localLegalView;
-  const setLegalView = propSetLegalView || setLocalLegalView;
-
-  const [localActivePlan, setLocalActivePlan] = useState('weekly');
-  const activePlan = propActivePlan !== undefined ? propActivePlan : localActivePlan;
-  const setActivePlan = propSetActivePlan || setLocalActivePlan;
-
-  const [openFaqIndex, setOpenFaqIndex] = useState(null);
-
-  const [referralCode, setReferralCode] = useState(() => {
+  const [selectedClass, setSelectedClass] = useState(() => {
     try {
-      if (typeof window === 'undefined') return '';
-      const urlParams = new URLSearchParams(window.location.search);
-      const ref = urlParams.get('ref');
-      return ref ? ref.trim().replace(/^@/, '') : (sessionStorage.getItem('campus_ref_code') || localStorage.getItem('campus_ref_code') || '');
-    } catch (_) {
-      return '';
-    }
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('campus_stream');
+        if (stored && CLASS_OPTIONS.includes(stored)) return stored;
+      }
+    } catch (_) {}
+    return stream && CLASS_OPTIONS.includes(stream) ? stream : 'Class 11';
   });
 
-  // Capture ?ref= parameter on Landing page and persist in sessionStorage and localStorage
+  // 1. DEFAULT STATE: Defaults to "home" on initial load
+  const [activeTab, setActiveTab] = useState('home');
+  const [referralCode, setReferralCode] = useState('');
+  const [activeModal, setActiveModal] = useState(null); // null | 'faqs' | 'terms' | 'privacy' | 'soc'
+
+  // Capture ?ref= referral parameter from URL and persist
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
@@ -93,928 +42,1527 @@ export default function Landing({
         localStorage.setItem('referred_by', cleanRef);
       }
     } catch (e) {
-      console.error('Error capturing referral parameter in Landing:', e);
+      console.warn('Error reading ref param in Landing:', e);
     }
   }, []);
 
-  const handleGoogleLogin = async () => {
-    if (!stream || !MASTER_CLASS_OPTIONS.includes(stream)) {
-      alert("Please select your Class / Standard first before continuing with Google.");
-      return;
-    }
-    const selectedInstitute = (institute || localStorage.getItem('pre_selected_school') || '').trim();
-    if (selectedInstitute) {
-      try {
-        localStorage.setItem('pre_selected_school', selectedInstitute);
-      } catch (_) {}
-    } else {
-      try {
-        localStorage.removeItem('pre_selected_school');
-      } catch (_) {}
-    }
+  const handleClassChange = (newClass) => {
+    setSelectedClass(newClass);
+    setStream(newClass);
+    setGrade(getGradeFromStream(newClass));
     try {
-      localStorage.setItem('campus_stream', stream);
-      localStorage.setItem('campus_grade', getGradeFromStream(stream));
+      localStorage.setItem('campus_stream', newClass);
+      localStorage.setItem('campus_grade', getGradeFromStream(newClass));
+      localStorage.setItem('pre_selected_school', 'St. Kabir Convent Senior Secondary');
+      localStorage.setItem('campus_institute', 'St. Kabir Convent Senior Secondary');
     } catch (_) {}
-    await loginWithGoogle(selectedInstitute);
   };
 
-  const doPasswordLogin = loginWithPassword || login;
+  const handleGoogleLogin = async () => {
+    if (!selectedClass || !CLASS_OPTIONS.includes(selectedClass)) {
+      alert("Please select your class first.");
+      return;
+    }
+    try {
+      localStorage.setItem('campus_stream', selectedClass);
+      localStorage.setItem('campus_grade', getGradeFromStream(selectedClass));
+      localStorage.setItem('pre_selected_school', 'St. Kabir Convent Senior Secondary');
+      localStorage.setItem('campus_institute', 'St. Kabir Convent Senior Secondary');
+    } catch (_) {}
+    await loginWithGoogle('St. Kabir Convent Senior Secondary');
+  };
 
-  const heroRef = useRef(null);
-  const pricingRef = useRef(null);
-  const loginRef = useRef(null);
+  // 1. DYNAMIC PAGE BACKGROUND COLOR SYSTEM
+  // - 'home' (CenterInsider): Neon Green (#00ff41)
+  // - 'Connect': Bright Neon Blue (#0090ff)
+  // - 'Notes': Clean White or Off-White (#f8f9fa)
+  // - 'Premium': Deep Purple / Pitch Black (#111111)
+  // - 'Polls': Neon Pink (#ff007f)
+  const tabBackgrounds = {
+    home: '#00ff41',
+    CenterInsider: '#00ff41',
+    Connect: '#0090ff',
+    Notes: '#f8f9fa',
+    Premium: '#111111',
+    Polls: '#ff007f'
+  };
 
-  // --- SCROLL-DRIVEN MOTION ---
-  const { scrollYProgress: heroScrollProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"]
-  });
+  const activeBg = tabBackgrounds[activeTab] || '#00ff41';
+  const isDarkTab = activeTab === 'Premium';
+  const pageTextColor = isDarkTab ? '#ffffff' : '#000000';
 
-  const smoothHero = useSpring(heroScrollProgress, {
-    stiffness: 100,
-    damping: 24,
-    mass: 0.2
-  });
+  // Navigation tabs in top black pill
+  const navTabs = ['CenterInsider', 'Premium', 'Connect', 'Polls', 'Notes'];
 
-  const heroTextOpacity = useTransform(smoothHero, [0, 0.65], [1, 0.2]);
-  const heroTextY = useTransform(smoothHero, [0, 0.65], [0, -30]);
+  // Sample Hinglish Polls from Supabase database for the Polls auto-scroller
+  const sampleHinglishPolls = [
+    { q: "Spends more time at the Maggi point than in class? 🍜", tag: "Foodie Legend", color: "#ffe600" },
+    { q: "Brings the best lunchbox that everyone attacks at recess? 🥪", tag: "Tiffin Raider", color: "#0df259" },
+    { q: "Secret crush in the coaching batch 👀🔥", tag: "Top Secret", color: "#ff1475" },
+    { q: "Always sleeps through 5 PM Physics? 😴", tag: "Backbencher", color: "#00f0ff" },
+    { q: "Solves HC Verma questions during recess 📚", tag: "AIR 1 Vibes", color: "#ffe600" },
+    { q: "Class clown who always makes the teacher smile 😂", tag: "Main Character", color: "#0df259" },
+    { q: "Biggest drip at Ajit Road 👟🔥", tag: "Drip King", color: "#ff1475" },
+    { q: "Has handwritten formula cheat sheets everyone borrows 📝", tag: "Batch Savior", color: "#00f0ff" }
+  ];
 
-  const { scrollYProgress: pricingScrollProgress } = useScroll({
-    target: pricingRef,
-    offset: ["start end", "center center"]
-  });
-
-  const smoothPricing = useSpring(pricingScrollProgress, {
-    stiffness: 90,
-    damping: 22,
-    mass: 0.2
-  });
-
-  const pricingOpacity = useTransform(smoothPricing, [0, 0.75], [0, 1]);
-  const pricingY = useTransform(smoothPricing, [0, 0.75], [60, 0]);
-
-  const { scrollYProgress: loginScrollProgress } = useScroll({
-    target: loginRef,
-    offset: ["start end", "center center"]
-  });
-
-  const smoothLogin = useSpring(loginScrollProgress, {
-    stiffness: 90,
-    damping: 22,
-    mass: 0.2
-  });
-
-  const loginOpacity = useTransform(smoothLogin, [0, 0.75], [0, 1]);
-  const loginY = useTransform(smoothLogin, [0, 0.75], [60, 0]);
-
-  return (
-    <div className="gas-landing-wrapper" style={{ background: '#000000', color: '#ffffff', minHeight: '100vh' }}>
-      {/* 1. Top Navbar */}
-      <header className="gas-landing-nav" style={{ background: 'rgba(0, 0, 0, 0.9)', borderBottom: '1px solid #1f2937', backdropFilter: 'blur(12px)' }}>
-        <div className="gas-logo">
-          <span className="flame-icon">🔥</span>
-          <span style={{ color: '#ffffff', fontWeight: '900', letterSpacing: '-0.5px' }}>CENTERINSIDER</span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span className="gas-school-badge" style={{ border: '1px solid #27272a', background: '#18181b', color: '#d4d4d8', fontWeight: '800', letterSpacing: '0.04em' }}>
-            🔥 BATHINDA COACHING NETWORK
-          </span>
-
-          <div className="tooltip-wrapper">
-            <li className="nav-link" style={{ listStyle: 'none' }}>
-              <div className="tooltip-tab" style={{ color: '#d4d4d8', border: '1px solid #27272a', background: '#18181b' }}>
-                <span>Support</span>
-                <svg viewBox="0 0 24 24" style={{ width: '14px', height: '14px', fill: 'currentColor' }}><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-11v6h2v-6h-2zm0-4v2h2V7h-2z" /></svg>
-              </div>
-              <div className="tooltip" style={{ background: '#111827', border: '1px solid #27272a', boxShadow: '0 8px 30px rgba(0, 0, 0, 0.6)' }}>
-                <ul className="tooltip-menu-with-icon" style={{ padding: 0, margin: 0, listStyle: 'none' }}>
-                  <div style={{ padding: '8px 12px', fontSize: '11px', color: '#9ca3af', borderBottom: '1px solid #1f2937', textAlign: 'center' }}>
-                    Available 3 PM - 6 PM
-                  </div>
-                  <li className="tooltip-link">
-                    <a href="https://instagram.com/_nikhilpuniyaai" target="_blank" rel="noreferrer" style={{ color: '#f3f4f6' }}>
-                      @_nikhilpuniyaai
-                    </a>
-                  </li>
-                  <li className="tooltip-link">
-                    <a href="mailto:nikhilpuniya132@gmail.com" style={{ color: '#f3f4f6' }}>
-                      nikhilpuniya132@gmail.com
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </li>
-          </div>
-        </div>
-      </header>
-
-      {/* 2. Hero Section */}
-      <section ref={heroRef} className="gas-hero-section overflow-visible" style={{ overflow: 'visible', touchAction: 'pan-y' }}>
-        <motion.div
-          className="gas-hero-text overflow-visible"
-          style={{
-            opacity: heroTextOpacity,
-            y: heroTextY,
-            overflow: 'visible'
-          }}
-        >
-          <div className="gas-pill-badge" style={{ border: '1px solid #27272a', background: '#18181b', color: '#e4e4e7' }}>
-            <span>✦</span> The Anonymous Loop for Bathinda Coaching Hubs
-          </div>
-
-          <h1 className="gas-hero-title" style={{ color: '#ffffff' }}>
-            STOP GUESSING.<br />
-            <span style={{ color: '#ffffff' }}>START KNOWING.</span>
-          </h1>
-
-          <p className="gas-hero-subtitle" style={{ color: '#a1a1aa' }}>
-            The 100% anonymous school voting network. Answer viral polls about your classmates, see who voted for you, and discover your secret admirers.
-          </p>
-
-          <div className="gas-hero-stats">
-            <div className="gas-stat-card" style={{ background: '#111827', border: '1px solid #1f2937', boxShadow: 'none' }}>
-              <span className="gas-stat-number" style={{ color: '#ffffff' }}>12,480+</span>
-              <span className="gas-stat-label" style={{ color: '#9ca3af' }}>Votes Cast</span>
-            </div>
-            <div className="gas-stat-card" style={{ background: '#111827', border: '1px solid #1f2937', boxShadow: 'none' }}>
-              <span className="gas-stat-number" style={{ color: '#ffffff' }}>100%</span>
-              <span className="gas-stat-label" style={{ color: '#9ca3af' }}>Anonymous</span>
-            </div>
-            <div className="gas-stat-card" style={{ background: '#111827', border: '1px solid #1f2937', boxShadow: 'none' }}>
-              <span className="gas-stat-number" style={{ color: '#ffffff', fontSize: '13px' }}>Class 6 to 12 & Droppers</span>
-              <span className="gas-stat-label" style={{ color: '#9ca3af' }}>Bathinda Hubs</span>
-            </div>
-          </div>
-
-          <div className="gas-hero-cta-group">
-            <button
-              className="magic-btn"
-              onClick={() => document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' })}
-              style={{ background: '#ffffff', color: '#000000', border: 'none', boxShadow: '0 0 25px rgba(255, 255, 255, 0.15)', fontWeight: '800' }}
-            >
-              ENTER NETWORK ➔
-            </button>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* 3. Pure Invite Loop - Zero Paid Subscriptions */}
-      <section id="pricing-portal" ref={pricingRef} className="pricing-section" style={{ background: '#000000', padding: '60px 20px' }}>
-        <motion.div
-          style={{
-            opacity: pricingOpacity,
-            y: pricingY,
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center'
-          }}
-        >
-          <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-            <span className="gas-pill-badge" style={{ border: '1px solid #27272a', background: '#18181b', color: '#ffffff', fontWeight: '800' }}>
-              ⚡ 100% FREE • PURE INVITE LOOP
-            </span>
-            <h2 style={{ fontSize: 'clamp(28px, 6vw, 42px)', fontWeight: 900, margin: '14px 0 8px 0', color: '#ffffff', letterSpacing: '-1px' }}>
-              Unlock God Mode With Friends.
-            </h2>
-            <p style={{ color: '#a1a1aa', maxWidth: '540px', margin: '0 auto 16px auto', fontSize: '14px', lineHeight: 1.5 }}>
-              No subscriptions, no payment gateways, no fees. CenterInsider premium features unlock purely by inviting your classmates into the loop.
-            </p>
-
-            {/* Normal User Tier Info Pill */}
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: '#111827',
-              border: '1px solid #1f2937',
-              padding: '6px 16px',
-              borderRadius: '20px',
-              fontSize: '12px',
-              color: '#d1d5db',
-              fontWeight: '600'
-            }}>
-              <span>👤 <strong>Normal User (0-2 Invites):</strong> 12 votes/session (30m cooldown) • Standard Avatar • No Reveals</span>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', width: '100%', maxWidth: '860px' }}>
-            {/* Card 1: 3 Invites (Basic God Mode - 1 Month Access) */}
-            <motion.div
-              whileHover={{ y: -4 }}
-              transition={{ duration: 0.2 }}
-              style={{
-                background: '#09090b',
-                border: '1.5px solid #27272a',
-                borderRadius: '24px',
-                padding: '28px 24px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-                position: 'relative'
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span style={{
-                    background: '#18181b',
-                    border: '1px solid #27272a',
-                    color: '#ffffff',
-                    fontSize: '11px',
-                    fontWeight: '900',
-                    padding: '4px 10px',
-                    borderRadius: '20px',
-                    letterSpacing: '0.04em'
-                  }}>
-                    🔥 3 INVITES MILESTONE
-                  </span>
-                  <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '700' }}>1 Month Access</span>
-                </div>
-
-                <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff', margin: '0 0 8px 0', letterSpacing: '-0.3px' }}>
-                  Basic God Mode (3 Invites)
-                </h3>
-                <p style={{ fontSize: '13px', color: '#a1a1aa', margin: '0 0 20px 0', lineHeight: 1.4 }}>
-                  Invite 3 classmates to unlock essential utility powers with unlimited voting and voter reveals for 1 month.
-                </p>
-
-                <div style={{ borderTop: '1px solid #1f2937', paddingTop: '16px', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '800', color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '12px' }}>
-                    Unlocked Utility Perks:
-                  </span>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#e4e4e7', fontWeight: '600' }}>
-                      <span style={{ color: '#22c55e', fontWeight: '900', fontSize: '15px' }}>✓</span>
-                      <span><strong>Unlimited votes</strong> (cooldown timer permanently disabled for the month)</span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#e4e4e7', fontWeight: '600' }}>
-                      <span style={{ color: '#22c55e', fontWeight: '900', fontSize: '15px' }}>✓</span>
-                      <span><strong>See who voted for you</strong> (Voter Reveal)</span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#e4e4e7', fontWeight: '600' }}>
-                      <span style={{ color: '#22c55e', fontWeight: '900', fontSize: '15px' }}>✓</span>
-                      <span><strong>Create up to 3 custom polls</strong> per month</span>
-                    </li>
-                  </ul>
-                </div>
-
-                {/* Strict Restrictions Box */}
-                <div style={{ background: '#111827', border: '1px dashed #374151', borderRadius: '14px', padding: '12px 14px', marginBottom: '24px' }}>
-                  <span style={{ fontSize: '10.5px', fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
-                    🔒 Strict Tier Restrictions:
-                  </span>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', color: '#9ca3af' }}>
-                    <span>✕ Cannot see secret profile visitors</span>
-                    <span>✕ No Aura Rings or Crown badge</span>
-                    <span>✕ Not featured in Legends tab</span>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' })}
-                style={{
-                  width: '100%',
-                  padding: '13px',
-                  borderRadius: '14px',
-                  border: '1px solid #3f3f46',
-                  background: '#18181b',
-                  color: '#ffffff',
-                  fontWeight: '800',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                Join & Invite 3 Friends ➔
-              </button>
-            </motion.div>
-
-            {/* Card 2: 25 Invites (Lifetime Legend) */}
-            <motion.div
-              whileHover={{ y: -4 }}
-              transition={{ duration: 0.2 }}
-              style={{
-                background: '#09090b',
-                border: '1.5px solid #3f3f46',
-                borderRadius: '24px',
-                padding: '28px 24px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
-                color: '#ffffff',
-                position: 'relative'
-              }}
-            >
-              <div style={{
-                position: 'absolute',
-                top: '-11px',
-                right: '24px',
-                background: '#fbbf24',
-                color: '#000000',
-                fontSize: '10px',
-                fontWeight: '900',
-                padding: '3px 10px',
-                borderRadius: '12px',
-                letterSpacing: '0.04em'
-              }}>
-                👑 ELITE STATUS
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span style={{
-                    background: '#18181b',
-                    border: '1px solid #3f3f46',
-                    color: '#fbbf24',
-                    fontSize: '11px',
-                    fontWeight: '900',
-                    padding: '4px 10px',
-                    borderRadius: '20px',
-                    letterSpacing: '0.04em'
-                  }}>
-                    👑 25 INVITES MILESTONE
-                  </span>
-                  <span style={{ fontSize: '11px', color: '#a3a3a3', fontWeight: '700' }}>Lifetime Legend</span>
-                </div>
-
-                <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#ffffff', margin: '0 0 8px 0', letterSpacing: '-0.3px' }}>
-                  Lifetime Legend (25 Invites)
-                </h3>
-                <p style={{ fontSize: '13px', color: '#a3a3a3', margin: '0 0 20px 0', lineHeight: 1.4 }}>
-                  Invite 25 classmates to permanently unlock full utility powers plus exclusive elite status & vanity perks.
-                </p>
-
-                <div style={{ borderTop: '1px solid #1f2937', paddingTop: '16px', marginBottom: '24px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '800', color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '12px' }}>
-                    Lifetime Status & Superpowers:
-                  </span>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '11px' }}>
-                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
-                      <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
-                      <span><strong>Unlimited votes</strong> (no timers ever)</span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
-                      <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
-                      <span><strong>See who voted for you</strong></span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
-                      <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
-                      <span><strong>Create up to 150 custom polls</strong>/month</span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
-                      <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
-                      <span><strong>See who secretly views your profile</strong></span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
-                      <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
-                      <span><strong>Unlock preferred custom Aura Rings</strong></span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
-                      <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
-                      <span><strong>Crown badge under your profile picture</strong></span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: '#ffffff', fontWeight: '600' }}>
-                      <span style={{ color: '#fbbf24', fontWeight: '900', fontSize: '15px' }}>★</span>
-                      <span><strong>Prominently featured in the Legends Tab</strong></span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => document.getElementById('login-portal')?.scrollIntoView({ behavior: 'smooth' })}
-                style={{
-                  width: '100%',
-                  padding: '13px',
-                  borderRadius: '14px',
-                  border: 'none',
-                  background: '#ffffff',
-                  color: '#000000',
-                  fontWeight: '900',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                Become a Lifetime Legend ⚡
-              </button>
-            </motion.div>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* 4. Login Portal Section */}
-      <section
-        id="login-portal"
-        ref={loginRef}
+  // Reusable Auth Component with extreme rounded borders & soft 2xl drop shadow
+  const renderAuthComponent = () => (
+    <div
+      className="shadow-2xl"
+      style={{
+        width: '100%',
+        maxWidth: '380px',
+        background: '#000000',
+        borderRadius: '32px', // rounded-[2rem]
+        padding: '22px 20px',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.3)',
+        border: '3px solid #000000',
+        color: '#ffffff',
+        boxSizing: 'border-box',
+        marginTop: '20px'
+      }}
+    >
+      {/* Label */}
+      <div
         style={{
-          minHeight: 'auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '8px'
+        }}
+      >
+        <label
+          htmlFor="landing-class-select"
+          style={{
+            fontSize: '12px',
+            fontWeight: '900',
+            color: '#0df259',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em'
+          }}
+        >
+          🎓 SELECT YOUR CLASS:
+        </label>
+        <span
+          style={{
+            fontSize: '11px',
+            fontWeight: '800',
+            color: '#ffe600'
+          }}
+        >
+          REQUIRED
+        </span>
+      </div>
+
+      {/* Simplified Select Class Dropdown (strictly Class 12 down to Class 6, default Class 11) */}
+      <select
+        id="landing-class-select"
+        value={selectedClass}
+        onChange={(e) => handleClassChange(e.target.value)}
+        style={{
+          width: '100%',
+          padding: '14px 16px',
+          borderRadius: '18px',
+          border: '2px solid #0df259',
+          background: '#121214',
+          color: '#ffffff',
+          fontSize: '16px',
+          fontWeight: '900',
+          cursor: 'pointer',
+          outline: 'none',
+          marginBottom: '14px',
+          boxSizing: 'border-box',
+          appearance: 'none',
+          backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%230df259\' stroke-width=\'3\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'m6 9 6 6 6-6\'/%3E%3C/svg%3E")',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'right 16px center'
+        }}
+      >
+        {CLASS_OPTIONS.map((c) => (
+          <option key={c} value={c} style={{ background: '#18181b', color: '#ffffff', fontWeight: '700' }}>
+            {c}
+          </option>
+        ))}
+      </select>
+
+      {/* MASSIVE NEON GREEN "CONTINUE WITH GOOGLE" BUTTON */}
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.97 }}
+        onClick={handleGoogleLogin}
+        disabled={isAuthenticating}
+        style={{
+          width: '100%',
+          background: isAuthenticating ? '#27272a' : '#0df259',
+          color: '#000000',
+          border: '2px solid #000000',
+          borderRadius: '20px',
+          padding: '16px 20px',
+          fontSize: '17px',
+          fontWeight: '950',
+          cursor: isAuthenticating ? 'wait' : 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '60px 20px 80px 20px',
-          position: 'relative',
-          background: '#000000'
+          gap: '12px',
+          boxShadow: '0 6px 0px #000000',
+          transition: 'all 0.15s ease',
+          boxSizing: 'border-box'
         }}
       >
-        <motion.div
+        {/* Authentic Google 'G' Icon */}
+        <svg width="22" height="22" viewBox="0 0 24 24">
+          <path
+            fill="#4285F4"
+            d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+          />
+          <path
+            fill="#34A853"
+            d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+          />
+          <path
+            fill="#FBBC05"
+            d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.04 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+          />
+          <path
+            fill="#EA4335"
+            d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+          />
+        </svg>
+        <span>
+          {isAuthenticating ? 'Connecting to Google...' : 'Continue with Google'}
+        </span>
+      </motion.button>
+
+      <p
+        style={{
+          fontSize: '11px',
+          color: '#a1a1aa',
+          margin: '10px 0 0 0',
+          fontWeight: '700',
+          textAlign: 'center'
+        }}
+      >
+        🔒 Zero passwords • 1-click Google authentication
+      </p>
+    </div>
+  );
+
+  return (
+    <div
+      className="transition-colors duration-500"
+      style={{
+        minHeight: '100vh',
+        width: '100%',
+        backgroundColor: activeBg, // Dynamic background linked to activeTab
+        transition: 'background-color 500ms cubic-bezier(0.4, 0, 0.2, 1)',
+        color: pageTextColor,
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Outfit', 'Inter', Roboto, sans-serif",
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        position: 'relative',
+        overflowX: 'hidden',
+        boxSizing: 'border-box'
+      }}
+    >
+      {/* ======================================================== */}
+      {/* 2. PERSISTENT HEADER (LOCKED & NEVER SWAPS OUT)         */}
+      {/* ======================================================== */}
+
+      {/* Top Pink Banner */}
+      <div
+        style={{
+          width: '100%',
+          background: '#ff1475',
+          color: '#ffffff',
+          padding: '10px 16px',
+          textAlign: 'center',
+          fontSize: '13px',
+          fontWeight: '900',
+          letterSpacing: '-0.01em',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          zIndex: 50,
+          boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+          borderBottom: '3px solid #000000'
+        }}
+      >
+        <span style={{ fontSize: '15px' }}>⚡</span>
+        <span>bathinda network live • 1,420+ votes dropped today • invite-only access</span>
+        <span
           style={{
-            opacity: loginOpacity,
-            y: loginY,
-            width: '100%',
-            maxWidth: '400px',
-            position: 'relative',
-            zIndex: 10
+            background: '#000000',
+            color: '#ff1475',
+            padding: '2px 8px',
+            borderRadius: '999px',
+            fontSize: '11px',
+            fontWeight: '900',
+            marginLeft: '4px'
           }}
         >
-          <div
-            className="form"
-            style={{
-              background: '#0a0a0a',
-              border: '1px solid #27272a',
-              borderRadius: '24px',
-              padding: '24px 20px',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-            }}
-          >
-            <div style={{ textAlign: 'center', marginBottom: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-              <span
+          CLOSING SOON
+        </span>
+      </div>
+
+      {/* Top Black Pill Navigation Menu */}
+      <header
+        style={{
+          width: '100%',
+          maxWidth: '560px',
+          padding: '18px 12px 10px 12px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 40,
+          boxSizing: 'border-box'
+        }}
+      >
+        <div
+          className="shadow-2xl"
+          style={{
+            background: '#000000',
+            padding: '5px 6px',
+            borderRadius: '999px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
+            border: '2px solid #000000',
+            maxWidth: '100%',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            WebkitOverflowScrolling: 'touch'
+          }}
+        >
+          {navTabs.map((tab) => {
+            const isActive = (tab === 'CenterInsider' && activeTab === 'home') || activeTab === tab;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => {
+                  if (tab === 'CenterInsider') {
+                    setActiveTab('home');
+                  } else {
+                    setActiveTab(tab);
+                  }
+                }}
                 style={{
-                  background: '#18181b',
-                  border: '1px solid #27272a',
-                  color: '#d4d4d8',
-                  fontSize: '11px',
-                  fontWeight: '800',
-                  padding: '4px 12px',
-                  borderRadius: '20px',
-                  letterSpacing: '0.04em'
+                  background: isActive ? '#0df259' : 'transparent',
+                  color: isActive ? '#000000' : '#ffffff',
+                  border: 'none',
+                  borderRadius: '999px',
+                  padding: '8px 14px',
+                  fontSize: '12.5px',
+                  fontWeight: '950',
+                  letterSpacing: '-0.01em',
+                  cursor: 'pointer',
+                  transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                  outline: 'none',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0
                 }}
               >
-                ⚡ 1-TAP ONE-TOUCH ACCESS
-              </span>
-              {referralCode && (
-                <span
+                {tab}
+              </button>
+            );
+          })}
+        </div>
+      </header>
+
+      {/* ======================================================== */}
+      {/* 3. CENTRAL CONTENT AREA (DYNAMICALLY SWAPS PER TAB)     */}
+      {/* ======================================================== */}
+      <main
+        style={{
+          width: '100%',
+          maxWidth: '560px',
+          padding: '8px 20px 28px 20px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          boxSizing: 'border-box',
+          flex: 1
+        }}
+      >
+        <AnimatePresence mode="wait">
+
+          {/* ---------------------------------------------------- */}
+          {/* TAB 1: HOME (CENTERINSIDER)                          */}
+          {/* ---------------------------------------------------- */}
+          {activeTab === 'home' && (
+            <motion.div
+              key="tab-home"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+            >
+              {/* Hero Title */}
+              <div style={{ margin: '4px 0 16px 0' }}>
+                <h1
                   style={{
-                    background: 'rgba(22, 101, 52, 0.25)',
-                    border: '1px solid #166534',
-                    color: '#4ade80',
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    padding: '3px 10px',
-                    borderRadius: '16px',
-                    display: 'inline-flex',
+                    fontSize: 'clamp(36px, 9.5vw, 54px)',
+                    fontWeight: '950',
+                    lineHeight: '0.96',
+                    letterSpacing: '-0.05em',
+                    color: '#000000',
+                    margin: '0 0 8px 0',
+                    textTransform: 'lowercase'
+                  }}
+                >
+                  the all-new <br />
+                  <span
+                    style={{
+                      background: '#000000',
+                      color: '#0df259',
+                      padding: '2px 14px',
+                      borderRadius: '18px',
+                      display: 'inline-block',
+                      marginTop: '4px',
+                      boxShadow: '4px 4px 0px rgba(0,0,0,0.2)'
+                    }}
+                  >
+                    centerinsider
+                  </span>
+                </h1>
+                <p
+                  style={{
+                    fontSize: 'clamp(15px, 4vw, 19px)',
+                    fontWeight: '900',
+                    color: '#000000',
+                    letterSpacing: '-0.03em',
+                    margin: 0,
+                    opacity: 0.9,
+                    textTransform: 'lowercase'
+                  }}
+                >
+                  your exclusive school network
+                </p>
+              </div>
+
+              {/* 3D Floating App Mockup (Un-boxed, rounded-[2.25rem], shadow-2xl, gentle float) */}
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ repeat: Infinity, duration: 4.5, ease: 'easeInOut' }}
+                whileHover={{ y: -4, rotate: [-0.5, 0.5, 0], scale: 1.01 }}
+                className="shadow-2xl"
+                style={{
+                  width: '100%',
+                  maxWidth: '380px',
+                  background: '#000000',
+                  borderRadius: '36px', // rounded-[2.25rem]
+                  padding: '26px 18px 22px 18px',
+                  border: '3px solid #000000',
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.45), 0 10px 25px rgba(0, 0, 0, 0.25)',
+                  color: '#ffffff',
+                  textAlign: 'center',
+                  position: 'relative',
+                  transformPerspective: 1000
+                }}
+              >
+                {/* Yellow "🔥 100% anonymous" Badge */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-14px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: '#ffe600',
+                    color: '#000000',
+                    padding: '5px 16px',
+                    borderRadius: '999px',
+                    fontSize: '11.5px',
+                    fontWeight: '950',
+                    border: '2px solid #000000',
+                    boxShadow: '2px 2px 0px #000000',
+                    whiteSpace: 'nowrap',
+                    display: 'flex',
                     alignItems: 'center',
                     gap: '4px'
                   }}
                 >
-                  <span>🎁</span> Invited by @{referralCode}
-                </span>
-              )}
-            </div>
-
-            <p style={{ marginTop: '8px', textAlign: 'center', fontSize: '14px', color: '#ffffff', fontWeight: '700' }}>
-              Join the Loop.
-              <span style={{ color: '#a1a1aa', fontWeight: '500', display: 'block', marginTop: '2px', fontSize: '12.5px' }}>
-                Select your School/Institute to enter the loop.
-              </span>
-            </p>
-
-            {/* Searchable Institute Combobox */}
-            <div style={{ marginBottom: '14px', textAlign: 'left', width: '100%' }}>
-              <label style={{ fontSize: '11px', fontWeight: '800', color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
-                School/Institute
-              </label>
-              <InstituteCombobox
-                value={institute}
-                placeholder="Search or select your school"
-                onChange={(val) => {
-                  setInstitute(val);
-                  setCoachingHub(findHubForInstitute(val));
-                  if (val && val.trim()) {
-                    try {
-                      localStorage.setItem('pre_selected_school', val.trim());
-                    } catch (_) {}
-                  } else {
-                    try {
-                      localStorage.removeItem('pre_selected_school');
-                    } catch (_) {}
-                  }
-                }}
-                onSelectHub={(hub) => setCoachingHub(hub)}
-              />
-            </div>
-
-            {/* Standard Dropdown Selector */}
-            <div style={{ marginBottom: '18px', textAlign: 'left', width: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <label htmlFor="standard-selector" style={{ fontSize: '11px', fontWeight: '800', color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Select Class / Standard
-                </label>
-                <span style={{ fontSize: '10px', color: '#10b981', fontWeight: '800' }}>REQUIRED</span>
-              </div>
-              <div style={{ position: 'relative' }}>
-                <select
-                  id="standard-selector"
-                  value={MASTER_CLASS_OPTIONS.includes(stream) ? stream : (stream || 'Class 11 - Medical')}
-                  onChange={(e) => {
-                    const s = e.target.value;
-                    if (window.navigator?.vibrate) window.navigator.vibrate(8);
-                    setStream(s);
-                    const resolvedGrade = getGradeFromStream(s);
-                    setGrade(resolvedGrade);
-                    try {
-                      localStorage.setItem('campus_stream', s);
-                      localStorage.setItem('campus_grade', resolvedGrade);
-                    } catch (_) {}
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '13px 40px 13px 14px',
-                    background: '#18181b',
-                    border: '1.5px solid #3f3f46',
-                    borderRadius: '14px',
-                    color: '#ffffff',
-                    fontSize: '14px',
-                    fontWeight: '700',
-                    outline: 'none',
-                    cursor: 'pointer',
-                    boxSizing: 'border-box',
-                    appearance: 'none',
-                    WebkitAppearance: 'none',
-                    MozAppearance: 'none',
-                    transition: 'all 0.15s ease'
-                  }}
-                  onFocus={(e) => { e.target.style.borderColor = '#ffffff'; }}
-                  onBlur={(e) => { e.target.style.borderColor = '#3f3f46'; }}
-                >
-                  <optgroup label="Junior School (Classes 6-9)">
-                    {MASTER_CLASS_OPTIONS.filter(o => ['Class 6', 'Class 7', 'Class 8', 'Class 9'].includes(o)).map((opt) => (
-                      <option key={opt} value={opt} style={{ color: '#ffffff', background: '#18181b', fontWeight: '600' }}>
-                        {opt}
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Senior School & Coaching (Classes 10-12+)">
-                    {MASTER_CLASS_OPTIONS.filter(o => !['Class 6', 'Class 7', 'Class 8', 'Class 9'].includes(o)).map((opt) => (
-                      <option key={opt} value={opt} style={{ color: '#ffffff', background: '#18181b', fontWeight: '600' }}>
-                        {opt}
-                      </option>
-                    ))}
-                  </optgroup>
-                </select>
-                <span
-                  style={{
-                    position: 'absolute',
-                    right: '14px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '10px',
-                    color: '#a1a1aa',
-                    pointerEvents: 'none'
-                  }}
-                >
-                  ▼
-                </span>
-              </div>
-            </div>
-
-            {/* Dual-Auth Google CTA Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
-              {/* Primary: Sign Up with Google */}
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                className="oauthButton"
-                onClick={handleGoogleLogin}
-                disabled={isAuthenticating}
-                type="button"
-                style={{
-                  width: '100%',
-                  background: '#ffffff',
-                  color: '#000000',
-                  border: 'none',
-                  borderRadius: '16px',
-                  fontWeight: '900',
-                  fontSize: '14px',
-                  padding: '14px 18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px',
-                  cursor: isAuthenticating ? 'not-allowed' : 'pointer',
-                  opacity: isAuthenticating ? 0.7 : 1,
-                  boxShadow: 'none',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <svg className="icon" viewBox="0 0 24 24" style={{ width: '20px', height: '20px' }}>
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                </svg>
-                <span>{isAuthenticating ? 'Connecting...' : 'Sign Up with Google'}</span>
-              </motion.button>
-
-              {/* Secondary: Log In with Google */}
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                onClick={handleGoogleLogin}
-                disabled={isAuthenticating}
-                type="button"
-                style={{
-                  width: '100%',
-                  background: '#18181b',
-                  color: '#ffffff',
-                  border: '1.5px solid #3f3f46',
-                  borderRadius: '16px',
-                  fontWeight: '900',
-                  fontSize: '14px',
-                  padding: '13px 18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px',
-                  cursor: isAuthenticating ? 'not-allowed' : 'pointer',
-                  opacity: isAuthenticating ? 0.7 : 1,
-                  boxShadow: 'none',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <svg className="icon" viewBox="0 0 24 24" style={{ width: '20px', height: '20px' }}>
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                </svg>
-                <span>{isAuthenticating ? 'Connecting...' : 'Log In with Google'}</span>
-              </motion.button>
-            </div>
-            <div style={{ textAlign: 'center', fontSize: '11px', color: '#9ca3af', marginTop: '10px' }}>
-              Zero passwords • Instant student verification
-            </div>
-
-            {/* De-emphasized Manual / Test Accounts Accordion */}
-            <div style={{ width: '100%', borderTop: '1px solid #1f2937', paddingTop: '16px', marginTop: '16px', textAlign: 'center' }}>
-              <button
-                type="button"
-                onClick={() => setShowManualLogin(!showManualLogin)}
-                style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: '11.5px', fontWeight: '700', cursor: 'pointer', transition: 'color 0.2s' }}
-              >
-                {showManualLogin ? '▲ Hide Test Accounts' : '▼ Or use username & password (Seed Accounts)'}
-              </button>
-
-              {showManualLogin && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
-                  <input
-                    type="text"
-                    placeholder="Handle (e.g., gursharan)"
-                    value={handle}
-                    onChange={e => setHandle(e.target.value)}
-                    style={{ padding: '12px', borderRadius: '12px', border: '1px solid #27272a', background: '#18181b', color: '#ffffff', fontSize: '14px', outline: 'none' }}
-                  />
-                  <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    style={{ padding: '12px', borderRadius: '12px', border: '1px solid #27272a', background: '#18181b', color: '#ffffff', fontSize: '14px', outline: 'none' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={doPasswordLogin}
-                    style={{ padding: '12px', borderRadius: '12px', border: 'none', background: '#ffffff', color: '#000000', fontWeight: '800', cursor: 'pointer', transition: 'background 0.2s' }}
-                  >
-                    Login with Password
-                  </button>
+                  🔥 100% anonymous
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* Visual Add to Home Screen Onboarding Component (PWA) */}
-          <div style={{ marginTop: '14px' }}>
-            <AddToHomeScreenGuide installPrompt={installPrompt} />
-          </div>
-
-          <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '12px', color: '#9ca3af' }}>
-            <p>
-              By entering, you agree to our <br />
-              <span onClick={() => setLegalView('terms')} style={{ color: '#ffffff', textDecoration: 'underline', cursor: 'pointer', fontWeight: '600' }}>
-                Terms & Conditions
-              </span>{' '}
-              and{' '}
-              <span onClick={() => setLegalView('privacy')} style={{ color: '#ffffff', textDecoration: 'underline', cursor: 'pointer', fontWeight: '600' }}>
-                Privacy Policy
-              </span>
-            </p>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* 5. Custom FAQ Accordion Section */}
-      <section
-        id="faq-section"
-        style={{
-          width: '100%',
-          padding: '48px 20px 64px 20px',
-          background: '#000000',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          borderTop: '1px solid #1f2937',
-          boxSizing: 'border-box'
-        }}
-      >
-        <div style={{ width: '100%', maxWidth: '640px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-            <span
-              style={{
-                background: '#18181b',
-                border: '1px solid #27272a',
-                color: '#d4d4d8',
-                fontSize: '11px',
-                fontWeight: '800',
-                padding: '4px 12px',
-                borderRadius: '20px',
-                letterSpacing: '0.04em',
-                display: 'inline-block'
-              }}
-            >
-              ❓ FREQUENTLY ASKED QUESTIONS
-            </span>
-            <h2
-              style={{
-                fontSize: 'clamp(24px, 5vw, 32px)',
-                fontWeight: 900,
-                margin: '12px 0 6px 0',
-                color: '#ffffff',
-                letterSpacing: '-0.5px'
-              }}
-            >
-              Got Questions? We've Got Answers.
-            </h2>
-            <p style={{ color: '#a1a1aa', fontSize: '13.5px', margin: 0 }}>
-              Everything you need to know about CenterInsider and how it works.
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {FAQS.map((faq, idx) => {
-              const isOpen = openFaqIndex === idx;
-              return (
-                <div
-                  key={idx}
-                  style={{
-                    border: '1px solid #27272a',
-                    borderRadius: '16px',
-                    background: isOpen ? '#18181b' : '#0a0a0a',
-                    overflow: 'hidden',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (window.navigator?.vibrate) window.navigator.vibrate(6);
-                      setOpenFaqIndex(isOpen ? null : idx);
-                    }}
+                {/* Trending Poll Header */}
+                <div style={{ marginTop: '8px', marginBottom: '14px' }}>
+                  <span
                     style={{
-                      width: '100%',
-                      padding: '16px 18px',
-                      background: 'transparent',
-                      border: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      gap: '12px'
+                      fontSize: '10px',
+                      fontWeight: '900',
+                      color: '#0df259',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      background: '#121214',
+                      padding: '3px 10px',
+                      borderRadius: '999px',
+                      border: '1px solid #27272a'
                     }}
                   >
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff', lineHeight: 1.4 }}>
-                      {faq.q}
-                    </span>
-                    <span
+                    TRENDING POLL • 240+ VOTES
+                  </span>
+                  <h3
+                    style={{
+                      fontSize: '18px',
+                      fontWeight: '950',
+                      color: '#ffffff',
+                      margin: '10px 0 0 0',
+                      letterSpacing: '-0.02em',
+                      lineHeight: '1.25'
+                    }}
+                  >
+                    "Secret crush in the coaching batch? 👀🔥"
+                  </h3>
+                </div>
+
+                {/* 4 Options: @varis, @ravneet, @divanshu, @ishant */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '12px' }}>
+                  {[
+                    { name: "@varis", color: "#0df259", emoji: "😎" },
+                    { name: "@ravneet", color: "#ff1475", emoji: "🌸" },
+                    { name: "@divanshu", color: "#00f0ff", emoji: "⚡" },
+                    { name: "@ishant", color: "#ffe600", emoji: "🔥" }
+                  ].map((option) => (
+                    <motion.div
+                      key={option.name}
+                      whileHover={{ scale: 1.04, y: -2 }}
+                      whileTap={{ scale: 0.96 }}
                       style={{
-                        fontSize: '11px',
-                        color: '#9ca3af',
-                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                        transition: 'transform 0.2s ease',
-                        flexShrink: 0
+                        background: '#121214',
+                        border: `1.5px solid ${option.color}`,
+                        borderRadius: '18px',
+                        padding: '12px 10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 14px rgba(0,0,0,0.45)'
                       }}
                     >
-                      ▼
-                    </span>
-                  </button>
+                      <span style={{ fontSize: '15px' }}>{option.emoji}</span>
+                      <span style={{ fontSize: '13.5px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.01em' }}>
+                        {option.name}
+                      </span>
+                    </motion.div>
+                  ))}
+                </div>
 
-                  <AnimatePresence initial={false}>
-                    {isOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2, ease: 'easeOut' }}
-                        style={{ overflow: 'hidden' }}
+                {/* Micro-text */}
+                <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#a1a1aa' }}>
+                    Tap any classmate to cast your anonymous vote ⚡
+                  </span>
+                </div>
+              </motion.div>
+
+              {/* Auth Card */}
+              {renderAuthComponent()}
+            </motion.div>
+          )}
+
+          {/* ---------------------------------------------------- */}
+          {/* TAB 2: PREMIUM (GOD MODE GRAPHIC)                    */}
+          {/* ---------------------------------------------------- */}
+          {activeTab === 'Premium' && (
+            <motion.div
+              key="tab-premium"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+            >
+              {/* Header Title for Premium */}
+              <div style={{ margin: '4px 0 16px 0' }}>
+                <h1
+                  style={{
+                    fontSize: 'clamp(34px, 8.5vw, 48px)',
+                    fontWeight: '950',
+                    lineHeight: '0.98',
+                    letterSpacing: '-0.04em',
+                    color: '#ffffff',
+                    margin: '0 0 6px 0',
+                    textTransform: 'lowercase'
+                  }}
+                >
+                  unlock <br />
+                  <span
+                    style={{
+                      background: '#ffe600',
+                      color: '#000000',
+                      padding: '2px 14px',
+                      borderRadius: '18px',
+                      display: 'inline-block',
+                      marginTop: '4px',
+                      boxShadow: '0 0 25px rgba(255, 230, 0, 0.4)'
+                    }}
+                  >
+                    god mode
+                  </span>
+                </h1>
+                <p
+                  style={{
+                    fontSize: '15px',
+                    fontWeight: '800',
+                    color: '#a1a1aa',
+                    margin: 0,
+                    textTransform: 'lowercase'
+                  }}
+                >
+                  see exactly who votes for you
+                </p>
+              </div>
+
+              {/* 3D Floating God Mode Card */}
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ repeat: Infinity, duration: 4.5, ease: 'easeInOut' }}
+                whileHover={{ y: -4, scale: 1.01 }}
+                className="shadow-2xl"
+                style={{
+                  width: '100%',
+                  maxWidth: '380px',
+                  background: '#000000',
+                  borderRadius: '36px',
+                  padding: '26px 20px',
+                  border: '3px solid #ffe600',
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 35px rgba(255, 230, 0, 0.3)',
+                  color: '#ffffff',
+                  textAlign: 'center',
+                  position: 'relative'
+                }}
+              >
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-14px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: '#ffe600',
+                    color: '#000000',
+                    padding: '5px 16px',
+                    borderRadius: '999px',
+                    fontSize: '11px',
+                    fontWeight: '950',
+                    border: '2px solid #000000',
+                    boxShadow: '2px 2px 0px #000000',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  👑 GOD MODE UNLOCKED
+                </div>
+
+                <div style={{ fontSize: '48px', margin: '8px 0 4px 0' }}>👑</div>
+
+                <h3
+                  style={{
+                    fontSize: '22px',
+                    fontWeight: '950',
+                    color: '#ffe600',
+                    margin: '0 0 8px 0',
+                    letterSpacing: '-0.03em',
+                    lineHeight: '1.15'
+                  }}
+                >
+                  Unlock Premium.
+                </h3>
+
+                <p
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: '700',
+                    color: '#ffffff',
+                    lineHeight: '1.4',
+                    margin: '0 0 16px 0',
+                    padding: '0 4px'
+                  }}
+                >
+                  Invite 25 friends to see exactly who voted for you.
+                </p>
+
+                {/* VIP Feature Badges */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
+                  {[
+                    { label: "Reveal Secret Voter Identities", icon: "👀", color: "#ff1475" },
+                    { label: "Unlimited Votes (No 30m Cooldowns)", icon: "⚡", color: "#0df259" },
+                    { label: "Equip Champion Gold Halo Ring", icon: "✨", color: "#ffe600" }
+                  ].map((perk) => (
+                    <div
+                      key={perk.label}
+                      style={{
+                        background: '#121214',
+                        border: '1.5px solid #27272a',
+                        borderRadius: '16px',
+                        padding: '10px 14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
+                      }}
+                    >
+                      <span style={{ fontSize: '18px' }}>{perk.icon}</span>
+                      <span style={{ fontSize: '12.5px', fontWeight: '800', color: '#e4e4e7' }}>
+                        {perk.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Auth Card */}
+              {renderAuthComponent()}
+            </motion.div>
+          )}
+
+          {/* ---------------------------------------------------- */}
+          {/* TAB 3: CONNECT (SLEEK BLUE-THEMED GRAPHIC)           */}
+          {/* ---------------------------------------------------- */}
+          {activeTab === 'Connect' && (
+            <motion.div
+              key="tab-connect"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+            >
+              {/* Header Title for Connect */}
+              <div style={{ margin: '4px 0 16px 0' }}>
+                <h1
+                  style={{
+                    fontSize: 'clamp(34px, 8.5vw, 48px)',
+                    fontWeight: '950',
+                    lineHeight: '0.98',
+                    letterSpacing: '-0.04em',
+                    color: '#ffffff',
+                    margin: '0 0 6px 0',
+                    textTransform: 'lowercase'
+                  }}
+                >
+                  campus <br />
+                  <span
+                    style={{
+                      background: '#000000',
+                      color: '#00f0ff',
+                      padding: '2px 14px',
+                      borderRadius: '18px',
+                      display: 'inline-block',
+                      marginTop: '4px',
+                      boxShadow: '0 0 25px rgba(0, 240, 255, 0.4)'
+                    }}
+                  >
+                    connections
+                  </span>
+                </h1>
+                <p
+                  style={{
+                    fontSize: '15px',
+                    fontWeight: '800',
+                    color: '#ffffff',
+                    margin: 0,
+                    textTransform: 'lowercase',
+                    opacity: 0.95
+                  }}
+                >
+                  students connecting through polling
+                </p>
+              </div>
+
+              {/* 3D Floating Connect Card */}
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ repeat: Infinity, duration: 4.5, ease: 'easeInOut' }}
+                whileHover={{ y: -4, scale: 1.01 }}
+                className="shadow-2xl"
+                style={{
+                  width: '100%',
+                  maxWidth: '380px',
+                  background: '#000000',
+                  borderRadius: '36px',
+                  padding: '26px 20px',
+                  border: '3px solid #00f0ff',
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 35px rgba(0, 240, 255, 0.35)',
+                  color: '#ffffff',
+                  textAlign: 'center',
+                  position: 'relative'
+                }}
+              >
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-14px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: '#00f0ff',
+                    color: '#000000',
+                    padding: '5px 16px',
+                    borderRadius: '999px',
+                    fontSize: '11px',
+                    fontWeight: '950',
+                    border: '2px solid #000000',
+                    boxShadow: '2px 2px 0px #000000',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  ⚡ CAMPUS NETWORK
+                </div>
+
+                <div style={{ fontSize: '46px', margin: '8px 0 4px 0' }}>🤝</div>
+
+                <h3
+                  style={{
+                    fontSize: '22px',
+                    fontWeight: '950',
+                    color: '#00f0ff',
+                    margin: '0 0 6px 0',
+                    letterSpacing: '-0.03em'
+                  }}
+                >
+                  how students connect
+                </h3>
+
+                <p
+                  style={{
+                    fontSize: '13.5px',
+                    fontWeight: '700',
+                    color: '#cbd5e1',
+                    lineHeight: '1.4',
+                    margin: '0 0 16px 0'
+                  }}
+                >
+                  connect through polling, adding friends, and sending anonymous compliments.
+                </p>
+
+                {/* Animated Connection Nodes */}
+                <div
+                  style={{
+                    background: '#0a0f1d',
+                    border: '1.5px solid #1e293b',
+                    borderRadius: '22px',
+                    padding: '16px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#1e293b', border: '2px solid #00f0ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                      😎
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#ffffff' }}>@you</span>
+                  </div>
+
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '0 8px' }}>
+                    <motion.div
+                      animate={{ scale: [1, 1.25, 1] }}
+                      transition={{ repeat: Infinity, duration: 1.6 }}
+                      style={{ fontSize: '18px' }}
+                    >
+                      💌
+                    </motion.div>
+                    <div style={{ width: '100%', height: '2px', background: 'dashed #00f0ff', borderTop: '2px dashed #00f0ff' }} />
+                    <span style={{ fontSize: '9px', fontWeight: '900', color: '#00f0ff', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Secret Flame
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#1e293b', border: '2px solid #ff1475', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                      🌸
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#ffffff' }}>@classmate</span>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                  <span style={{ background: '#121214', border: '1px solid #27272a', padding: '5px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: '800', color: '#00f0ff' }}>
+                    ✓ 100% Encrypted
+                  </span>
+                  <span style={{ background: '#121214', border: '1px solid #27272a', padding: '5px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: '800', color: '#0df259' }}>
+                    ✓ Real Classmates
+                  </span>
+                </div>
+              </motion.div>
+
+              {/* Auth Card */}
+              {renderAuthComponent()}
+            </motion.div>
+          )}
+
+          {/* ---------------------------------------------------- */}
+          {/* TAB 4: POLLS (AUTO-SCROLLING VERTICAL MARQUEE)       */}
+          {/* ---------------------------------------------------- */}
+          {activeTab === 'Polls' && (
+            <motion.div
+              key="tab-polls"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+            >
+              {/* Header Title for Polls */}
+              <div style={{ margin: '4px 0 16px 0' }}>
+                <h1
+                  style={{
+                    fontSize: 'clamp(34px, 8.5vw, 48px)',
+                    fontWeight: '950',
+                    lineHeight: '0.98',
+                    letterSpacing: '-0.04em',
+                    color: '#ffffff',
+                    margin: '0 0 6px 0',
+                    textTransform: 'lowercase'
+                  }}
+                >
+                  trending <br />
+                  <span
+                    style={{
+                      background: '#000000',
+                      color: '#ff007f',
+                      padding: '2px 14px',
+                      borderRadius: '18px',
+                      display: 'inline-block',
+                      marginTop: '4px',
+                      boxShadow: '0 0 25px rgba(255, 0, 127, 0.4)'
+                    }}
+                  >
+                    hinglish polls
+                  </span>
+                </h1>
+                <p
+                  style={{
+                    fontSize: '15px',
+                    fontWeight: '800',
+                    color: '#ffffff',
+                    margin: 0,
+                    textTransform: 'lowercase',
+                    opacity: 0.95
+                  }}
+                >
+                  compliments only • zero bullying
+                </p>
+              </div>
+
+              {/* 3D Floating Polls Card */}
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ repeat: Infinity, duration: 4.5, ease: 'easeInOut' }}
+                whileHover={{ y: -4, scale: 1.01 }}
+                className="shadow-2xl"
+                style={{
+                  width: '100%',
+                  maxWidth: '380px',
+                  background: '#000000',
+                  borderRadius: '36px',
+                  padding: '20px 16px',
+                  border: '3px solid #ff007f',
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 35px rgba(255, 0, 127, 0.3)',
+                  color: '#ffffff',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0 6px 12px 6px',
+                    borderBottom: '1px solid #27272a',
+                    marginBottom: '12px'
+                  }}
+                >
+                  <span style={{ fontSize: '11px', fontWeight: '900', color: '#ff007f', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    ⚡ Live Hinglish Questions
+                  </span>
+                  <span style={{ fontSize: '10.5px', fontWeight: '800', color: '#ffe600' }}>
+                    Auto-Refreshed
+                  </span>
+                </div>
+
+                {/* Vertical Infinite Scrolling Container */}
+                <div style={{ height: '230px', overflow: 'hidden', position: 'relative' }}>
+                  <motion.div
+                    animate={{ y: [0, -320] }}
+                    transition={{
+                      repeat: Infinity,
+                      repeatType: "loop",
+                      duration: 9,
+                      ease: "linear"
+                    }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}
+                  >
+                    {[...sampleHinglishPolls, ...sampleHinglishPolls].map((poll, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          background: '#121214',
+                          border: `1.5px solid ${poll.color}`,
+                          borderRadius: '18px',
+                          padding: '12px 14px',
+                          textAlign: 'left',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                        }}
                       >
-                        <div
+                        <span
                           style={{
-                            padding: '0 18px 16px 18px',
-                            color: '#d4d4d8',
-                            fontSize: '13.5px',
-                            lineHeight: 1.6,
-                            borderTop: '1px solid #27272a',
-                            paddingTop: '12px'
+                            fontSize: '9.5px',
+                            fontWeight: '900',
+                            color: poll.color,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.06em'
                           }}
                         >
-                          {faq.a}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                          {poll.tag}
+                        </span>
+                        <p
+                          style={{
+                            fontSize: '13.5px',
+                            fontWeight: '800',
+                            color: '#ffffff',
+                            margin: 0,
+                            lineHeight: '1.25'
+                          }}
+                        >
+                          "{poll.q}"
+                        </p>
+                      </div>
+                    ))}
+                  </motion.div>
                 </div>
-              );
-            })}
+              </motion.div>
+
+              {/* Auth Card */}
+              {renderAuthComponent()}
+            </motion.div>
+          )}
+
+          {/* ---------------------------------------------------- */}
+          {/* TAB 5: NOTES (FLOATING IOS NOTIFICATION BUBBLES)      */}
+          {/* ---------------------------------------------------- */}
+          {activeTab === 'Notes' && (
+            <motion.div
+              key="tab-notes"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+            >
+              {/* Header Title for Notes */}
+              <div style={{ margin: '4px 0 16px 0' }}>
+                <h1
+                  style={{
+                    fontSize: 'clamp(34px, 8.5vw, 48px)',
+                    fontWeight: '950',
+                    lineHeight: '0.98',
+                    letterSpacing: '-0.04em',
+                    color: '#000000',
+                    margin: '0 0 6px 0',
+                    textTransform: 'lowercase'
+                  }}
+                >
+                  secret <br />
+                  <span
+                    style={{
+                      background: '#000000',
+                      color: '#ffffff',
+                      padding: '2px 14px',
+                      borderRadius: '18px',
+                      display: 'inline-block',
+                      marginTop: '4px',
+                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)'
+                    }}
+                  >
+                    inbox notes
+                  </span>
+                </h1>
+                <p
+                  style={{
+                    fontSize: '15px',
+                    fontWeight: '800',
+                    color: '#000000',
+                    margin: 0,
+                    textTransform: 'lowercase',
+                    opacity: 0.8
+                  }}
+                >
+                  real-time anonymous compliments
+                </p>
+              </div>
+
+              {/* 3D Floating Notes Card */}
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ repeat: Infinity, duration: 4.5, ease: 'easeInOut' }}
+                whileHover={{ y: -4, scale: 1.01 }}
+                className="shadow-2xl"
+                style={{
+                  width: '100%',
+                  maxWidth: '380px',
+                  background: '#000000',
+                  borderRadius: '36px',
+                  padding: '22px 18px',
+                  border: '3px solid #000000',
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3), 0 10px 25px rgba(0, 0, 0, 0.15)',
+                  color: '#ffffff',
+                  textAlign: 'left',
+                  position: 'relative'
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '14px',
+                    padding: '0 4px'
+                  }}
+                >
+                  <span style={{ fontSize: '11px', fontWeight: '900', color: '#ff1475', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    🔔 Anonymous Notifications
+                  </span>
+                  <span style={{ fontSize: '10.5px', fontWeight: '800', color: '#0df259' }}>
+                    Live Feeds
+                  </span>
+                </div>
+
+                {/* 4 Exact Notification Strings with Staggered Floating Animations */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
+                  {[
+                    { text: "someone has voted for you 👀", time: "now", border: "#ff1475" },
+                    { text: "a girl just voted for you 🔥", time: "1m ago", border: "#ffe600" },
+                    { text: "your vote is sent 🚀", time: "3m ago", border: "#0df259" },
+                    { text: "you are a legend 👑", time: "5m ago", border: "#00f0ff" }
+                  ].map((note, index) => (
+                    <motion.div
+                      key={note.text}
+                      initial={{ opacity: 0, x: -16, y: 10 }}
+                      animate={{ opacity: 1, x: 0, y: 0 }}
+                      transition={{ delay: index * 0.1, duration: 0.25 }}
+                      whileHover={{ scale: 1.02 }}
+                      style={{
+                        background: '#121214',
+                        border: `1.5px solid ${note.border}`,
+                        borderRadius: '18px',
+                        padding: '11px 14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '10px',
+                        boxShadow: '0 4px 14px rgba(0,0,0,0.4)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '10px',
+                            background: '#000000',
+                            border: `1.5px solid ${note.border}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '13px'
+                          }}
+                        >
+                          ⚡
+                        </div>
+                        <span
+                          style={{
+                            fontSize: '13px',
+                            fontWeight: '800',
+                            color: '#ffffff',
+                            letterSpacing: '-0.01em'
+                          }}
+                        >
+                          {note.text}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '10px', fontWeight: '700', color: '#71717a', flexShrink: 0 }}>
+                        {note.time}
+                      </span>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Auth Card */}
+              {renderAuthComponent()}
+            </motion.div>
+          )}
+
+        </AnimatePresence>
+      </main>
+
+      {/* ======================================================== */}
+      {/* 4. PERSISTENT FOOTER (LOCKED & NEVER SWAPS OUT)         */}
+      {/* ======================================================== */}
+      <footer style={{ width: '100%', marginTop: 'auto', display: 'flex', flexDirection: 'column' }}>
+
+        {/* BRIGHT YELLOW CONTAINER WITH BLUE "REAL CLASSROOM VIBES" BADGE */}
+        <div
+          style={{
+            width: '100%',
+            background: '#ffe600',
+            borderTop: '3px solid #000000',
+            borderBottom: '3px solid #000000',
+            padding: '36px 20px',
+            textAlign: 'center',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div style={{ maxWidth: '520px', margin: '0 auto' }}>
+            {/* Blue "REAL CLASSROOM VIBES" Badge */}
+            <div
+              style={{
+                display: 'inline-block',
+                background: '#0047ff', // Vibrant blue badge
+                color: '#ffffff',
+                padding: '6px 16px',
+                borderRadius: '999px',
+                fontSize: '12px',
+                fontWeight: '950',
+                letterSpacing: '0.06em',
+                marginBottom: '14px',
+                textTransform: 'uppercase',
+                border: '2px solid #000000',
+                boxShadow: '2px 2px 0px #000000'
+              }}
+            >
+              REAL CLASSROOM VIBES
+            </div>
+
+            {/* Anti-bullying text */}
+            <h2
+              style={{
+                fontSize: 'clamp(26px, 6.5vw, 36px)',
+                fontWeight: '950',
+                color: '#000000',
+                lineHeight: '1.05',
+                letterSpacing: '-0.04em',
+                margin: '0 0 12px 0',
+                textTransform: 'lowercase'
+              }}
+            >
+              compliments only. zero bullying.
+            </h2>
+
+            <p
+              style={{
+                fontSize: '14.5px',
+                fontWeight: '800',
+                color: '#000000',
+                lineHeight: '1.4',
+                margin: '0 auto 20px auto',
+                maxWidth: '440px',
+                opacity: 0.95
+              }}
+            >
+              all questions are positive, humorous, and safe. vote for your peers, see who voted for you, and discover your secret admirers.
+            </p>
+
+            {/* "100% Student Verified" tags */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                flexWrap: 'wrap'
+              }}
+            >
+              <span
+                style={{
+                  background: '#ffffff',
+                  border: '2.5px solid #000000',
+                  borderRadius: '999px',
+                  padding: '6px 14px',
+                  fontSize: '12px',
+                  fontWeight: '950',
+                  color: '#000000',
+                  boxShadow: '2px 2px 0px #000000'
+                }}
+              >
+                ✓ 100% Student Verified
+              </span>
+              <span
+                style={{
+                  background: '#ffffff',
+                  border: '2.5px solid #000000',
+                  borderRadius: '999px',
+                  padding: '6px 14px',
+                  fontSize: '12px',
+                  fontWeight: '950',
+                  color: '#000000',
+                  boxShadow: '2px 2px 0px #000000'
+                }}
+              >
+                🔥 12,400+ Compliments Sent
+              </span>
+            </div>
           </div>
         </div>
-      </section>
 
-      {/* Legal Modal Overlay */}
+        {/* PITCH-BLACK FOOTER SECTION (EXACT SLICK STRUCTURE) */}
+        <div
+          style={{
+            width: '100%',
+            background: '#000000',
+            color: '#ffffff',
+            padding: '48px 24px 64px 24px',
+            textAlign: 'left',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div style={{ maxWidth: '520px', margin: '0 auto' }}>
+            {/* ⚡ CenterInsider Logo/Icon */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <span style={{ fontSize: '24px' }}>⚡</span>
+              <span
+                style={{
+                  fontSize: '24px',
+                  fontWeight: '950',
+                  color: '#ffffff',
+                  letterSpacing: '-0.04em'
+                }}
+              >
+                CenterInsider
+              </span>
+            </div>
+
+            {/* Slay all day */}
+            <p
+              style={{
+                fontSize: '16px',
+                fontWeight: '800',
+                color: '#a1a1aa',
+                margin: '0 0 32px 0',
+                letterSpacing: '-0.02em'
+              }}
+            >
+              Slay all day
+            </p>
+
+            {/* Links List */}
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <a
+                href="mailto:support@centerinsider.com"
+                style={{
+                  color: '#ffffff',
+                  textDecoration: 'none',
+                  fontSize: '15px',
+                  fontWeight: '800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'color 0.15s ease'
+                }}
+              >
+                <span style={{ color: '#0df259' }}>-</span> Email us
+              </a>
+
+              <button
+                type="button"
+                onClick={() => setActiveModal('faqs')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '15px',
+                  fontWeight: '800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  padding: 0,
+                  textAlign: 'left'
+                }}
+              >
+                <span style={{ color: '#0df259' }}>-</span> FAQs
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveModal('terms')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '15px',
+                  fontWeight: '800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  padding: 0,
+                  textAlign: 'left'
+                }}
+              >
+                <span style={{ color: '#0df259' }}>-</span> Terms of Use
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveModal('privacy')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '15px',
+                  fontWeight: '800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  padding: 0,
+                  textAlign: 'left'
+                }}
+              >
+                <span style={{ color: '#0df259' }}>-</span> Privacy Policy
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveModal('soc')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '15px',
+                  fontWeight: '800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  padding: 0,
+                  textAlign: 'left'
+                }}
+              >
+                <span style={{ color: '#0df259' }}>-</span> SOC
+              </button>
+            </nav>
+
+            <div style={{ marginTop: '36px', paddingTop: '20px', borderTop: '1px solid #27272a', fontSize: '11px', color: '#71717a', fontWeight: '700' }}>
+              © 2026 CenterInsider Inc. Built exclusively for student communities.
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {/* INTERACTIVE MODALS FOR LEGAL, FAQS, SOC */}
       <AnimatePresence>
-        {legalView && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="gas-modal-overlay"
-            onClick={() => setLegalView(null)}
+        {activeModal && (
+          <div
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0, 0, 0, 0.75)',
+              background: 'rgba(0,0,0,0.85)',
+              backdropFilter: 'blur(8px)',
+              zIndex: 100,
               display: 'flex',
-              alignItems: 'center',
+              alignItems: 'flex-end',
               justifyContent: 'center',
-              zIndex: 9999,
-              padding: '20px'
+              padding: '0'
             }}
           >
             <motion.div
-              initial={{ y: 50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 20, opacity: 0 }}
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
               style={{
-                background: '#0a0a0a',
-                color: '#ffffff',
-                padding: '28px',
-                borderRadius: '24px',
-                maxWidth: '480px',
                 width: '100%',
-                border: '1px solid #27272a',
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.6)'
+                maxWidth: '540px',
+                background: '#121214',
+                border: '2px solid #27272a',
+                borderTopLeftRadius: '28px',
+                borderTopRightRadius: '28px',
+                padding: '24px 20px 36px 20px',
+                color: '#ffffff',
+                maxHeight: '80vh',
+                overflowY: 'auto',
+                boxSizing: 'border-box'
               }}
-              onClick={e => e.stopPropagation()}
             >
-              <h2 style={{ color: '#ffffff', marginTop: 0, fontSize: '19px', fontWeight: 800 }}>
-                {legalView === 'terms' ? 'Terms of Service & User Agreement' : 'Privacy Policy & Data Handling'}
-              </h2>
-              <div style={{ color: '#d4d4d8', fontSize: '13px', lineHeight: '1.65', maxHeight: '360px', overflowY: 'auto', paddingRight: '4px' }}>
-                {legalView === 'terms' ? (
-                  <p style={{ margin: 0 }}>
-                    Welcome to CenterInsider. By accessing or using our platform, you agree to be bound by these Terms of Service. CenterInsider operates as a closed-network, peer-to-peer polling application designed exclusively for verified student communities. Users must authenticate via Google OAuth to maintain platform integrity and prevent sybil attacks (fake accounts). You agree to use the platform solely for its intended positive interactions. Any attempt to reverse-engineer, scrape data, harass other users, or manipulate the voting algorithms will result in immediate and permanent account termination. CenterInsider reserves the right to modify, suspend, or discontinue any aspect of the service at any time without prior notice. We do not guarantee uninterrupted access to the platform and shall not be held liable for any data loss, digital goods (e.g., Feed Drops, God Mode status) loss, or service downtimes. All intellectual property, including branding, UI/UX, and proprietary algorithms, remains the sole property of CenterInsider Inc.
-                  </p>
-                ) : (
-                  <p style={{ margin: 0 }}>
-                    CenterInsider is committed to protecting your privacy and digital footprint. When you authenticate using Google OAuth, we collect only minimal required data: your email address, name, and profile picture, strictly to verify your identity and map you to your local educational institute. Your voting activity is encrypted and anonymized by default. We do not sell your personal data, email addresses, or voting history to third-party data brokers or advertising networks. The identities behind sent votes remain strictly confidential unless a user explicitly utilizes platform mechanics (such as God Mode or referral milestones) to reveal interactions directed at them. You retain full ownership of your data; you may permanently delete your account and wipe all associated database records at any time via the Profile settings. By using the app, you consent to our secure data storage practices and targeted internal analytics used solely to improve the application experience.
-                  </p>
-                )}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: '950', margin: 0, color: '#0df259' }}>
+                  {activeModal === 'faqs' && 'Frequently Asked Questions'}
+                  {activeModal === 'terms' && 'Terms of Use'}
+                  {activeModal === 'privacy' && 'Privacy Policy'}
+                  {activeModal === 'soc' && 'SOC 2 & Security Compliance'}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  style={{
+                    background: '#27272a',
+                    border: 'none',
+                    color: '#ffffff',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <X size={16} />
+                </button>
               </div>
-              <button
-                type="button"
-                style={{
-                  width: '100%',
-                  padding: '12px 20px',
-                  background: '#ffffff',
-                  color: '#000000',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontWeight: '800',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  marginTop: '18px'
-                }}
-                onClick={() => setLegalView(null)}
-              >
-                Close
-              </button>
+
+              {activeModal === 'faqs' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13.5px', lineHeight: '1.4' }}>
+                  <div>
+                    <h4 style={{ color: '#ffe600', margin: '0 0 4px 0', fontWeight: '800' }}>Is CenterInsider really anonymous?</h4>
+                    <p style={{ color: '#a1a1aa', margin: 0 }}>Yes. When you vote for a classmate, your identity is hidden. They only see that someone voted for them and your gender (e.g., "A boy from your class").</p>
+                  </div>
+                  <div>
+                    <h4 style={{ color: '#ffe600', margin: '0 0 4px 0', fontWeight: '800' }}>How do I see who voted for me?</h4>
+                    <p style={{ color: '#a1a1aa', margin: 0 }}>Invite 25 classmates using your personal invite link to unlock God Mode status and reveal voter identities.</p>
+                  </div>
+                  <div>
+                    <h4 style={{ color: '#ffe600', margin: '0 0 4px 0', fontWeight: '800' }}>Can anyone bully others?</h4>
+                    <p style={{ color: '#a1a1aa', margin: 0 }}>Never. CenterInsider is built strictly on positivity. All questions are pre-written compliments, humor, and hype.</p>
+                  </div>
+                </div>
+              )}
+
+              {activeModal === 'terms' && (
+                <div style={{ fontSize: '13px', lineHeight: '1.5', color: '#a1a1aa' }}>
+                  <p>Welcome to CenterInsider. By accessing or using our closed student polling platform, you agree to participate in positive, uplifting peer-to-peer interactions.</p>
+                  <p>Harassment, reverse-engineering, scraping, or botting will lead to immediate and permanent account termination.</p>
+                </div>
+              )}
+
+              {activeModal === 'privacy' && (
+                <div style={{ fontSize: '13px', lineHeight: '1.5', color: '#a1a1aa' }}>
+                  <p>We respect your privacy. Votes are encrypted, and student identities are never publicly revealed without explicit peer consent or God Mode unlocked via verified referrals.</p>
+                  <p>We never sell student data to third-party ad networks.</p>
+                </div>
+              )}
+
+              {activeModal === 'soc' && (
+                <div style={{ fontSize: '13px', lineHeight: '1.5', color: '#a1a1aa' }}>
+                  <p>🔒 Service Organization Controls (SOC 2 Type II Compliant Architecture).</p>
+                  <p>CenterInsider enforces strict Row Level Security (RLS) on all Supabase databases to protect student records, voter anonymity, and authentication tokens against network snooping.</p>
+                </div>
+              )}
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
