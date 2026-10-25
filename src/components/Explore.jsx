@@ -232,11 +232,12 @@ export default function Explore({
       >
         {/* 1. Header (Pitch Black Floating Pill) */}
         <div
+          className="bg-black text-white rounded-3xl shadow-2xl p-5 mb-4 border-2 border-black text-left"
           style={{
             textAlign: 'left',
             marginBottom: '16px',
             background: '#000000',
-            borderRadius: '2rem',
+            borderRadius: '1.5rem',
             padding: '20px 24px',
             boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.65)',
             border: '2px solid #000000'
@@ -288,21 +289,22 @@ export default function Explore({
           </p>
         </div>
 
-        {/* 2. Bold Search Input (Un-boxed Floating Card with rounded-[2.5rem]) */}
-        <div style={{ position: 'relative', marginBottom: '18px' }}>
+        {/* 2. Bold Search Input (Un-boxed Floating Card with rounded-3xl) */}
+        <div style={{ position: 'relative', marginBottom: '16px' }}>
           <div
+            className="bg-black text-white rounded-3xl shadow-2xl p-4 border-2 border-black flex items-center"
             style={{
               display: 'flex',
               alignItems: 'center',
               background: '#000000',
-              border: '2px solid rgba(0, 144, 255, 0.5)',
-              borderRadius: '2.5rem',
-              padding: '4px 20px',
+              border: '2px solid #000000',
+              borderRadius: '1.5rem',
+              padding: '6px 20px',
               boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.65)',
               transition: 'all 0.2s ease'
             }}
           >
-            <span style={{ fontSize: '16px', color: '#0090ff', marginRight: '10px', fontWeight: '900' }}>🔍</span>
+            <span style={{ fontSize: '16px', color: '#00ff41', marginRight: '10px', fontWeight: '900' }}>🔍</span>
             <input
               type="text"
               placeholder="Search classmates @handle..."
@@ -448,26 +450,30 @@ export default function Explore({
         {/* ======================================================== */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
 
-          {/* ACCORDION 2: LEGENDS (BATCH CAPTAINS) */}
+          {/* ACCORDION 2: LEGENDS (BATCH CAPTAINS) - Pitch Black */}
           <div
+            className="bg-black text-white rounded-3xl shadow-2xl p-5 mb-4 border-2 border-black overflow-hidden"
             style={{
-              background: '#09090b',
-              border: '1.5px solid #27272a',
-              borderRadius: '20px',
+              background: '#000000',
+              border: '2px solid #000000',
+              borderRadius: '1.5rem',
               overflow: 'hidden',
-              boxShadow: 'none'
+              boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.65)',
+              padding: '20px',
+              marginBottom: '16px'
             }}
           >
             <button
               type="button"
               onClick={() => toggleAccordion('legends')}
+              className="w-full flex items-center justify-between bg-black text-white border-0 cursor-pointer text-left p-0"
               style={{
                 width: '100%',
-                padding: '16px',
+                padding: 0,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                background: '#09090b',
+                background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
                 textAlign: 'left'
@@ -613,21 +619,24 @@ export default function Explore({
 
           {/* ACCORDION 3: CLASS RANK (STRICTLY LOGGED-IN INSTITUTE & CLASS) */}
           <div
+            className="bg-[#00ff41] rounded-3xl shadow-2xl p-5 mb-4 border-2 border-black overflow-hidden"
             style={{
-              background: 'transparent',
-              border: 'none',
-              borderBottom: '1px solid #27272a',
-              borderRadius: 0,
-              boxShadow: 'none',
+              background: '#00ff41',
+              borderRadius: '1.5rem',
+              boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.65)',
+              border: '2px solid #000000',
+              padding: '20px',
+              marginBottom: '16px',
               overflow: 'hidden'
             }}
           >
             <button
               type="button"
               onClick={() => toggleAccordion('classRank')}
+              className="w-full flex items-center justify-between bg-transparent border-0 cursor-pointer text-left p-0"
               style={{
                 width: '100%',
-                padding: '14px 4px',
+                padding: 0,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -637,22 +646,23 @@ export default function Explore({
                 textAlign: 'left'
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Users size={19} strokeWidth={1.8} color="#ffffff" />
-                  <span style={{ fontSize: '15px', fontWeight: '950', color: '#ffffff', letterSpacing: '-0.3px' }}>
+              <div className="flex flex-col items-start" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <div className="flex items-center gap-2.5" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Users size={20} strokeWidth={2.4} color="#000000" className="text-black" />
+                  <span className="text-black font-bold" style={{ fontSize: '15px', fontWeight: '950', color: '#000000', letterSpacing: '-0.3px' }}>
                     Class Rank
                   </span>
                 </div>
-                <span style={{ fontSize: '11.5px', color: '#a1a1aa', fontWeight: '700', marginTop: '2px', paddingLeft: '29px' }}>
+                <span className="text-gray-900 font-bold" style={{ fontSize: '11.5px', color: '#111827', fontWeight: '800', marginTop: '2px', paddingLeft: '30px' }}>
                   {currentUserInstitute} • {currentUserStream}
                 </span>
               </div>
               <span
+                className="text-black font-black"
                 style={{
                   fontSize: '13px',
                   fontWeight: '900',
-                  color: '#ffffff',
+                  color: '#000000',
                   transform: openAccordion === 'classRank' ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.2s ease'
                 }}
@@ -668,9 +678,18 @@ export default function Explore({
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.22, ease: 'easeInOut' }}
-                  style={{ overflow: 'hidden', borderTop: '1px solid #27272a' }}
+                  style={{ overflow: 'hidden', borderTop: '2px solid rgba(0, 0, 0, 0.15)', marginTop: '16px', paddingTop: '16px' }}
                 >
-                  <div style={{ padding: '12px 16px 16px 16px' }}>
+                  <div
+                    style={{
+                      background: '#000000',
+                      borderRadius: '1rem',
+                      padding: '16px',
+                      color: '#ffffff',
+                      border: '1px solid #18181b',
+                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
+                    }}
+                  >
                     <div
                       style={{
                         padding: '8px 12px',
@@ -681,7 +700,7 @@ export default function Explore({
                         textAlign: 'left'
                       }}
                     >
-                      <span style={{ fontSize: '11.5px', color: '#e4e4e7', fontWeight: '800' }}>
+                      <span style={{ fontSize: '11.5px', color: '#00ff41', fontWeight: '800' }}>
                         📍 Isolated to {currentUserInstitute} • {currentUserStream} students only
                       </span>
                     </div>
@@ -726,7 +745,7 @@ export default function Explore({
                                     width: '26px',
                                     fontSize: '14px',
                                     fontWeight: '950',
-                                    color: idx === 0 ? '#ffffff' : '#a1a1aa',
+                                    color: idx === 0 ? '#00ff41' : '#a1a1aa',
                                     textAlign: 'left'
                                   }}
                                 >
@@ -765,21 +784,24 @@ export default function Explore({
 
           {/* ACCORDION 4: SCHOOL RANK / INSTITUTE-WIDE LEADERBOARD */}
           <div
+            className="bg-[#00ff41] rounded-3xl shadow-2xl p-5 mb-4 border-2 border-black overflow-hidden"
             style={{
-              background: 'transparent',
-              border: 'none',
-              borderBottom: '1px solid #27272a',
-              borderRadius: 0,
-              boxShadow: 'none',
+              background: '#00ff41',
+              borderRadius: '1.5rem',
+              boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.65)',
+              border: '2px solid #000000',
+              padding: '20px',
+              marginBottom: '16px',
               overflow: 'hidden'
             }}
           >
             <button
               type="button"
               onClick={() => toggleAccordion('allBathinda')}
+              className="w-full flex items-center justify-between bg-transparent border-0 cursor-pointer text-left p-0"
               style={{
                 width: '100%',
-                padding: '14px 4px',
+                padding: 0,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -789,22 +811,23 @@ export default function Explore({
                 textAlign: 'left'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <School size={19} strokeWidth={1.8} color="#ffffff" />
-                <div>
-                  <div style={{ fontSize: '15px', fontWeight: '950', color: '#ffffff', letterSpacing: '-0.3px' }}>
+              <div className="flex items-center gap-2.5" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <School size={20} strokeWidth={2.4} color="#000000" className="text-black" />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <div className="text-black font-bold" style={{ fontSize: '15px', fontWeight: '950', color: '#000000', letterSpacing: '-0.3px' }}>
                     School Rank
                   </div>
-                  <div style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '700', marginTop: '1px' }}>
+                  <div className="text-gray-900 font-bold" style={{ fontSize: '11px', color: '#111827', fontWeight: '800', marginTop: '1px' }}>
                     {currentUserInstitute} • Institute-wide Leaderboard
                   </div>
                 </div>
               </div>
               <span
+                className="text-black font-black"
                 style={{
                   fontSize: '13px',
                   fontWeight: '900',
-                  color: '#ffffff',
+                  color: '#000000',
                   transform: openAccordion === 'allBathinda' ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.2s ease'
                 }}
@@ -820,9 +843,18 @@ export default function Explore({
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.22, ease: 'easeInOut' }}
-                  style={{ overflow: 'hidden', borderTop: '1px solid #27272a' }}
+                  style={{ overflow: 'hidden', borderTop: '2px solid rgba(0, 0, 0, 0.15)', marginTop: '16px', paddingTop: '16px' }}
                 >
-                  <div style={{ padding: '12px 16px 16px 16px' }}>
+                  <div
+                    style={{
+                      background: '#000000',
+                      borderRadius: '1rem',
+                      padding: '16px',
+                      color: '#ffffff',
+                      border: '1px solid #18181b',
+                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
+                    }}
+                  >
                     <p style={{ margin: '0 0 12px 0', fontSize: '12px', fontWeight: '700', color: '#a1a1aa', textAlign: 'left' }}>
                       Rankings strictly isolated to {currentUserInstitute} students.
                     </p>
@@ -857,7 +889,7 @@ export default function Explore({
                                   width: '26px',
                                   fontSize: '14px',
                                   fontWeight: '950',
-                                  color: idx === 0 ? '#ffffff' : '#a1a1aa',
+                                  color: idx === 0 ? '#00ff41' : '#a1a1aa',
                                   textAlign: 'left'
                                 }}
                               >
