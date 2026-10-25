@@ -213,10 +213,11 @@ export default function Explore({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '8px 0 120px 0',
+        padding: '8px 0 calc(120px + env(safe-area-inset-bottom, 20px)) 0',
         boxSizing: 'border-box',
         background: 'transparent',
-        color: '#ffffff'
+        color: '#ffffff',
+        overflowX: 'hidden'
       }}
     >
       {/* SCREEN FOCUS CONTAINER */}
@@ -370,11 +371,12 @@ export default function Explore({
                     No classmates found for "{searchQuery}"
                   </div>
                 ) : (
-                  searchResults.map(user => {
+                  searchResults.map((user, idx) => {
                     const status = requestStatusMap[user.id] || user.friendshipStatus;
+                    const searchKey = user.id || `search-${user.handle || 'user'}-${idx}`;
                     return (
                       <div
-                        key={user.id}
+                        key={searchKey}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -398,7 +400,7 @@ export default function Explore({
                               </div>
                             )}
                           <div style={{ textAlign: 'left' }}>
-                            <span style={{ fontSize: '13.5px', fontWeight: '900', color: '#ffffff', display: 'block' }}>
+                            <span style={{ fontSize: '13.5px', fontWeight: '950', color: '#ffffff', display: 'block' }}>
                               {user.name || `@${user.handle}`}
                             </span>
                             <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '600' }}>
@@ -410,11 +412,11 @@ export default function Explore({
                         {/* Request Action Button */}
                         <div>
                           {status === 'accepted' ? (
-                            <span style={{ fontSize: '11px', color: '#10b981', fontWeight: '900', padding: '4px 8px' }}>
+                            <span style={{ fontSize: '11px', color: '#10b981', fontWeight: '900', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', minHeight: '36px' }}>
                               ✓ Friends
                             </span>
                           ) : status === 'pending' || status === 'sending' ? (
-                            <span style={{ fontSize: '11px', color: '#f59e0b', fontWeight: '800', padding: '4px 8px' }}>
+                            <span style={{ fontSize: '11px', color: '#f59e0b', fontWeight: '800', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', minHeight: '36px' }}>
                               ⏳ Sent
                             </span>
                           ) : (
@@ -422,14 +424,19 @@ export default function Explore({
                               whileTap={{ scale: 0.92 }}
                               onClick={() => handleSendFriendRequest(user.id)}
                               style={{
-                                padding: '7px 14px',
-                                borderRadius: '10px',
+                                padding: '8px 16px',
+                                minHeight: '44px',
+                                minWidth: '44px',
+                                borderRadius: '12px',
                                 border: 'none',
                                 background: '#ffffff',
                                 color: '#000000',
                                 fontSize: '12px',
                                 fontWeight: '900',
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
                               }}
                             >
                               + Add
@@ -466,9 +473,10 @@ export default function Explore({
             <button
               type="button"
               onClick={() => toggleAccordion('legends')}
-              className="w-full flex items-center justify-between bg-black text-white border-0 cursor-pointer text-left p-0"
+              className="w-full flex items-center justify-between bg-black text-white border-0 cursor-pointer text-left p-0 min-h-[48px]"
               style={{
                 width: '100%',
+                minHeight: '48px',
                 padding: 0,
                 display: 'flex',
                 alignItems: 'center',
@@ -533,14 +541,18 @@ export default function Explore({
                         <button
                           onClick={() => navigate('/captains')}
                           style={{
-                            padding: '10px 20px',
+                            padding: '12px 20px',
+                            minHeight: '44px',
                             background: '#ffffff',
                             color: '#000000',
                             border: 'none',
                             borderRadius: '12px',
                             fontSize: '12.5px',
                             fontWeight: '900',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
                           }}
                         >
                           Apply for Batch Captain ➔
@@ -550,7 +562,7 @@ export default function Explore({
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         {legends.map((legend, idx) => (
                           <div
-                            key={legend.id || idx}
+                            key={legend.id || `legend-${legend.handle || 'cap'}-${idx}`}
                             onClick={() => onViewPublicProfile && onViewPublicProfile(legend.id)}
                             style={{
                               display: 'flex',
@@ -633,9 +645,10 @@ export default function Explore({
             <button
               type="button"
               onClick={() => toggleAccordion('classRank')}
-              className="w-full flex items-center justify-between bg-transparent border-0 cursor-pointer text-left p-0"
+              className="w-full flex items-center justify-between bg-transparent border-0 cursor-pointer text-left p-0 min-h-[48px]"
               style={{
                 width: '100%',
+                minHeight: '48px',
                 padding: 0,
                 display: 'flex',
                 alignItems: 'center',
@@ -724,7 +737,7 @@ export default function Explore({
                           const isMe = student.id === currentUser?.id;
                           return (
                             <div
-                              key={student.id || idx}
+                              key={student.id || `class-rank-${student.handle || 'student'}-${idx}`}
                               onClick={() => onViewPublicProfile && onViewPublicProfile(student.id)}
                               style={{
                                 display: 'flex',
@@ -798,9 +811,10 @@ export default function Explore({
             <button
               type="button"
               onClick={() => toggleAccordion('allBathinda')}
-              className="w-full flex items-center justify-between bg-transparent border-0 cursor-pointer text-left p-0"
+              className="w-full flex items-center justify-between bg-transparent border-0 cursor-pointer text-left p-0 min-h-[48px]"
               style={{
                 width: '100%',
+                minHeight: '48px',
                 padding: 0,
                 display: 'flex',
                 alignItems: 'center',
@@ -871,7 +885,7 @@ export default function Explore({
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         {leaderboard.map((student, idx) => (
                           <div
-                            key={student.id || idx}
+                            key={student.id || `school-rank-${student.handle || 'student'}-${idx}`}
                             onClick={() => onViewPublicProfile && onViewPublicProfile(student.id)}
                             style={{
                               display: 'flex',

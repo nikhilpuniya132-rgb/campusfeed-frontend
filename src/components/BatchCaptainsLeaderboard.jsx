@@ -452,7 +452,9 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
             id="captains-class-dropdown"
             value={gradeFilter}
             onChange={(e) => {
-              if (window.navigator?.vibrate) window.navigator.vibrate(8);
+              if (typeof window !== 'undefined' && window.navigator?.vibrate) {
+                try { window.navigator.vibrate(8); } catch (_) {}
+              }
               setGradeFilter(e.target.value);
             }}
             style={{
@@ -612,7 +614,7 @@ export default function BatchCaptainsLeaderboard({ user, API, onBack, renderProf
 
                 return (
                   <div
-                    key={captain.id || idx}
+                    key={captain.id || `captain-rank-${captain.handle || idx}-${idx}`}
                     style={{
                       background: isCurrent ? '#eff6ff' : '#f9fafb',
                       border: isCurrent ? '1px solid #bfdbfe' : '1px solid #e5e7eb',

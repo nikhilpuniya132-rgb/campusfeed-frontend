@@ -22,7 +22,7 @@ import InstituteCombobox, { findHubForInstitute } from './components/InstituteCo
 import Landing from './components/Landing';
 import Signup from './components/Signup';
 import CustomPollSubmit from './components/CustomPollSubmit';
-import { handleShare } from './utils/share';
+import { handleShare, showAppToast } from './utils/share';
 import { isJuniorUser } from './constants/classes';
 import { Plus, Heart, Home, Search, Crown, User } from 'lucide-react';
 
@@ -31,7 +31,7 @@ import { supabase } from './supabase';
 import { useNavigate } from './useNavigate';
 
 const API = import.meta.env.VITE_BACKEND_URL || (
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
     ? 'http://localhost:5000/api'
     : 'https://campusfeed-backend-po4g.onrender.com/api'
 );
@@ -156,10 +156,10 @@ export default function App() {
   const [activePlan, setActivePlan] = useState('weekly'); 
   const [showManualLogin, setShowManualLogin] = useState(false);
   const navigate = useNavigate();
-  const [currentRoute, setCurrentRoute] = useState(() => window.location.pathname.replace(/^\//, ''));
+  const [currentRoute, setCurrentRoute] = useState(() => (typeof window !== 'undefined' ? window.location.pathname.replace(/^\//, '') : ''));
 
   const [view, setView] = useState(() => {
-    const path = window.location.pathname.replace(/^\//, '');
+    const path = typeof window !== 'undefined' ? window.location.pathname.replace(/^\//, '') : '';
     if (path === 'feed' || path === 'poll') return 'poll';
     if (path === 'inbox') return 'inbox';
     if (path === 'pro' || path === 'vip') return 'pro';
@@ -619,28 +619,34 @@ export default function App() {
     setIsOnboarding(false);
     userRef.current = null;
     
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: (typeof window !== 'undefined' && window.location.origin.includes('localhost'))
-          ? `${window.location.origin}/onboarding`
-          : 'https://centerinsider.vercel.app/onboarding',
-        skipBrowserRedirect: false,
-        queryParams: {
-          prompt: 'select_account',
-          access_type: 'offline'
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: (typeof window !== 'undefined' && window.location.origin.includes('localhost'))
+            ? `${window.location.origin}/onboarding`
+            : 'https://centerinsider.vercel.app/onboarding',
+          skipBrowserRedirect: false,
+          queryParams: {
+            prompt: 'select_account',
+            access_type: 'offline'
+          },
         },
-      },
-    });
-    
-    if (error) {
-      alert("Login Failed: " + error.message);
-      setIsAuthenticating(false);
-      return;
-    }
+      });
+      
+      if (error) {
+        showAppToast("Login Failed: " + error.message, 'error');
+        setIsAuthenticating(false);
+        return;
+      }
 
-    if (data?.url) {
-      window.location.assign(data.url);
+      if (data?.url) {
+        window.location.assign(data.url);
+      }
+    } catch (authErr) {
+      console.error('Supabase Google OAuth failure:', authErr);
+      showAppToast("Unable to connect to Google Auth. Please try again.", 'error');
+      setIsAuthenticating(false);
     }
   };
 
@@ -783,9 +789,11 @@ export default function App() {
       setOptions(shuffled);
       setCooldownUntil(cooldownTime);
     } catch (e) {
-      console.error(e);
+      console.error('Error loading next poll:', e);
+      showAppToast('Could not refresh questions. Retrying...', 'error');
+    } finally {
+      setIsLoadingPoll(false);
     }
-    setIsLoadingPoll(false);
   };
 
   const shuffleCurrentOptions = () => {
@@ -1500,8 +1508,9 @@ export default function App() {
         </main>
 
         <nav
-          className="fixed bottom-6 left-6 right-6 max-w-md mx-auto bg-black/90 backdrop-blur-md rounded-full shadow-2xl flex justify-around py-4 border border-gray-800 z-50"
+          className="fixed left-6 right-6 max-w-md mx-auto bg-black/90 backdrop-blur-md rounded-full shadow-2xl flex justify-around py-4 border border-gray-800 z-50"
           style={{
+            bottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))',
             boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.75), 0 0 25px rgba(0, 0, 0, 0.5)'
           }}
           aria-label="Main Navigation"
@@ -1918,9 +1927,9 @@ export default function App() {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '360px', overflowY: 'auto', paddingRight: '4px' }}>
-                    {pendingRequests.map(req => (
+                    {pendingRequests.map((req, reqIdx) => (
                       <motion.div
-                        key={req.friendshipId}
+                        key={req.friendshipId || req.id || `pending-req-${req.requester?.handle || reqIdx}`}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         style={{
@@ -1950,6 +1959,8 @@ export default function App() {
                             whileTap={{ scale: 0.94 }}
                             onClick={() => handleFriendResponse(req.friendshipId, 'accept')}
                             style={{
+                              minHeight: '44px',
+                              minWidth: '44px',
                               padding: '8px 14px',
                               borderRadius: '12px',
                               border: 'none',
@@ -1967,6 +1978,8 @@ export default function App() {
                             whileTap={{ scale: 0.94 }}
                             onClick={() => handleFriendResponse(req.friendshipId, 'decline')}
                             style={{
+                              minHeight: '44px',
+                              minWidth: '44px',
                               padding: '8px 12px',
                               borderRadius: '12px',
                               border: '1px solid #27272a',

@@ -258,7 +258,7 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
 
               return (
                 <div
-                  key={classmate.id}
+                  key={classmate.id || `friend-res-${classmate.handle || classmate.name || idx}-${idx}`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -367,7 +367,9 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
                         whileTap={{ scale: 0.95 }}
                         onClick={() => sendFriendRequest(classmate)}
                         style={{
-                          padding: '6px 12px',
+                          minHeight: '44px',
+                          minWidth: '44px',
+                          padding: '8px 14px',
                           borderRadius: '12px',
                           border: 'none',
                           background: '#000000',
@@ -385,7 +387,9 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
                         whileTap={{ scale: 0.94 }}
                         onClick={() => sendFriendRequest(classmate)}
                         style={{
-                          padding: '7px 14px',
+                          minHeight: '44px',
+                          minWidth: '44px',
+                          padding: '8px 16px',
                           borderRadius: '12px',
                           border: 'none',
                           background: '#000000',

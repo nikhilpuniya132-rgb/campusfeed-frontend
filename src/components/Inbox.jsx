@@ -134,8 +134,10 @@ export default function Inbox({
               aria-label="Share Link"
               title="Share Invite Link"
               style={{
-                width: '38px',
-                height: '38px',
+                width: '44px',
+                height: '44px',
+                minWidth: '44px',
+                minHeight: '44px',
                 borderRadius: '50%',
                 border: '1px solid #e5e7eb',
                 background: '#000000',
@@ -188,7 +190,7 @@ export default function Inbox({
 
             return (
               <motion.div
-                key={vote.voteId || index}
+                key={vote.voteId || vote.id || `inbox-flame-${vote.timestamp || vote.created_at || index}-${index}`}
                 whileHover={{ scale: 1.015 }}
                 whileTap={{ scale: 0.985 }}
                 onClick={() => onOpenReveal(vote)}

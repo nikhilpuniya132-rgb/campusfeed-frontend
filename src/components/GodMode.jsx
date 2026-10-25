@@ -74,13 +74,16 @@ export default function GodMode({
 
   const showToast = (msg) => {
     setToastMessage(msg);
-    if (window.navigator?.vibrate) window.navigator.vibrate(10);
+    if (typeof window !== 'undefined' && window.navigator?.vibrate) {
+      try { window.navigator.vibrate(10); } catch (_) {}
+    }
     setTimeout(() => setToastMessage(''), 2500);
   };
 
   const handleNativeShare = async () => {
     const referralCode = (user?.invite_code || user?.handle || user?.id || 'friend').replace(/^@/, '').trim();
-    const shareUrl = `${window.location.origin}/?ref=${encodeURIComponent(referralCode)}`;
+    const baseOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://centerinsider.vercel.app';
+    const shareUrl = `${baseOrigin}/?ref=${encodeURIComponent(referralCode)}`;
     const streamText = user?.stream || user?.grade || 'your coaching batch';
     const shareText = `Someone from ${streamText} voted for you on CenterInsider! Join to see who: ${shareUrl}`;
 

@@ -50,6 +50,56 @@ export const showShareToast = (message = 'Link copied to clipboard!') => {
   }, 2500);
 };
 
+export const showAppToast = (message = '', type = 'info') => {
+  if (typeof document === 'undefined' || !message) return;
+  const existing = document.getElementById('ci-app-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'ci-app-toast';
+  const icon = type === 'error' ? '⚠️ ' : (type === 'success' ? '✓ ' : 'ℹ️ ');
+  toast.innerText = `${icon}${message}`;
+  const isErr = type === 'error';
+  Object.assign(toast.style, {
+    position: 'fixed',
+    top: '32px',
+    left: '50%',
+    transform: 'translateX(-50%) translateY(-8px)',
+    background: isErr ? '#1c0d0d' : '#18181b',
+    color: isErr ? '#ff4d4f' : (type === 'success' ? '#10b981' : '#ffffff'),
+    border: `1px solid ${isErr ? 'rgba(255, 77, 79, 0.4)' : '#27272a'}`,
+    padding: '12px 20px',
+    borderRadius: '24px',
+    fontSize: '13px',
+    fontWeight: '700',
+    letterSpacing: '0.2px',
+    zIndex: '999999',
+    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.85)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    maxWidth: '90vw',
+    textAlign: 'center',
+    pointerEvents: 'none',
+    opacity: '0',
+    transition: 'opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+  });
+
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+  });
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(-8px)';
+    setTimeout(() => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 250);
+  }, 3200);
+};
+
 export const handleShare = async (data = {}) => {
   const sharePayload = {
     title: data.title || 'CenterInsider',

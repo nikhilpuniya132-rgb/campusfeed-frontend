@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CLASS_OPTIONS, getGradeFromStream } from '../constants/classes';
 import { Sparkles, ShieldCheck, Flame } from 'lucide-react';
+import { showAppToast } from '../utils/share';
 
 export default function Signup({
   loginWithGoogle,
@@ -50,7 +51,7 @@ export default function Signup({
 
   const handleGoogleLogin = async () => {
     if (!selectedClass || !CLASS_OPTIONS.includes(selectedClass)) {
-      alert("Please select your class first.");
+      showAppToast("Please select your class first.", 'error');
       return;
     }
     try {
@@ -58,8 +59,11 @@ export default function Signup({
       localStorage.setItem('campus_grade', getGradeFromStream(selectedClass));
       localStorage.setItem('pre_selected_school', 'St. Kabir Convent Senior Secondary');
       localStorage.setItem('campus_institute', 'St. Kabir Convent Senior Secondary');
-    } catch (_) {}
-    await loginWithGoogle('St. Kabir Convent Senior Secondary');
+      await loginWithGoogle('St. Kabir Convent Senior Secondary');
+    } catch (e) {
+      console.error('Google login error in Signup:', e);
+      showAppToast("Could not complete login. Please try again.", 'error');
+    }
   };
 
   const navTabs = ['Premium', 'Connect', 'Polls', 'Notes'];
@@ -152,8 +156,13 @@ export default function Signup({
                   border: 'none',
                   borderRadius: '999px',
                   padding: '8px 18px',
+                  minHeight: '44px',
+                  minWidth: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   fontSize: '13px',
-                  fontWeight: '900',
+                  fontWeight: '950',
                   letterSpacing: '-0.01em',
                   cursor: 'pointer',
                   transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -306,6 +315,7 @@ export default function Signup({
             disabled={isAuthenticating}
             style={{
               width: '100%',
+              minHeight: '52px',
               background: isAuthenticating ? '#27272a' : '#0df259',
               color: '#000000',
               border: '2px solid #000000',

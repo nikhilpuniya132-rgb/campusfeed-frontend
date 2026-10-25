@@ -518,13 +518,13 @@ export default function Feed({
    * records the vote in the database without throwing unhandled exceptions or crashing the app.
    */
   const handleVoteClick = (candidate) => {
-    if (!candidate) return;
+    if (!candidate || optimisticVoted) return;
 
     setShuffleCount(0);
     setSelectedCandidate(candidate);
     setOptimisticVoted(true);
 
-    if (window.navigator?.vibrate) {
+    if (typeof window !== 'undefined' && window.navigator?.vibrate) {
       try { window.navigator.vibrate(15); } catch (_) {}
     }
 
@@ -641,8 +641,8 @@ export default function Feed({
 
   const handleSharePoll = async () => {
     const handle = (user?.invite_code || user?.handle || 'campus').replace(/^@/, '');
-    const questionText = currentPoll?.question || 'Who is most likely to crack NEET?';
-    const shareUrl = `${window.location.origin}/?ref=${encodeURIComponent(handle)}`;
+    const baseOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://centerinsider.vercel.app';
+    const shareUrl = `${baseOrigin}/?ref=${encodeURIComponent(handle)}`;
     const shareText = `🔥 "${questionText}"\nVote anonymously on CenterInsider!`;
 
     await handleShare({
@@ -830,9 +830,9 @@ export default function Feed({
             onClick={handleSharePoll}
             title="Share Question"
             aria-label="Share Question"
-            className="absolute top-7 right-7 w-9 h-9 rounded-full bg-zinc-900/90 border border-zinc-700/80 flex items-center justify-center text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors cursor-pointer"
+            className="absolute top-6 right-6 w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-zinc-900/90 border border-zinc-700/80 flex items-center justify-center text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors cursor-pointer"
           >
-            <Share2 size={16} strokeWidth={2} />
+            <Share2 size={18} strokeWidth={2.2} />
           </motion.button>
 
           {/* Poll Tag Badge */}
@@ -861,7 +861,7 @@ export default function Feed({
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSharePoll}
-                className="bg-white text-black font-extrabold text-xs px-5 py-2.5 rounded-full inline-flex items-center gap-2 cursor-pointer hover:bg-zinc-200 transition-colors border-none"
+                className="bg-white text-black font-extrabold text-xs px-5 py-3 min-h-[44px] rounded-full inline-flex items-center gap-2 cursor-pointer hover:bg-zinc-200 transition-colors border-none"
               >
                 <Share2 size={14} strokeWidth={2.2} />
                 <span>Invite Classmates</span>
@@ -871,9 +871,10 @@ export default function Feed({
             <div className="grid grid-cols-2 gap-3.5 mb-6">
               {displayOptions.map((opt, idx) => {
                 const neon = NEON_OPTION_THEMES[idx % NEON_OPTION_THEMES.length];
+                const optKey = opt.id || `opt-${opt.handle || opt.name || idx}-${idx}`;
                 return (
                   <motion.button
-                    key={opt.id}
+                    key={optKey}
                     whileTap={{ scale: 0.95 }}
                     whileHover={{ scale: 1.02 }}
                     transition={{ duration: 0.12 }}
@@ -921,7 +922,7 @@ export default function Feed({
                 whileTap={{ scale: 0.94 }}
                 disabled={shuffleCount >= 3}
                 onClick={handleShuffleClick}
-                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-bold transition-all border ${
+                className={`flex items-center gap-1.5 px-4 py-3 min-h-[44px] rounded-full text-xs font-bold transition-all border ${
                   shuffleCount >= 3
                     ? 'bg-zinc-950 text-zinc-600 border-zinc-800 cursor-not-allowed opacity-50'
                     : 'bg-zinc-900/90 text-zinc-200 border-zinc-700/80 hover:border-zinc-500 cursor-pointer'
@@ -935,7 +936,7 @@ export default function Feed({
             <motion.button
               whileTap={{ scale: 0.94 }}
               onClick={handleSkipClick}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-bold bg-zinc-900/90 text-zinc-200 border border-zinc-700/80 hover:border-zinc-500 cursor-pointer ml-auto transition-all"
+              className="flex items-center gap-1.5 px-4 py-3 min-h-[44px] rounded-full text-xs font-bold bg-zinc-900/90 text-zinc-200 border border-zinc-700/80 hover:border-zinc-500 cursor-pointer ml-auto transition-all"
             >
               <span>Skip</span>
               <span>⏭️</span>

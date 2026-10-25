@@ -230,7 +230,8 @@ export default function Profile({
 
   const referralUserId = user?.id || user?.google_id || user?.handle || 'user';
   const my_invite_code = (user?.invite_code || user?.handle || referralUserId).replace(/^@/, '').trim();
-  const inviteLink = `${window.location.origin}/signup?ref=${encodeURIComponent(referralUserId)}`;
+  const baseOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://centerinsider.vercel.app';
+  const inviteLink = `${baseOrigin}/signup?ref=${encodeURIComponent(referralUserId)}`;
 
   const handleNativeShare = async () => {
     const hubText = user?.stream || 'your coaching batch';
@@ -804,7 +805,9 @@ export default function Profile({
                 value={editStream}
                 onChange={(e) => {
                   const val = e.target.value;
-                  if (window.navigator?.vibrate) window.navigator.vibrate(8);
+                  if (typeof window !== 'undefined' && window.navigator?.vibrate) {
+                    try { window.navigator.vibrate(8); } catch (_) {}
+                  }
                   setEditStream(val);
                   setEditGrade(val.includes('10') ? '10' : val.includes('12') ? '12' : '11');
                 }}
