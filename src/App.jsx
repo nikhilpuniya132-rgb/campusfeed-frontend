@@ -142,7 +142,9 @@ export default function App() {
     } catch (_) {}
     return null;
   });
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [isProfileChecking, setIsProfileChecking] = useState(true);
+  const isProfileLoading = isProfileChecking;
+  const setIsProfileLoading = setIsProfileChecking;
   const [profileData, setProfileData] = useState(null);
   const setProfile = setProfileData;
   const [user, setUser] = useState(null);
@@ -357,7 +359,11 @@ export default function App() {
   // SUPABASE ROUTE GUARD: AUTHENTICATED USER VERIFICATION
   // =========================================================
   const routeUserInstant = async (currentSession) => {
-    if (!currentSession?.user) return;
+    if (!currentSession?.user) {
+      setIsProfileChecking(false);
+      return;
+    }
+    setIsProfileChecking(true);
     const sessionUser = currentSession.user;
     const currentSessionId = sessionUser.id;
     const currentSessionEmail = sessionUser.email || '';
@@ -366,8 +372,6 @@ export default function App() {
     if (typeof window !== 'undefined' && window.location.hash) {
       window.history.replaceState(null, '', window.location.pathname);
     }
-
-    setIsProfileLoading(true);
 
     try {
       // 1. When user is authenticated, query Supabase public `users` table for `handle` and `grade` using user ID
@@ -447,7 +451,7 @@ export default function App() {
     } catch (err) {
       console.error('Route guard check error:', err);
     } finally {
-      setIsProfileLoading(false);
+      setIsProfileChecking(false);
       setIsAuthLoading(false);
       setIsCheckingSession(false);
       setIsAuthenticating(false);
@@ -457,48 +461,51 @@ export default function App() {
   };
 
   useEffect(() => {
-    // 1. Initial session check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && !hasHandledAuthRedirectRef.current) {
-        hasHandledAuthRedirectRef.current = true;
-        setSession(session);
-        routeUserInstant(session);
-      } else if (!session?.user && !isOAuthRedirectUrl()) {
+    let isMounted = true;
+
+    const handleSessionAuth = (activeSession) => {
+      if (!isMounted) return;
+      if (activeSession?.user) {
+        setIsProfileChecking(true);
+        setSession(activeSession);
+        // Automatic and immediate trigger without waiting for any user interaction
+        routeUserInstant(activeSession);
+      } else {
+        setSession(null);
+        setIsProfileChecking(false);
         setIsAuthLoading(false);
-        setIsProfileLoading(false);
         setIsCheckingSession(false);
         setIsAuthenticating(false);
       }
+    };
+
+    // 1. Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleSessionAuth(session);
     }).catch(() => {
-      setIsAuthLoading(false);
-      setIsProfileLoading(false);
-      setIsCheckingSession(false);
-      setIsAuthenticating(false);
+      if (isMounted) {
+        setIsProfileChecking(false);
+        setIsAuthLoading(false);
+        setIsCheckingSession(false);
+        setIsAuthenticating(false);
+      }
     });
 
-    // 2. Auth state change listener with zero blocking queries
+    // 2. Auth state change listener (fires immediately on OAuth redirect and token events)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
-        if (!hasHandledAuthRedirectRef.current) {
-          hasHandledAuthRedirectRef.current = true;
-          setSession(session);
-          routeUserInstant(session);
-        } else {
-          setSession(session);
-        }
-      } else if (event === 'TOKEN_REFRESHED') {
-        setSession(session);
+      if (!isMounted) return;
+      if (session?.user) {
+        handleSessionAuth(session);
       } else if (event === 'SIGNED_OUT') {
-        hasHandledAuthRedirectRef.current = false;
         setUser(null);
         setProfileData(null);
         setSession(null);
         setOnboardingGoogleUser(null);
         userRef.current = null;
         setIsOnboarding(false);
+        setIsProfileChecking(false);
         localStorage.removeItem('campus_cached_user');
         setIsAuthLoading(false);
-        setIsProfileLoading(false);
         setIsCheckingSession(false);
         setIsAuthenticating(false);
 
@@ -510,6 +517,7 @@ export default function App() {
     });
 
     return () => {
+      isMounted = false;
       subscription?.unsubscribe();
     };
   }, []);
@@ -1150,26 +1158,22 @@ export default function App() {
   // =========================================================
   // SUPABASE ROUTE GUARD: CONDITIONAL RENDERING BLOCK
   // =========================================================
-  // 1. Query Supabase users table data check: If either handle or grade is missing (NULL),
-  //    force the app state to render <OnboardingWizard />.
-  // 2. The user is trapped in <OnboardingWizard /> and cannot see the main feed until both fields exist.
-  // 3. If both fields exist, allow them to view the main application components normally.
   const userHandle = (user?.handle || user?.username || '').trim();
   const userGrade = (user?.grade !== null && user?.grade !== undefined) ? String(user.grade).trim() : '';
-  const hasCompletedProfile = Boolean(user && userHandle !== '' && userGrade !== '');
-  const isProfileIncomplete = Boolean(user && !hasCompletedProfile);
-  const isSessionWithoutProfile = Boolean(session?.user && !hasCompletedProfile);
+  const isFullyValidated = Boolean(user && userHandle !== '' && userGrade !== '');
+  const isProfileIncomplete = Boolean(user && !isFullyValidated);
+  const isSessionWithoutProfile = Boolean(session?.user && !isFullyValidated);
 
-  // Blocking conditional render: If session exists AND isProfileLoading is true,
-  // return full-screen loading UI. Do NOT render Feed or OnboardingWizard until isProfileLoading is false.
-  if (session && isProfileLoading) {
+  // 1. Requirement 5: If session exists AND isProfileChecking is true, return a full-screen loading UI
+  if (session && isProfileChecking) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-black text-white text-lg font-bold">
-        Loading...
+      <div className="flex h-screen w-screen items-center justify-center bg-black text-white text-lg font-bold">
+        Loading profile...
       </div>
     );
   }
 
+  // 2. OAuth redirect loader while initial fragment processes
   if (hasOAuthFragment || isAuthenticating || (isAuthLoading && isOAuthRedirectUrl() && !isOnboarding)) {
     return (
       <div
@@ -1217,8 +1221,7 @@ export default function App() {
     );
   }
 
-  // Route Guard: If either handle or grade is missing (NULL), force app state to render <OnboardingWizard />
-  // User is trapped in <OnboardingWizard /> and CANNOT see the main feed until those fields are saved
+  // 3. Route Guard: If user is in onboarding or profile lacks handle/grade, trap them in <OnboardingWizard />
   if (isOnboarding || isProfileIncomplete || isSessionWithoutProfile) {
     if (window.location.pathname !== '/onboarding') {
       window.history.replaceState(null, '', '/onboarding');
@@ -1244,7 +1247,8 @@ export default function App() {
     );
   }
 
-  if (!user) {
+  // 4. Requirement 6: NEVER allow Feed or main app components to render unless fully validated
+  if (!user || !isFullyValidated) {
     if (currentRoute === 'signup' || (typeof window !== 'undefined' && window.location.pathname.replace(/^\//, '') === 'signup')) {
       return (
         <Signup
