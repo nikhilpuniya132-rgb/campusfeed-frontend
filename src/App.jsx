@@ -126,6 +126,7 @@ const pageVariants = {
 export default function App() {
   const [session, setSession] = useState(null);
   const [isAppReady, setIsAppReady] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [profileData, setProfileData] = useState(null);
   const setProfile = setProfileData;
   const [user, setUser] = useState(null);
@@ -358,8 +359,9 @@ export default function App() {
         return;
       }
 
-      // 2. If a session exists: KEEP isAppReady(false). Wait for Supabase users table fetch
+      // 2. If a session exists: KEEP isAppReady(false) and isProfileLoading(true)
       setIsAppReady(false);
+      setIsProfileLoading(true);
       setSession(activeSession);
 
       const sessionUser = activeSession.user;
@@ -446,8 +448,9 @@ export default function App() {
       } catch (err) {
         console.error('Session processing error:', err);
       } finally {
-        // 3. ONLY after database responds (complete or incomplete), set isAppReady(true)
+        // 3. ONLY after database responds (complete or incomplete), release loading
         if (isMounted) {
+          setIsProfileLoading(false);
           setIsAppReady(true);
           setIsAuthLoading(false);
           setIsCheckingSession(false);
@@ -1137,12 +1140,16 @@ export default function App() {
   // =========================================================
   // SUPABASE ROUTE GUARD: ATOMIC GATEKEEPING STRUCTURE
   // =========================================================
+  // =========================================================
+  // SUPABASE ROUTE GUARD: ABSOLUTE GATEKEEPER STRUCTURE
+  // =========================================================
   const userHandle = (user?.handle || user?.username || '').trim();
   const userGrade = (user?.grade !== null && user?.grade !== undefined) ? String(user.grade).trim() : '';
-  const isProfileIncomplete = Boolean(isOnboarding || (session && (!user || !userHandle || !userGrade)));
+  const hasCompletedProfile = Boolean(user && userHandle !== '' && userGrade !== '');
+  const isProfileIncomplete = Boolean(isOnboarding || !hasCompletedProfile);
 
-  // GATE 1: If app is not ready (waiting for auth or profile check), show loading screen
-  if (!isAppReady) {
+  // 1. Loading Lock
+  if (!isAppReady || isProfileLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-black text-white">
         Loading...
@@ -1150,7 +1157,7 @@ export default function App() {
     );
   }
 
-  // GATE 2: If no session exists, show Landing (or Signup if currently on /signup)
+  // 2. Auth Lock
   if (!session) {
     if (currentRoute === 'signup' || (typeof window !== 'undefined' && window.location.pathname.replace(/^\//, '') === 'signup')) {
       return (
@@ -1192,8 +1199,9 @@ export default function App() {
     );
   }
 
-  // GATE 3: If session exists and profile is incomplete (missing handle or grade), force OnboardingWizard
-  if (isProfileIncomplete) {
+  // 3. Onboarding Absolute Lock
+  if (isProfileIncomplete || !hasCompletedProfile) {
+    // Ensure URL matches the trap visually
     if (window.location.pathname !== '/onboarding') {
       window.history.replaceState(null, '', '/onboarding');
     }
@@ -1207,6 +1215,7 @@ export default function App() {
       avatar: activeAuthUser.user_metadata?.avatar_url || activeAuthUser.user_metadata?.picture || '',
       preSelectedSchool: preSchool
     } : null);
+    // Completely block the rest of the app from rendering
     return (
       <div className="gas-landing-wrapper bg-[#eaff00] min-h-screen w-full flex items-center justify-center" style={{ background: '#eaff00' }}>
         <OnboardingWizard
@@ -1218,8 +1227,8 @@ export default function App() {
     );
   }
 
-  // GATE 4: Main app layout (Feed, polls, dock, etc.)
-  // Strictly unreachable unless isAppReady === true, session exists, and profile is complete!
+  // 4. Custom Router Release
+  // ONLY if the profile is 100% complete do we render the Feed and Header
 
   const activeRoute = (view === 'poll' || view === 'feed')
     ? '/feed'
