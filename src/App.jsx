@@ -307,7 +307,8 @@ export default function App() {
       const currentUser = userRef.current;
       const currentHandle = (currentUser?.handle || currentUser?.username || '').trim();
       const currentGrade = (currentUser?.grade !== null && currentUser?.grade !== undefined) ? String(currentUser.grade).trim() : '';
-      if ((currentUser || session?.user) && (!currentHandle || !currentGrade)) {
+      const currentInstitute = (currentUser?.institute || currentUser?.school || '').trim();
+      if ((currentUser || session?.user) && (!currentHandle || !currentGrade || !currentInstitute)) {
         setIsOnboarding(true);
         window.history.replaceState(null, '', '/onboarding');
         return;
@@ -387,8 +388,9 @@ export default function App() {
 
         const hasHandle = Boolean(data?.handle && String(data.handle).trim() !== '');
         const hasGrade = Boolean(data?.grade !== null && data?.grade !== undefined && String(data.grade).trim() !== '');
+        const hasInstitute = Boolean((data?.institute || data?.school) && String(data?.institute || data?.school).trim() !== '');
 
-        if (!data || !hasHandle || !hasGrade) {
+        if (!data || !hasHandle || !hasGrade || !hasInstitute) {
           // Profile incomplete: prepare Google user context and mark for Onboarding
           const cleanRef = (
             localStorage.getItem('referred_by') ||
@@ -504,19 +506,20 @@ export default function App() {
     };
   }, []);
 
-  // Persistent Auth Routing & Guard: If a logged-in user has completed both handle and grade,
-  // allow normal navigation to /feed. If half-onboarded (missing handle or grade), force them to stay in /onboarding.
+  // Persistent Auth Routing & Guard: If a logged-in user has completed handle, grade, and institute,
+  // allow normal navigation to /feed. If half-onboarded, force them to stay in /onboarding.
   useEffect(() => {
     const currentUser = userRef.current;
     const userHandle = (currentUser?.handle || currentUser?.username || '').trim();
     const userGrade = (currentUser?.grade !== null && currentUser?.grade !== undefined) ? String(currentUser.grade).trim() : '';
-    if (currentUser && userHandle && userGrade) {
+    const userInstitute = (currentUser?.institute || currentUser?.school || '').trim();
+    if (currentUser && userHandle && userGrade && userInstitute) {
       const currentPath = window.location.pathname.replace(/^\//, '');
       if (!currentPath || currentPath === 'landing' || currentPath === 'onboarding' || currentPath === 'signup') {
         window.history.replaceState(null, '', '/feed');
         setView('poll');
       }
-    } else if (session?.user && (!userHandle || !userGrade)) {
+    } else if (session?.user && (!userHandle || !userGrade || !userInstitute)) {
       if (window.location.pathname !== '/onboarding') {
         window.history.replaceState(null, '', '/onboarding');
       }
@@ -531,12 +534,13 @@ export default function App() {
       const currentUser = userRef.current;
       const userHandle = (currentUser?.handle || currentUser?.username || '').trim();
       const userGrade = (currentUser?.grade !== null && currentUser?.grade !== undefined) ? String(currentUser.grade).trim() : '';
-      if (session?.user && (!userHandle || !userGrade)) {
+      const userInstitute = (currentUser?.institute || currentUser?.school || '').trim();
+      if (session?.user && (!userHandle || !userGrade || !userInstitute)) {
         setIsOnboarding(true);
         window.history.replaceState(null, '', '/onboarding');
         return;
       }
-      if (currentUser && userHandle && userGrade) {
+      if (currentUser && userHandle && userGrade && userInstitute) {
         if (!path || path === 'landing') {
           window.history.replaceState(null, '', '/feed');
           setView('poll');
@@ -1138,18 +1142,17 @@ export default function App() {
   );
 
   // =========================================================
-  // SUPABASE ROUTE GUARD: ATOMIC GATEKEEPING STRUCTURE
   // =========================================================
-  // =========================================================
-  // SUPABASE ROUTE GUARD: ABSOLUTE GATEKEEPER STRUCTURE
+  // SUPABASE ROUTE GUARD: ABSOLUTE TOP-LEVEL GATEKEEPER
   // =========================================================
   const userHandle = (user?.handle || user?.username || '').trim();
   const userGrade = (user?.grade !== null && user?.grade !== undefined) ? String(user.grade).trim() : '';
-  const hasCompletedProfile = Boolean(user && userHandle !== '' && userGrade !== '');
+  const userInstitute = (user?.institute || user?.school || '').trim();
+  const hasCompletedProfile = Boolean(user && userHandle !== '' && userGrade !== '' && userInstitute !== '');
   const isProfileIncomplete = Boolean(isOnboarding || !hasCompletedProfile);
 
-  // 1. Loading Lock
-  if (!isAppReady || isProfileLoading) {
+  // 1. Loading State
+  if (isProfileLoading || isAppReady === false) {
     return (
       <div className="flex h-screen items-center justify-center bg-black text-white">
         Loading...
@@ -1157,7 +1160,7 @@ export default function App() {
     );
   }
 
-  // 2. Auth Lock
+  // 2. Auth State
   if (!session) {
     if (currentRoute === 'signup' || (typeof window !== 'undefined' && window.location.pathname.replace(/^\//, '') === 'signup')) {
       return (
@@ -1199,10 +1202,10 @@ export default function App() {
     );
   }
 
-  // 3. Onboarding Absolute Lock
+  // 3. THE TOP-LEVEL LOCK (Must happen BEFORE tabs or feed are rendered)
   if (isProfileIncomplete || !hasCompletedProfile) {
     // Ensure URL matches the trap visually
-    if (window.location.pathname !== '/onboarding') {
+    if (typeof window !== 'undefined' && window.location.pathname !== '/onboarding') {
       window.history.replaceState(null, '', '/onboarding');
     }
     const activeAuthUser = session?.user;
@@ -1215,7 +1218,7 @@ export default function App() {
       avatar: activeAuthUser.user_metadata?.avatar_url || activeAuthUser.user_metadata?.picture || '',
       preSelectedSchool: preSchool
     } : null);
-    // Completely block the rest of the app from rendering
+    // Notice there is no <Header>, no <BottomNav>, nothing else.
     return (
       <div className="gas-landing-wrapper bg-[#eaff00] min-h-screen w-full flex items-center justify-center" style={{ background: '#eaff00' }}>
         <OnboardingWizard
@@ -1227,7 +1230,7 @@ export default function App() {
     );
   }
 
-  // 4. Custom Router Release
+  // 4. The Main App (Only reachable if profile is 100% complete)
   // ONLY if the profile is 100% complete do we render the Feed and Header
 
   const activeRoute = (view === 'poll' || view === 'feed')
