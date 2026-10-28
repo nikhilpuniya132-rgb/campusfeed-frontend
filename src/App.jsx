@@ -124,7 +124,24 @@ const pageVariants = {
 };
 
 export default function App() {
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('-auth-token'))) {
+          const item = localStorage.getItem(key);
+          if (item) {
+            const parsed = JSON.parse(item);
+            if (parsed?.user || parsed?.access_token) {
+              return parsed;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
+  });
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
   const setProfile = setProfileData;
@@ -1143,8 +1160,17 @@ export default function App() {
   const isProfileIncomplete = Boolean(user && !hasCompletedProfile);
   const isSessionWithoutProfile = Boolean(session?.user && !hasCompletedProfile);
 
-  // If user is authenticated while profile is still loading from Supabase, show auth loader
-  if (hasOAuthFragment || isAuthenticating || (session?.user && isProfileLoading && !isOnboarding && !hasCompletedProfile) || (isAuthLoading && isOAuthRedirectUrl() && !isOnboarding)) {
+  // Blocking conditional render: If session exists AND isProfileLoading is true,
+  // return full-screen loading UI. Do NOT render Feed or OnboardingWizard until isProfileLoading is false.
+  if (session && isProfileLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-black text-white text-lg font-bold">
+        Loading...
+      </div>
+    );
+  }
+
+  if (hasOAuthFragment || isAuthenticating || (isAuthLoading && isOAuthRedirectUrl() && !isOnboarding)) {
     return (
       <div
         id="campus-oauth-loader"
