@@ -6,10 +6,10 @@ import './App.css';
 // UI Components
 import HamsterLoader from './components/HamsterLoader';
 
-// Lazily loaded components
+// Lazily loaded components for Global Code Splitting
 const TiltCard = lazy(() => import('./components/TiltCard'));
 const HolographicCard = lazy(() => import('./components/HolographicCard'));
-import OnboardingWizard from './components/OnboardingWizard';
+const OnboardingWizard = lazy(() => import('./components/OnboardingWizard'));
 const FriendSearch = lazy(() => import('./components/FriendSearch'));
 const Profile = lazy(() => import('./components/Profile'));
 const Inbox = lazy(() => import('./components/Inbox'));
@@ -17,11 +17,43 @@ const Feed = lazy(() => import('./components/Feed'));
 const Explore = lazy(() => import('./components/Explore'));
 const BatchCaptainsLeaderboard = lazy(() => import('./components/BatchCaptainsLeaderboard'));
 const GodMode = lazy(() => import('./components/GodMode'));
+const Landing = lazy(() => import('./components/Landing'));
+const Signup = lazy(() => import('./components/Signup'));
 import AddToHomeScreenGuide from './components/AddToHomeScreenGuide';
 import InstituteCombobox, { findHubForInstitute } from './components/InstituteCombobox';
-import Landing from './components/Landing';
-import Signup from './components/Signup';
 import CustomPollSubmit from './components/CustomPollSubmit';
+
+// Minimal CSS Spinners for lazy fallbacks (zero extra bundle weight)
+const MinimalSpinner = ({ color = '#00ff41' }) => (
+  <div style={{ display: 'flex', height: '100vh', width: '100%', alignItems: 'center', justifyContent: 'center', background: '#000000' }}>
+    <div
+      style={{
+        width: '32px',
+        height: '32px',
+        border: '3px solid rgba(255, 255, 255, 0.15)',
+        borderTopColor: color,
+        borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite'
+      }}
+    />
+    <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+  </div>
+);
+
+const MinimalInlineSpinner = () => (
+  <div style={{ display: 'flex', height: '100%', width: '100%', alignItems: 'center', justifyContent: 'center', minHeight: '260px' }}>
+    <div
+      style={{
+        width: '28px',
+        height: '28px',
+        border: '3px solid rgba(255, 255, 255, 0.2)',
+        borderTopColor: '#ffffff',
+        borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite'
+      }}
+    />
+  </div>
+);
 import { handleShare, showAppToast } from './utils/share';
 import { isJuniorUser } from './constants/classes';
 import { Plus, Heart, Home, Search, Crown, User } from 'lucide-react';
@@ -756,8 +788,9 @@ export default function App() {
       // 1. Direct Supabase query strictly isolated to current user's institute
       if (supabase && user?.institute) {
         try {
+          const targetPollTable = String(targetGrade || user?.grade || '11').trim() === '9' ? 'polls2' : 'polls';
           const [{ data: dbPolls }, { data: dbOptions }] = await Promise.all([
-            supabase.from('polls').select('*'),
+            supabase.from(targetPollTable).select('*'),
             supabase
               .from('users')
               .select('id, handle, name, avatar, profile_pic, grade, stream, institute, coaching_hub, is_pro, ring, selected_ring')
@@ -1164,41 +1197,45 @@ export default function App() {
   if (!session) {
     if (currentRoute === 'signup' || (typeof window !== 'undefined' && window.location.pathname.replace(/^\//, '') === 'signup')) {
       return (
-        <Signup
-          loginWithGoogle={loginWithGoogle}
-          isAuthenticating={isAuthenticating}
-          legalView={legalView}
-          setLegalView={setLegalView}
-        />
+        <Suspense fallback={<MinimalSpinner />}>
+          <Signup
+            loginWithGoogle={loginWithGoogle}
+            isAuthenticating={isAuthenticating}
+            legalView={legalView}
+            setLegalView={setLegalView}
+          />
+        </Suspense>
       );
     }
 
     return (
-      <Landing
-        grade={grade}
-        setGrade={setGrade}
-        stream={stream}
-        setStream={setStream}
-        institute={institute}
-        setInstitute={setInstitute}
-        coachingHub={coachingHub}
-        setCoachingHub={setCoachingHub}
-        loginWithGoogle={loginWithGoogle}
-        isAuthenticating={isAuthenticating}
-        showManualLogin={showManualLogin}
-        setShowManualLogin={setShowManualLogin}
-        handle={handle}
-        setHandle={setHandle}
-        password={password}
-        setPassword={setPassword}
-        login={login}
-        legalView={legalView}
-        setLegalView={setLegalView}
-        activePlan={activePlan}
-        setActivePlan={setActivePlan}
-        handleUpgrade={handleUpgrade}
-        installPrompt={installPrompt}
-      />
+      <Suspense fallback={<MinimalSpinner />}>
+        <Landing
+          grade={grade}
+          setGrade={setGrade}
+          stream={stream}
+          setStream={setStream}
+          institute={institute}
+          setInstitute={setInstitute}
+          coachingHub={coachingHub}
+          setCoachingHub={setCoachingHub}
+          loginWithGoogle={loginWithGoogle}
+          isAuthenticating={isAuthenticating}
+          showManualLogin={showManualLogin}
+          setShowManualLogin={setShowManualLogin}
+          handle={handle}
+          setHandle={setHandle}
+          password={password}
+          setPassword={setPassword}
+          login={login}
+          legalView={legalView}
+          setLegalView={setLegalView}
+          activePlan={activePlan}
+          setActivePlan={setActivePlan}
+          handleUpgrade={handleUpgrade}
+          installPrompt={installPrompt}
+        />
+      </Suspense>
     );
   }
 
@@ -1221,11 +1258,13 @@ export default function App() {
     // Notice there is no <Header>, no <BottomNav>, nothing else.
     return (
       <div className="gas-landing-wrapper bg-[#eaff00] min-h-screen w-full flex items-center justify-center" style={{ background: '#eaff00' }}>
-        <OnboardingWizard
-          googleUser={wizardUser}
-          API={API}
-          onComplete={handleOnboardingComplete}
-        />
+        <Suspense fallback={<MinimalSpinner color="#000000" />}>
+          <OnboardingWizard
+            googleUser={wizardUser}
+            API={API}
+            onComplete={handleOnboardingComplete}
+          />
+        </Suspense>
       </div>
     );
   }
@@ -1336,7 +1375,7 @@ export default function App() {
         </header>
 
         <main className="gas-app-body flex-1 flex flex-col justify-center overflow-hidden">
-          <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%' }}><HamsterLoader message="Loading..." /></div>}>
+          <Suspense fallback={<MinimalInlineSpinner />}>
             <AnimatePresence mode="wait">
               {view === 'poll' && (
                 <motion.div key="poll" {...pageVariants} className="flex-1 flex flex-col justify-center w-full overflow-hidden">

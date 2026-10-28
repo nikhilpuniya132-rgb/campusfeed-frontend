@@ -239,21 +239,59 @@ const buildPollBatch = (pollsList, candidatesList, targetGrade, count = 12, isJu
   return batch;
 };
 
-const fetchPollsFromSupabase = async (limit = 30, isJunior = false) => {
-  const fallback = isJunior ? JUNIOR_FALLBACK_POLLS : SENIOR_FALLBACK_POLLS;
+// Helper: Stale-While-Revalidate SessionStorage Cache Keys & Accessors
+const getPollsCacheKey = (grade) => `cached_polls_grade_${String(grade || '11').trim()}`;
+
+const getCachedFeed = (grade) => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = sessionStorage.getItem(getPollsCacheKey(grade));
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Error reading feed cache from sessionStorage:', e);
+  }
+  return null;
+};
+
+const setCachedFeed = (grade, data) => {
+  try {
+    if (typeof window !== 'undefined' && Array.isArray(data)) {
+      sessionStorage.setItem(getPollsCacheKey(grade), JSON.stringify(data));
+    }
+  } catch (e) {
+    console.warn('Error writing feed cache to sessionStorage:', e);
+  }
+};
+
+/**
+ * Dynamic Table Routing:
+ * - If grade === '9', fetch from 'polls2' table.
+ * - If grade === '10', '11', or '12', fetch from 'polls' table WITHOUT trying to filter by a 'grade' column.
+ */
+const fetchPollsFromSupabase = async (grade = '11', limit = 30) => {
+  const normalizedGrade = String(grade || '').trim();
+  const isGrade9 = normalizedGrade === '9';
+  const targetTable = isGrade9 ? 'polls2' : 'polls';
+  const fallback = isGrade9 ? JUNIOR_FALLBACK_POLLS : SENIOR_FALLBACK_POLLS;
+
   if (!supabase) return fallback;
   try {
-    const targetTable = isJunior ? 'polls2' : 'polls';
     const { data, error } = await supabase
       .from(targetTable)
       .select('*')
       .limit(limit);
+
     if (error) throw error;
     if (data && data.length > 0) {
       return data;
     }
   } catch (err) {
-    console.warn(`Supabase fetch from ${isJunior ? 'polls2' : 'polls'} fallback:`, err);
+    console.warn(`Supabase fetch from ${targetTable} fallback:`, err);
   }
   return fallback;
 };
@@ -308,10 +346,19 @@ export default function Feed({
   onUpdateUser,
   API
 }) {
-  // Local Batch Queue State
-  const [pollQueue, setPollQueue] = useState([]);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [activeGradeFilter, setActiveGradeFilter] = useState(propGradeFilter || 'all');
+  const effectiveGrade = String(
+    activeGradeFilter && activeGradeFilter !== 'all'
+      ? activeGradeFilter
+      : (user?.grade || '11')
+  ).trim();
+
+  // Instant SWR Cache Resolution: if cached feed exists for this grade, render immediately
+  const initialCachedBatch = getCachedFeed(effectiveGrade);
+
+  // Local Batch Queue State
+  const [pollQueue, setPollQueue] = useState(() => initialCachedBatch || []);
+  const [isInitialLoading, setIsInitialLoading] = useState(() => !initialCachedBatch || initialCachedBatch.length === 0);
   const [shuffleCount, setShuffleCount] = useState(0);
   const [optimisticVoted, setOptimisticVoted] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
@@ -325,6 +372,7 @@ export default function Feed({
   const initialFetchedRef = useRef(false);
   const lastFetchedUserRef = useRef('');
   const lastFetchedInstituteRef = useRef('');
+  const lastFetchedGradeRef = useRef('');
   const autoAdvanceRef = useRef(null);
 
   const userId = user?.id;
@@ -363,14 +411,16 @@ export default function Feed({
     };
   }, []);
 
-  // INITIAL BATCH PRE-FETCH: exactly once on mount per user/institute, zero loops
+  // INITIAL BATCH PRE-FETCH / STALE-WHILE-REVALIDATE:
+  // On mount: if cached, instantly renders UI and quietly fires background fetch
   useEffect(() => {
     if (!userId) return;
 
     if (
       initialFetchedRef.current &&
       lastFetchedUserRef.current === userId &&
-      lastFetchedInstituteRef.current === userInstitute
+      lastFetchedInstituteRef.current === userInstitute &&
+      lastFetchedGradeRef.current === effectiveGrade
     ) {
       return;
     }
@@ -378,19 +428,27 @@ export default function Feed({
     initialFetchedRef.current = true;
     lastFetchedUserRef.current = userId;
     lastFetchedInstituteRef.current = userInstitute;
+    lastFetchedGradeRef.current = effectiveGrade;
 
-    fetchInitialBatch(userInstitute, userId, activeGradeFilter);
-  }, [userId, userInstitute]);
+    const cached = getCachedFeed(effectiveGrade);
+    const hasCache = Boolean(cached && cached.length > 0);
 
-  const fetchInitialBatch = async (institute, voterId, grade) => {
+    // If cache exists, silently fire Supabase fetch in background without loading screen
+    fetchInitialBatch(userInstitute, userId, effectiveGrade, hasCache);
+  }, [userId, userInstitute, effectiveGrade]);
+
+  const fetchInitialBatch = async (institute, voterId, grade, isSilent = false) => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
-    setIsInitialLoading(true);
+    if (!isSilent) {
+      setIsInitialLoading(true);
+    }
 
     try {
+      const isJuniorCohort = String(grade).trim() === '9' || isJunior;
       const [polls, liveCandidates] = await Promise.all([
-        fetchPollsFromSupabase(30, isJunior),
-        fetchCandidatesFromSupabase(institute, voterId, isJunior)
+        fetchPollsFromSupabase(grade, 30),
+        fetchCandidatesFromSupabase(institute, voterId, isJuniorCohort)
       ]);
 
       // Mix live registered Supabase users with the stKabirSeedNames
@@ -399,17 +457,29 @@ export default function Feed({
       pollsPoolRef.current = polls;
       candidatesPoolRef.current = combinedCandidates;
 
-      const batch = buildPollBatch(polls, combinedCandidates, grade, 12, isJunior);
-      setPollQueue(batch);
+      const freshBatch = buildPollBatch(polls, combinedCandidates, grade, 12, isJuniorCohort);
+
+      // Overwrite cache quietly
+      setCachedFeed(grade, freshBatch);
+
+      // Quietly update state without layout shift:
+      // If user already has a card on screen, preserve index 0 and refresh upcoming deck
+      setPollQueue(prevQueue => {
+        if (!prevQueue || prevQueue.length === 0) {
+          return freshBatch;
+        }
+        return [prevQueue[0], ...freshBatch.slice(1)];
+      });
     } catch (err) {
       console.error('Initial batch fetch failed:', err);
-      const fallbackList = isJunior ? JUNIOR_FALLBACK_POLLS : SENIOR_FALLBACK_POLLS;
+      const isJuniorCohort = String(grade).trim() === '9' || isJunior;
+      const fallbackList = isJuniorCohort ? JUNIOR_FALLBACK_POLLS : SENIOR_FALLBACK_POLLS;
       const combinedCandidates = candidatesPoolRef.current?.length > 0 
         ? candidatesPoolRef.current 
         : getCombinedCandidatePool([], stKabirSeedNames, user);
       candidatesPoolRef.current = combinedCandidates;
-      const fallbackBatch = buildPollBatch(fallbackList, combinedCandidates, grade, 12, isJunior);
-      setPollQueue(fallbackBatch);
+      const fallbackBatch = buildPollBatch(fallbackList, combinedCandidates, grade, 12, isJuniorCohort);
+      setPollQueue(prev => prev && prev.length > 0 ? prev : fallbackBatch);
     } finally {
       setIsInitialLoading(false);
       isFetchingRef.current = false;
@@ -417,26 +487,31 @@ export default function Feed({
   };
 
   // BACKGROUND REFILL: silently pre-fetches next 10 polls when remaining <= 3
-  const triggerBackgroundRefill = async (grade = activeGradeFilter) => {
+  const triggerBackgroundRefill = async (grade = effectiveGrade) => {
     if (isRefillingRef.current) return;
     isRefillingRef.current = true;
 
     try {
+      const isJuniorCohort = String(grade).trim() === '9' || isJunior;
       let polls = pollsPoolRef.current;
       if (!polls || polls.length === 0) {
-        polls = await fetchPollsFromSupabase(30, isJunior);
+        polls = await fetchPollsFromSupabase(grade, 30);
         pollsPoolRef.current = polls;
       }
 
       let candidates = candidatesPoolRef.current;
       if (!candidates || candidates.length < 4) {
-        const live = await fetchCandidatesFromSupabase(userInstitute, userId, isJunior);
+        const live = await fetchCandidatesFromSupabase(userInstitute, userId, isJuniorCohort);
         candidates = getCombinedCandidatePool(live, stKabirSeedNames, user);
         candidatesPoolRef.current = candidates;
       }
 
-      const nextBatch = buildPollBatch(polls, candidates, grade, 10, isJunior);
-      setPollQueue(prev => [...prev, ...nextBatch]);
+      const nextBatch = buildPollBatch(polls, candidates, grade, 10, isJuniorCohort);
+      setPollQueue(prev => {
+        const merged = [...prev, ...nextBatch];
+        setCachedFeed(grade, merged);
+        return merged;
+      });
     } catch (err) {
       console.warn('Background refill error:', err);
     } finally {
@@ -448,8 +523,9 @@ export default function Feed({
   const advanceToNextPoll = () => {
     setPollQueue(prevQueue => {
       const nextQueue = prevQueue.slice(1);
+      setCachedFeed(effectiveGrade, nextQueue);
       if (nextQueue.length <= 3 && !isRefillingRef.current) {
-        triggerBackgroundRefill(activeGradeFilter);
+        triggerBackgroundRefill(effectiveGrade);
       }
       return nextQueue;
     });
@@ -611,27 +687,34 @@ export default function Feed({
     }
     setIsClassesOpen(false);
     setActiveGradeFilter(selectedGrade);
+    setOptimisticVoted(false);
+    setSelectedCandidate(null);
+    setShuffleCount(0);
 
-    // Instantly rebuild local queue from in-memory pool
-    const pool = candidatesPoolRef.current?.length >= 4
-      ? candidatesPoolRef.current
-      : getCombinedCandidatePool([], stKabirSeedNames, user);
-    candidatesPoolRef.current = pool;
-
-    if (pollsPoolRef.current.length > 0) {
+    const cached = getCachedFeed(selectedGrade);
+    if (cached && cached.length > 0) {
+      setPollQueue(cached);
+      setIsInitialLoading(false);
+      // Silently revalidate in background
+      fetchInitialBatch(userInstitute, userId, selectedGrade, true);
+    } else if (pollsPoolRef.current.length > 0) {
+      const pool = candidatesPoolRef.current?.length >= 4
+        ? candidatesPoolRef.current
+        : getCombinedCandidatePool([], stKabirSeedNames, user);
+      candidatesPoolRef.current = pool;
+      const isJuniorCohort = String(selectedGrade).trim() === '9' || isJunior;
       const newBatch = buildPollBatch(
         pollsPoolRef.current,
         pool,
         selectedGrade,
         12,
-        isJunior
+        isJuniorCohort
       );
       setPollQueue(newBatch);
-      setOptimisticVoted(false);
-      setSelectedCandidate(null);
-      setShuffleCount(0);
+      setCachedFeed(selectedGrade, newBatch);
+      fetchInitialBatch(userInstitute, userId, selectedGrade, true);
     } else {
-      fetchInitialBatch(userInstitute, userId, selectedGrade);
+      fetchInitialBatch(userInstitute, userId, selectedGrade, false);
     }
 
     if (onLoadNextPoll) {
