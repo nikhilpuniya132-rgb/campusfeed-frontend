@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import HamsterLoader from './HamsterLoader';
 import { supabase } from '../supabase';
 import { useNavigate } from '../useNavigate';
 import { CLASS_OPTIONS, getGradeFromStream } from '../constants/classes';
@@ -303,6 +304,21 @@ export default function OnboardingWizard({ googleUser, API, onComplete }) {
     sessionStorage.clear();
     window.location.href = '/';
   };
+
+  if (isSubmitting) {
+    return (
+      <div
+        className="min-h-screen w-full bg-[#eaff00] flex flex-col justify-center items-center p-4"
+        style={{
+          minHeight: '100svh',
+          width: '100%',
+          background: '#eaff00'
+        }}
+      >
+        <HamsterLoader message="Entering CampusFeed..." color="#000000" />
+      </div>
+    );
+  }
 
   return (
     <div

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import HamsterLoader from './HamsterLoader';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 import { handleShare } from '../utils/share';
 import { Share2, UserSearch } from 'lucide-react';
@@ -1201,8 +1202,8 @@ export default function Profile({
                   </div>
 
                   {isLoadingSpies ? (
-                    <div style={{ padding: '24px 0', textAlign: 'center', color: '#a1a1aa', fontSize: '13px', fontWeight: '700' }}>
-                      Detecting profile visitors...
+                    <div style={{ padding: '24px 0', display: 'flex', justifyContent: 'center' }}>
+                      <HamsterLoader message="Detecting profile visitors..." color="#ffffff" />
                     </div>
                   ) : spiesList.length === 0 ? (
                     <div style={{ padding: '24px 10px', textAlign: 'center', color: '#a1a1aa' }}>

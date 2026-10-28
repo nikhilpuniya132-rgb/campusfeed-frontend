@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import HamsterLoader from './HamsterLoader';
 
 const AURA_RINGS = {
   none: { border: 'none', boxShadow: 'none' },
@@ -220,8 +221,8 @@ export default function FriendSearch({ currentUser, API, supabase, onFriendAdded
       </div>
 
       {isLoading && (
-        <div style={{ textAlign: 'center', padding: '16px 0', color: '#6b7280', fontSize: '13px' }}>
-          Searching campus directory...
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0' }}>
+          <HamsterLoader message="Searching campus directory..." color="#ffffff" />
         </div>
       )}
 

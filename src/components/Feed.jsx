@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SkeletonPollCard from './SkeletonPollCard';
+import HamsterLoader from './HamsterLoader';
 import CooldownScreen from './CooldownScreen';
 import SponsorBanner from './SponsorBanner';
 import { handleShare } from '../utils/share';
@@ -786,7 +787,9 @@ export default function Feed({
       </div>
 
       {isLoading ? (
-        <SkeletonPollCard />
+        <div className="w-full flex-1 flex items-center justify-center min-h-[360px]">
+          <HamsterLoader message="Loading fresh polls..." color="#000000" />
+        </div>
       ) : isVoteFinished ? (
         /* Optimistic Success Screen - Floating Pitch Black Card */
         <motion.div

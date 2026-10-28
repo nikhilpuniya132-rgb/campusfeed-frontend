@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import HamsterLoader from './HamsterLoader';
 import { CLASS_OPTIONS, getGradeFromStream } from '../constants/classes';
 import { Sparkles, Flame, Zap, Crown, UserPlus, Heart, MessageSquare, Bell, Shield, X, Mail } from 'lucide-react';
 
@@ -230,6 +231,24 @@ export default function Landing({
       </p>
     </div>
   );
+
+  if (isAuthenticating) {
+    return (
+      <div
+        className="flex h-screen w-full items-center justify-center bg-black text-white"
+        style={{
+          minHeight: '100vh',
+          width: '100%',
+          background: '#000000',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <HamsterLoader message="Connecting with Google..." color="#0df259" />
+      </div>
+    );
+  }
 
   return (
     <div

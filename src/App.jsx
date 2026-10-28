@@ -1169,8 +1169,8 @@ export default function App() {
   // 1. Loading State
   if (profileStatus === 'CHECKING' || !isAppReady || isProfileLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-black text-white">
-        Loading...
+      <div className="flex h-screen w-full items-center justify-center bg-black text-white">
+        <HamsterLoader message="Loading CampusFeed..." color="#00ff41" />
       </div>
     );
   }
@@ -1477,7 +1477,9 @@ export default function App() {
                       </div>
                     </div>
                   ) : (
-                    <p>Loading profile...</p>
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '30px 0' }}>
+                      <HamsterLoader message="Loading profile..." color="#ffffff" />
+                    </div>
                   )}
                 </motion.div>
               )}

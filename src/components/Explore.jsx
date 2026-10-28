@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users, School } from 'lucide-react';
 import { useNavigate } from '../useNavigate';
 import ReferralInviteSnippet from './ReferralInviteSnippet';
+import HamsterLoader from './HamsterLoader';
 
 export default function Explore({
   currentUser,
@@ -526,8 +527,8 @@ export default function Explore({
                     </p>
 
                     {isLoadingLegends ? (
-                      <div style={{ padding: '24px 0', textAlign: 'center', color: '#a1a1aa', fontSize: '13px', fontWeight: '700' }}>
-                        Loading Legends...
+                      <div style={{ padding: '24px 0', display: 'flex', justifyContent: 'center' }}>
+                        <HamsterLoader message="Loading Legends..." color="#ffffff" />
                       </div>
                     ) : legends.length === 0 ? (
                       <div style={{ padding: '20px 8px', textAlign: 'center' }}>
@@ -719,8 +720,8 @@ export default function Explore({
                     </div>
 
                     {isLoadingLeaderboard ? (
-                      <div style={{ padding: '24px 0', textAlign: 'center', color: '#a1a1aa', fontSize: '13px', fontWeight: '700' }}>
-                        Calculating class rank...
+                      <div style={{ padding: '24px 0', display: 'flex', justifyContent: 'center' }}>
+                        <HamsterLoader message="Calculating class rank..." color="#ffffff" />
                       </div>
                     ) : classLeaderboard.length === 0 ? (
                       <div style={{ padding: '20px 0', textAlign: 'left' }}>
@@ -874,8 +875,8 @@ export default function Explore({
                     </p>
 
                     {isLoadingLeaderboard ? (
-                      <div style={{ padding: '24px 0', textAlign: 'center', color: '#a1a1aa', fontSize: '13px', fontWeight: '700' }}>
-                        Loading {currentUserInstitute} ranks...
+                      <div style={{ padding: '24px 0', display: 'flex', justifyContent: 'center' }}>
+                        <HamsterLoader message={`Loading ${currentUserInstitute} ranks...`} color="#ffffff" />
                       </div>
                     ) : leaderboard.length === 0 ? (
                       <div style={{ padding: '20px 0', textAlign: 'center', color: '#a1a1aa', fontSize: '13px', fontWeight: '700' }}>
