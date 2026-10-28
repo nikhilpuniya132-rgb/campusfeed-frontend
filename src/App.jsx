@@ -124,27 +124,8 @@ const pageVariants = {
 };
 
 export default function App() {
-  const [session, setSession] = useState(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (key.startsWith('sb-') || key.includes('-auth-token'))) {
-          const item = localStorage.getItem(key);
-          if (item) {
-            const parsed = JSON.parse(item);
-            if (parsed?.user || parsed?.access_token) {
-              return parsed;
-            }
-          }
-        }
-      }
-    } catch (_) {}
-    return null;
-  });
-  const [isProfileChecking, setIsProfileChecking] = useState(true);
-  const isProfileLoading = isProfileChecking;
-  const setIsProfileLoading = setIsProfileChecking;
+  const [session, setSession] = useState(null);
+  const [isAppReady, setIsAppReady] = useState(false);
   const [profileData, setProfileData] = useState(null);
   const setProfile = setProfileData;
   const [user, setUser] = useState(null);
@@ -353,158 +334,152 @@ export default function App() {
     return hash.includes('access_token=') || hash.includes('error=') || search.includes('code=');
   };
 
-  const hasHandledAuthRedirectRef = useRef(false);
-
   // =========================================================
-  // SUPABASE ROUTE GUARD: AUTHENTICATED USER VERIFICATION
+  // AUTH STATE & ATOMIC isAppReady LIFECYCLE
   // =========================================================
-  const routeUserInstant = async (currentSession) => {
-    if (!currentSession?.user) {
-      setIsProfileChecking(false);
-      return;
-    }
-    setIsProfileChecking(true);
-    const sessionUser = currentSession.user;
-    const currentSessionId = sessionUser.id;
-    const currentSessionEmail = sessionUser.email || '';
-
-    // Immediately clean the URL fragment so browser and Supabase do not re-process the hash
-    if (typeof window !== 'undefined' && window.location.hash) {
-      window.history.replaceState(null, '', window.location.pathname);
-    }
-
-    try {
-      // 1. When user is authenticated, query Supabase public `users` table for `handle` and `grade` using user ID
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', currentSessionId)
-        .maybeSingle();
-
-      if (error) {
-        console.warn('Supabase route guard query error:', error);
-      }
-
-      // 2. Check the data: If either handle or grade is missing (NULL)
-      const hasHandle = Boolean(data?.handle && String(data.handle).trim() !== '');
-      const hasGrade = Boolean(data?.grade !== null && data?.grade !== undefined && String(data.grade).trim() !== '');
-
-      if (!data || !hasHandle || !hasGrade) {
-        // Missing (NULL): Force app state to render <OnboardingWizard />
-        const cleanRef = (
-          localStorage.getItem('referred_by') ||
-          sessionStorage.getItem('referred_by') ||
-          localStorage.getItem('campus_ref_code') ||
-          sessionStorage.getItem('campus_ref_code') ||
-          ''
-        ).trim().replace(/^@/, '');
-        const preSchool = (
-          localStorage.getItem('pre_selected_school') ||
-          localStorage.getItem('campus_institute') ||
-          ''
-        ).trim();
-
-        localStorage.removeItem('campus_cached_user');
-
-        const newGoogleUser = {
-          googleId: currentSessionId,
-          id: currentSessionId,
-          email: currentSessionEmail,
-          name: sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || currentSessionEmail?.split('@')[0] || '',
-          avatar: sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '',
-          refCode: cleanRef,
-          referred_by: cleanRef,
-          preSelectedSchool: preSchool,
-          handle: data?.handle || '',
-          grade: data?.grade || null
-        };
-
-        // Trap the user in OnboardingWizard state
-        setOnboardingGoogleUser(newGoogleUser);
-        setUser(null);
-        setProfileData(null);
-        userRef.current = null;
-        setIsOnboarding(true);
-        setCurrentRoute('onboarding');
-
-        window.history.replaceState(null, '', '/onboarding');
-        navigate('/onboarding');
-      } else {
-        // 4. Both fields exist: Allow them to view the main application components normally
-        const userRing = data.selected_ring || data.ring || 'gold';
-        const fullUser = { ...data, ring: userRing, selected_ring: userRing, id: currentSessionId };
-        localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
-        setProfileData(fullUser);
-        setUser(fullUser);
-        userRef.current = fullUser;
-        setIsOnboarding(false);
-        setOnboardingGoogleUser(null);
-        setView('poll');
-        window.history.replaceState(null, '', '/feed');
-        navigate('/feed');
-
-        loadNextPoll(fullUser.grade ? fullUser.grade.toString() : '11', fullUser.id);
-        fetchPendingRequests(fullUser.id);
-        fetchAcceptedFriends(fullUser.id);
-        fetchInbox(fullUser.id);
-      }
-    } catch (err) {
-      console.error('Route guard check error:', err);
-    } finally {
-      setIsProfileChecking(false);
-      setIsAuthLoading(false);
-      setIsCheckingSession(false);
-      setIsAuthenticating(false);
-    }
-
-    syncWithBackend(sessionUser).catch(console.warn);
-  };
-
   useEffect(() => {
     let isMounted = true;
 
-    const handleSessionAuth = (activeSession) => {
+    // Helper to process session and wait for Supabase profile resolution
+    const processSession = async (activeSession) => {
       if (!isMounted) return;
-      if (activeSession?.user) {
-        setIsProfileChecking(true);
-        setSession(activeSession);
-        // Automatic and immediate trigger without waiting for any user interaction
-        routeUserInstant(activeSession);
-      } else {
+
+      // 1. If no session exists: set isAppReady(true) and exit
+      if (!activeSession?.user) {
         setSession(null);
-        setIsProfileChecking(false);
+        setUser(null);
+        setProfileData(null);
+        userRef.current = null;
+        setIsOnboarding(false);
+        setIsAppReady(true);
         setIsAuthLoading(false);
         setIsCheckingSession(false);
         setIsAuthenticating(false);
+        return;
+      }
+
+      // 2. If a session exists: KEEP isAppReady(false). Wait for Supabase users table fetch
+      setIsAppReady(false);
+      setSession(activeSession);
+
+      const sessionUser = activeSession.user;
+      const currentSessionId = sessionUser.id;
+      const currentSessionEmail = sessionUser.email || '';
+
+      // Immediately clean URL fragment so browser and Supabase do not re-process the hash
+      if (typeof window !== 'undefined' && window.location.hash) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+
+      try {
+        // Query Supabase public `users` table for `handle` and `grade` using user ID
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', currentSessionId)
+          .maybeSingle();
+
+        if (error) {
+          console.warn('Supabase profile fetch error:', error);
+        }
+
+        const hasHandle = Boolean(data?.handle && String(data.handle).trim() !== '');
+        const hasGrade = Boolean(data?.grade !== null && data?.grade !== undefined && String(data.grade).trim() !== '');
+
+        if (!data || !hasHandle || !hasGrade) {
+          // Profile incomplete: prepare Google user context and mark for Onboarding
+          const cleanRef = (
+            localStorage.getItem('referred_by') ||
+            sessionStorage.getItem('referred_by') ||
+            localStorage.getItem('campus_ref_code') ||
+            sessionStorage.getItem('campus_ref_code') ||
+            ''
+          ).trim().replace(/^@/, '');
+          const preSchool = (
+            localStorage.getItem('pre_selected_school') ||
+            localStorage.getItem('campus_institute') ||
+            ''
+          ).trim();
+
+          localStorage.removeItem('campus_cached_user');
+
+          const newGoogleUser = {
+            googleId: currentSessionId,
+            id: currentSessionId,
+            email: currentSessionEmail,
+            name: sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || currentSessionEmail?.split('@')[0] || '',
+            avatar: sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '',
+            refCode: cleanRef,
+            referred_by: cleanRef,
+            preSelectedSchool: preSchool,
+            handle: data?.handle || '',
+            grade: data?.grade || null
+          };
+
+          setOnboardingGoogleUser(newGoogleUser);
+          setUser(null);
+          setProfileData(null);
+          userRef.current = null;
+          setIsOnboarding(true);
+          setCurrentRoute('onboarding');
+          window.history.replaceState(null, '', '/onboarding');
+        } else {
+          // Profile complete: set full user and route to feed
+          const userRing = data.selected_ring || data.ring || 'gold';
+          const fullUser = { ...data, ring: userRing, selected_ring: userRing, id: currentSessionId };
+          localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
+          setProfileData(fullUser);
+          setUser(fullUser);
+          userRef.current = fullUser;
+          setIsOnboarding(false);
+          setOnboardingGoogleUser(null);
+          setView('poll');
+          window.history.replaceState(null, '', '/feed');
+
+          loadNextPoll(fullUser.grade ? fullUser.grade.toString() : '11', fullUser.id);
+          fetchPendingRequests(fullUser.id);
+          fetchAcceptedFriends(fullUser.id);
+          fetchInbox(fullUser.id);
+        }
+
+        syncWithBackend(sessionUser).catch(console.warn);
+      } catch (err) {
+        console.error('Session processing error:', err);
+      } finally {
+        // 3. ONLY after database responds (complete or incomplete), set isAppReady(true)
+        if (isMounted) {
+          setIsAppReady(true);
+          setIsAuthLoading(false);
+          setIsCheckingSession(false);
+          setIsAuthenticating(false);
+        }
       }
     };
 
     // 1. Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
-      handleSessionAuth(session);
+      processSession(session);
     }).catch(() => {
       if (isMounted) {
-        setIsProfileChecking(false);
+        setIsAppReady(true);
         setIsAuthLoading(false);
         setIsCheckingSession(false);
         setIsAuthenticating(false);
       }
     });
 
-    // 2. Auth state change listener (fires immediately on OAuth redirect and token events)
+    // 2. Auth state change listener (OAuth callback / sign in / sign out)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
-      if (session?.user) {
-        handleSessionAuth(session);
-      } else if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfileData(null);
         setSession(null);
         setOnboardingGoogleUser(null);
         userRef.current = null;
         setIsOnboarding(false);
-        setIsProfileChecking(false);
         localStorage.removeItem('campus_cached_user');
+        setIsAppReady(true);
         setIsAuthLoading(false);
         setIsCheckingSession(false);
         setIsAuthenticating(false);
@@ -513,6 +488,10 @@ export default function App() {
         if (currentPath === 'feed' || currentPath === 'poll' || currentPath === 'inbox' || currentPath === 'profile') {
           navigate('/');
         }
+      } else if (session?.user) {
+        processSession(session);
+      } else {
+        processSession(null);
       }
     });
 
@@ -1156,99 +1135,23 @@ export default function App() {
   );
 
   // =========================================================
-  // SUPABASE ROUTE GUARD: CONDITIONAL RENDERING BLOCK
+  // SUPABASE ROUTE GUARD: ATOMIC GATEKEEPING STRUCTURE
   // =========================================================
   const userHandle = (user?.handle || user?.username || '').trim();
   const userGrade = (user?.grade !== null && user?.grade !== undefined) ? String(user.grade).trim() : '';
-  const isFullyValidated = Boolean(user && userHandle !== '' && userGrade !== '');
-  const isProfileIncomplete = Boolean(user && !isFullyValidated);
-  const isSessionWithoutProfile = Boolean(session?.user && !isFullyValidated);
+  const isProfileIncomplete = Boolean(isOnboarding || (session && (!user || !userHandle || !userGrade)));
 
-  // 1. Requirement 5: If session exists AND isProfileChecking is true, return a full-screen loading UI
-  if (session && isProfileChecking) {
+  // GATE 1: If app is not ready (waiting for auth or profile check), show loading screen
+  if (!isAppReady) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-black text-white text-lg font-bold">
-        Loading profile...
+      <div className="flex h-screen items-center justify-center bg-black text-white">
+        Loading...
       </div>
     );
   }
 
-  // 2. OAuth redirect loader while initial fragment processes
-  if (hasOAuthFragment || isAuthenticating || (isAuthLoading && isOAuthRedirectUrl() && !isOnboarding)) {
-    return (
-      <div
-        id="campus-oauth-loader"
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: '#000000',
-          color: '#ffffff',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 999999,
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-        }}
-      >
-        <div
-          style={{
-            width: '46px',
-            height: '46px',
-            border: '3px solid rgba(255, 255, 255, 0.12)',
-            borderTopColor: '#ffffff',
-            borderRadius: '50%',
-            animation: 'campusOAuthSpin 0.65s linear infinite'
-          }}
-        />
-        <p
-          style={{
-            marginTop: '22px',
-            fontSize: '15px',
-            fontWeight: '700',
-            letterSpacing: '0.3px',
-            color: '#f4f4f5'
-          }}
-        >
-          Signing in with Google...
-        </p>
-        <style>{`
-          @keyframes campusOAuthSpin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
-    );
-  }
-
-  // 3. Route Guard: If user is in onboarding or profile lacks handle/grade, trap them in <OnboardingWizard />
-  if (isOnboarding || isProfileIncomplete || isSessionWithoutProfile) {
-    if (window.location.pathname !== '/onboarding') {
-      window.history.replaceState(null, '', '/onboarding');
-    }
-    const activeAuthUser = session?.user;
-    const preSchool = (localStorage.getItem('pre_selected_school') || localStorage.getItem('campus_institute') || '').trim();
-    const wizardUser = onboardingGoogleUser || (activeAuthUser ? {
-      googleId: activeAuthUser.id,
-      id: activeAuthUser.id,
-      email: activeAuthUser.email,
-      name: activeAuthUser.user_metadata?.full_name || activeAuthUser.user_metadata?.name || activeAuthUser.email?.split('@')[0] || '',
-      avatar: activeAuthUser.user_metadata?.avatar_url || activeAuthUser.user_metadata?.picture || '',
-      preSelectedSchool: preSchool
-    } : null);
-    return (
-      <div className="gas-landing-wrapper bg-[#eaff00] min-h-screen w-full flex items-center justify-center" style={{ background: '#eaff00' }}>
-        <OnboardingWizard
-          googleUser={wizardUser}
-          API={API}
-          onComplete={handleOnboardingComplete}
-        />
-      </div>
-    );
-  }
-
-  // 4. Requirement 6: NEVER allow Feed or main app components to render unless fully validated
-  if (!user || !isFullyValidated) {
+  // GATE 2: If no session exists, show Landing (or Signup if currently on /signup)
+  if (!session) {
     if (currentRoute === 'signup' || (typeof window !== 'undefined' && window.location.pathname.replace(/^\//, '') === 'signup')) {
       return (
         <Signup
@@ -1288,6 +1191,35 @@ export default function App() {
       />
     );
   }
+
+  // GATE 3: If session exists and profile is incomplete (missing handle or grade), force OnboardingWizard
+  if (isProfileIncomplete) {
+    if (window.location.pathname !== '/onboarding') {
+      window.history.replaceState(null, '', '/onboarding');
+    }
+    const activeAuthUser = session?.user;
+    const preSchool = (localStorage.getItem('pre_selected_school') || localStorage.getItem('campus_institute') || '').trim();
+    const wizardUser = onboardingGoogleUser || (activeAuthUser ? {
+      googleId: activeAuthUser.id,
+      id: activeAuthUser.id,
+      email: activeAuthUser.email,
+      name: activeAuthUser.user_metadata?.full_name || activeAuthUser.user_metadata?.name || activeAuthUser.email?.split('@')[0] || '',
+      avatar: activeAuthUser.user_metadata?.avatar_url || activeAuthUser.user_metadata?.picture || '',
+      preSelectedSchool: preSchool
+    } : null);
+    return (
+      <div className="gas-landing-wrapper bg-[#eaff00] min-h-screen w-full flex items-center justify-center" style={{ background: '#eaff00' }}>
+        <OnboardingWizard
+          googleUser={wizardUser}
+          API={API}
+          onComplete={handleOnboardingComplete}
+        />
+      </div>
+    );
+  }
+
+  // GATE 4: Main app layout (Feed, polls, dock, etc.)
+  // Strictly unreachable unless isAppReady === true, session exists, and profile is complete!
 
   const activeRoute = (view === 'poll' || view === 'feed')
     ? '/feed'
