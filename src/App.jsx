@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'framer-motion';
 import bgVideo from './assets/campus_promo.mp4';
 import './App.css';
@@ -6,54 +6,22 @@ import './App.css';
 // UI Components
 import HamsterLoader from './components/HamsterLoader';
 
-// Lazily loaded components for Global Code Splitting
-const TiltCard = lazy(() => import('./components/TiltCard'));
-const HolographicCard = lazy(() => import('./components/HolographicCard'));
-const OnboardingWizard = lazy(() => import('./components/OnboardingWizard'));
-const FriendSearch = lazy(() => import('./components/FriendSearch'));
-const Profile = lazy(() => import('./components/Profile'));
-const Inbox = lazy(() => import('./components/Inbox'));
-const Feed = lazy(() => import('./components/Feed'));
-const Explore = lazy(() => import('./components/Explore'));
-const BatchCaptainsLeaderboard = lazy(() => import('./components/BatchCaptainsLeaderboard'));
-const GodMode = lazy(() => import('./components/GodMode'));
-const Landing = lazy(() => import('./components/Landing'));
-const Signup = lazy(() => import('./components/Signup'));
+// Synchronous static imports
+import TiltCard from './components/TiltCard';
+import HolographicCard from './components/HolographicCard';
+import OnboardingWizard from './components/OnboardingWizard';
+import FriendSearch from './components/FriendSearch';
+import Profile from './components/Profile';
+import Inbox from './components/Inbox';
+import Feed from './components/Feed';
+import Explore from './components/Explore';
+import BatchCaptainsLeaderboard from './components/BatchCaptainsLeaderboard';
+import GodMode from './components/GodMode';
+import Landing from './components/Landing';
+import Signup from './components/Signup';
 import AddToHomeScreenGuide from './components/AddToHomeScreenGuide';
 import InstituteCombobox, { findHubForInstitute } from './components/InstituteCombobox';
 import CustomPollSubmit from './components/CustomPollSubmit';
-
-// Minimal CSS Spinners for lazy fallbacks (zero extra bundle weight)
-const MinimalSpinner = ({ color = '#00ff41' }) => (
-  <div style={{ display: 'flex', height: '100vh', width: '100%', alignItems: 'center', justifyContent: 'center', background: '#000000' }}>
-    <div
-      style={{
-        width: '32px',
-        height: '32px',
-        border: '3px solid rgba(255, 255, 255, 0.15)',
-        borderTopColor: color,
-        borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite'
-      }}
-    />
-    <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-  </div>
-);
-
-const MinimalInlineSpinner = () => (
-  <div style={{ display: 'flex', height: '100%', width: '100%', alignItems: 'center', justifyContent: 'center', minHeight: '260px' }}>
-    <div
-      style={{
-        width: '28px',
-        height: '28px',
-        border: '3px solid rgba(255, 255, 255, 0.2)',
-        borderTopColor: '#ffffff',
-        borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite'
-      }}
-    />
-  </div>
-);
 import { handleShare, showAppToast } from './utils/share';
 import { isJuniorUser } from './constants/classes';
 import { Plus, Heart, Home, Search, Crown, User } from 'lucide-react';
@@ -360,41 +328,28 @@ export default function App() {
   }, []);
 
   // =========================================================
-  // AUTH STATE & INSTANT ROUTING (ZERO BLOCKING QUERIES)
-  // =========================================================
-  const isOAuthRedirectUrl = () => {
-    if (typeof window === 'undefined') return false;
-    const hash = window.location.hash || '';
-    const search = window.location.search || '';
-    return hash.includes('access_token=') || hash.includes('error=') || hash.includes('error_description=') || search.includes('code=');
-  };
-
-  // =========================================================
   // AUTH STATE & ATOMIC profileStatus LIFECYCLE
   // =========================================================
   useEffect(() => {
     let isMounted = true;
-    const hasOAuthHash = isOAuthRedirectUrl();
 
     // Helper to process session and wait for Supabase profile resolution
     const processSession = async (activeSession) => {
       if (!isMounted) return;
 
-      // 1. If no session exists:
+      // 1. If no session exists: instantly set UNAUTHENTICATED
       if (!activeSession?.user) {
-        if (!hasOAuthHash) {
-          setSession(null);
-          setUser(null);
-          setProfileData(null);
-          userRef.current = null;
-          setIsOnboarding(false);
-          setProfileStatus('UNAUTHENTICATED');
-          setIsAppReady(true);
-          setIsProfileLoading(false);
-          setIsAuthLoading(false);
-          setIsCheckingSession(false);
-          setIsAuthenticating(false);
-        }
+        setSession(null);
+        setUser(null);
+        setProfileData(null);
+        userRef.current = null;
+        setIsOnboarding(false);
+        setProfileStatus('UNAUTHENTICATED');
+        setIsAppReady(true);
+        setIsProfileLoading(false);
+        setIsAuthLoading(false);
+        setIsCheckingSession(false);
+        setIsAuthenticating(false);
         return;
       }
 
@@ -508,16 +463,11 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         processSession(session);
-      } else if (!hasOAuthHash) {
-        processSession(null);
       } else {
-        // OAuth redirect detected in URL: hold 'CHECKING' state and let onAuthStateChange resolve the session
-        setProfileStatus('CHECKING');
-        setIsAppReady(false);
-        setIsProfileLoading(true);
+        processSession(null);
       }
     }).catch(() => {
-      if (isMounted && !hasOAuthHash) {
+      if (isMounted) {
         setProfileStatus('UNAUTHENTICATED');
         setIsAppReady(true);
         setIsProfileLoading(false);
@@ -550,37 +500,17 @@ export default function App() {
           navigate('/');
         }
       } else if (session?.user) {
-        // If onAuthStateChange detects a valid session, transition profileStatus from 'UNAUTHENTICATED' back to 'CHECKING',
-        // and then fire the database profile fetch to determine if 'INCOMPLETE' or 'COMPLETE'
         setProfileStatus('CHECKING');
         setIsAppReady(false);
         setIsProfileLoading(true);
         await processSession(session);
-      } else if (!hasOAuthHash) {
+      } else {
         processSession(null);
       }
     });
 
-    // Safety timeout: if OAuth redirect was in URL, release 'CHECKING' lock if not resolved in 6 seconds
-    let oauthTimeout;
-    if (hasOAuthHash) {
-      oauthTimeout = setTimeout(() => {
-        if (isMounted) {
-          setProfileStatus(prev => {
-            if (prev === 'CHECKING') {
-              setIsAppReady(true);
-              setIsProfileLoading(false);
-              return 'UNAUTHENTICATED';
-            }
-            return prev;
-          });
-        }
-      }, 6000);
-    }
-
     return () => {
       isMounted = false;
-      if (oauthTimeout) clearTimeout(oauthTimeout);
       subscription?.unsubscribe();
     };
   }, []);
@@ -1239,7 +1169,9 @@ export default function App() {
   // 1. Loading State
   if (profileStatus === 'CHECKING' || !isAppReady || isProfileLoading) {
     return (
-      <MinimalSpinner />
+      <div className="flex h-screen items-center justify-center bg-black text-white">
+        Loading...
+      </div>
     );
   }
 
@@ -1247,45 +1179,41 @@ export default function App() {
   if (profileStatus === 'UNAUTHENTICATED' || !session) {
     if (currentRoute === 'signup' || (typeof window !== 'undefined' && window.location.pathname.replace(/^\//, '') === 'signup')) {
       return (
-        <Suspense fallback={<MinimalSpinner />}>
-          <Signup
-            loginWithGoogle={loginWithGoogle}
-            isAuthenticating={isAuthenticating}
-            legalView={legalView}
-            setLegalView={setLegalView}
-          />
-        </Suspense>
+        <Signup
+          loginWithGoogle={loginWithGoogle}
+          isAuthenticating={isAuthenticating}
+          legalView={legalView}
+          setLegalView={setLegalView}
+        />
       );
     }
 
     return (
-      <Suspense fallback={<MinimalSpinner />}>
-        <Landing
-          grade={grade}
-          setGrade={setGrade}
-          stream={stream}
-          setStream={setStream}
-          institute={institute}
-          setInstitute={setInstitute}
-          coachingHub={coachingHub}
-          setCoachingHub={setCoachingHub}
-          loginWithGoogle={loginWithGoogle}
-          isAuthenticating={isAuthenticating}
-          showManualLogin={showManualLogin}
-          setShowManualLogin={setShowManualLogin}
-          handle={handle}
-          setHandle={setHandle}
-          password={password}
-          setPassword={setPassword}
-          login={login}
-          legalView={legalView}
-          setLegalView={setLegalView}
-          activePlan={activePlan}
-          setActivePlan={setActivePlan}
-          handleUpgrade={handleUpgrade}
-          installPrompt={installPrompt}
-        />
-      </Suspense>
+      <Landing
+        grade={grade}
+        setGrade={setGrade}
+        stream={stream}
+        setStream={setStream}
+        institute={institute}
+        setInstitute={setInstitute}
+        coachingHub={coachingHub}
+        setCoachingHub={setCoachingHub}
+        loginWithGoogle={loginWithGoogle}
+        isAuthenticating={isAuthenticating}
+        showManualLogin={showManualLogin}
+        setShowManualLogin={setShowManualLogin}
+        handle={handle}
+        setHandle={setHandle}
+        password={password}
+        setPassword={setPassword}
+        login={login}
+        legalView={legalView}
+        setLegalView={setLegalView}
+        activePlan={activePlan}
+        setActivePlan={setActivePlan}
+        handleUpgrade={handleUpgrade}
+        installPrompt={installPrompt}
+      />
     );
   }
 
@@ -1308,13 +1236,11 @@ export default function App() {
     // Notice there is no <Header>, no <BottomNav>, nothing else.
     return (
       <div className="gas-landing-wrapper bg-[#eaff00] min-h-screen w-full flex items-center justify-center" style={{ background: '#eaff00' }}>
-        <Suspense fallback={<MinimalSpinner color="#000000" />}>
-          <OnboardingWizard
-            googleUser={wizardUser}
-            API={API}
-            onComplete={handleOnboardingComplete}
-          />
-        </Suspense>
+        <OnboardingWizard
+          googleUser={wizardUser}
+          API={API}
+          onComplete={handleOnboardingComplete}
+        />
       </div>
     );
   }
@@ -1425,8 +1351,7 @@ export default function App() {
         </header>
 
         <main className="gas-app-body flex-1 flex flex-col justify-center overflow-hidden">
-          <Suspense fallback={<MinimalInlineSpinner />}>
-            <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait">
               {view === 'poll' && (
                 <motion.div key="poll" {...pageVariants} className="flex-1 flex flex-col justify-center w-full overflow-hidden">
                   <Feed
@@ -1571,7 +1496,6 @@ export default function App() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </Suspense>
         </main>
 
         <nav
