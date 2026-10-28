@@ -304,8 +304,9 @@ export default function App() {
       const cleanPath = (e.detail?.path || window.location.pathname).replace(/^\//, '');
       setCurrentRoute(cleanPath);
       const currentUser = userRef.current;
-      const currentInst = (currentUser?.school || currentUser?.institute || '').trim();
-      if (currentUser && !currentInst) {
+      const currentHandle = (currentUser?.handle || currentUser?.username || '').trim();
+      const currentGrade = (currentUser?.grade !== null && currentUser?.grade !== undefined) ? String(currentUser.grade).trim() : '';
+      if ((currentUser || session?.user) && (!currentHandle || !currentGrade)) {
         setIsOnboarding(true);
         window.history.replaceState(null, '', '/onboarding');
         return;
@@ -335,8 +336,10 @@ export default function App() {
 
   const hasHandledAuthRedirectRef = useRef(false);
 
-  // Instant Routing: Push immediately to /onboarding the exact millisecond session is detected
-  const routeUserInstant = (currentSession) => {
+  // =========================================================
+  // SUPABASE ROUTE GUARD: AUTHENTICATED USER VERIFICATION
+  // =========================================================
+  const routeUserInstant = async (currentSession) => {
     if (!currentSession?.user) return;
     const sessionUser = currentSession.user;
     const currentSessionId = sessionUser.id;
@@ -347,105 +350,91 @@ export default function App() {
       window.history.replaceState(null, '', window.location.pathname);
     }
 
-    // Check if user is already cached locally (instant returning user bypass in 0ms)
-    const cachedStr = localStorage.getItem('campus_cached_user');
-    let cachedUser = null;
-    if (cachedStr) {
-      try {
-        const parsed = JSON.parse(cachedStr);
-        if (parsed && String(parsed.id) === String(currentSessionId) && (parsed.handle || parsed.username)) {
-          cachedUser = parsed;
-        }
-      } catch (_) {}
-    }
+    setIsProfileLoading(true);
 
-    if (cachedUser) {
-      // Returning user with cached profile -> push directly to feed
-      setProfileData(cachedUser);
-      setUser(cachedUser);
-      userRef.current = cachedUser;
-      setIsOnboarding(false);
-      setOnboardingGoogleUser(null);
-      setView('poll');
+    try {
+      // 1. When user is authenticated, query Supabase public `users` table for `handle` and `grade` using user ID
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', currentSessionId)
+        .maybeSingle();
+
+      if (error) {
+        console.warn('Supabase route guard query error:', error);
+      }
+
+      // 2. Check the data: If either handle or grade is missing (NULL)
+      const hasHandle = Boolean(data?.handle && String(data.handle).trim() !== '');
+      const hasGrade = Boolean(data?.grade !== null && data?.grade !== undefined && String(data.grade).trim() !== '');
+
+      if (!data || !hasHandle || !hasGrade) {
+        // Missing (NULL): Force app state to render <OnboardingWizard />
+        const cleanRef = (
+          localStorage.getItem('referred_by') ||
+          sessionStorage.getItem('referred_by') ||
+          localStorage.getItem('campus_ref_code') ||
+          sessionStorage.getItem('campus_ref_code') ||
+          ''
+        ).trim().replace(/^@/, '');
+        const preSchool = (
+          localStorage.getItem('pre_selected_school') ||
+          localStorage.getItem('campus_institute') ||
+          ''
+        ).trim();
+
+        localStorage.removeItem('campus_cached_user');
+
+        const newGoogleUser = {
+          googleId: currentSessionId,
+          id: currentSessionId,
+          email: currentSessionEmail,
+          name: sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || currentSessionEmail?.split('@')[0] || '',
+          avatar: sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '',
+          refCode: cleanRef,
+          referred_by: cleanRef,
+          preSelectedSchool: preSchool,
+          handle: data?.handle || '',
+          grade: data?.grade || null
+        };
+
+        // Trap the user in OnboardingWizard state
+        setOnboardingGoogleUser(newGoogleUser);
+        setUser(null);
+        setProfileData(null);
+        userRef.current = null;
+        setIsOnboarding(true);
+        setCurrentRoute('onboarding');
+
+        window.history.replaceState(null, '', '/onboarding');
+        navigate('/onboarding');
+      } else {
+        // 4. Both fields exist: Allow them to view the main application components normally
+        const userRing = data.selected_ring || data.ring || 'gold';
+        const fullUser = { ...data, ring: userRing, selected_ring: userRing, id: currentSessionId };
+        localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
+        setProfileData(fullUser);
+        setUser(fullUser);
+        userRef.current = fullUser;
+        setIsOnboarding(false);
+        setOnboardingGoogleUser(null);
+        setView('poll');
+        window.history.replaceState(null, '', '/feed');
+        navigate('/feed');
+
+        loadNextPoll(fullUser.grade ? fullUser.grade.toString() : '11', fullUser.id);
+        fetchPendingRequests(fullUser.id);
+        fetchAcceptedFriends(fullUser.id);
+        fetchInbox(fullUser.id);
+      }
+    } catch (err) {
+      console.error('Route guard check error:', err);
+    } finally {
       setIsProfileLoading(false);
       setIsAuthLoading(false);
       setIsCheckingSession(false);
       setIsAuthenticating(false);
-      window.history.replaceState(null, '', '/feed');
-      navigate('/feed');
-
-      loadNextPoll(cachedUser.grade ? cachedUser.grade.toString() : '11', cachedUser.id);
-      fetchPendingRequests(cachedUser.id);
-      fetchAcceptedFriends(cachedUser.id);
-      fetchInbox(cachedUser.id);
-      return;
     }
-
-    // New Session (Ad Traffic / New User) -> Instant 0ms routing to /onboarding!
-    const cleanRef = (
-      localStorage.getItem('referred_by') ||
-      sessionStorage.getItem('referred_by') ||
-      localStorage.getItem('campus_ref_code') ||
-      sessionStorage.getItem('campus_ref_code') ||
-      ''
-    ).trim().replace(/^@/, '');
-    const preSchool = (
-      localStorage.getItem('pre_selected_school') ||
-      localStorage.getItem('campus_institute') ||
-      ''
-    ).trim();
-
-    localStorage.removeItem('campus_cached_user');
-
-    const newGoogleUser = {
-      googleId: currentSessionId,
-      id: currentSessionId,
-      email: currentSessionEmail,
-      name: sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || currentSessionEmail?.split('@')[0] || '',
-      avatar: sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || '',
-      refCode: cleanRef,
-      referred_by: cleanRef,
-      preSelectedSchool: preSchool
-    };
-
-    // Instant state updates
-    setOnboardingGoogleUser(newGoogleUser);
-    setUser(null);
-    setProfileData(null);
-    userRef.current = null;
-    setIsOnboarding(true);
-    setCurrentRoute('onboarding');
-    setIsProfileLoading(false);
-    setIsAuthLoading(false);
-    setIsCheckingSession(false);
-    setIsAuthenticating(false);
-
-    // Force router to /onboarding immediately
-    window.history.replaceState(null, '', '/onboarding');
-    navigate('/onboarding');
-
-    // Completely non-blocking background check in case user registered on another device
-    supabase
-      .from('users')
-      .select('*')
-      .eq('id', currentSessionId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data && (data.handle || data.username)) {
-          const userRing = data.selected_ring || data.ring || 'gold';
-          const fullUser = { ...data, ring: userRing, selected_ring: userRing, id: currentSessionId };
-          localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
-          setProfileData(fullUser);
-          setUser(fullUser);
-          userRef.current = fullUser;
-          setIsOnboarding(false);
-          setOnboardingGoogleUser(null);
-          setView('poll');
-          window.history.replaceState(null, '', '/feed');
-          navigate('/feed');
-        }
-      })
-      .catch(console.warn);
 
     syncWithBackend(sessionUser).catch(console.warn);
   };
@@ -508,19 +497,25 @@ export default function App() {
     };
   }, []);
 
-  // Persistent Auth Routing: If a logged-in user with completed profile is on base URL, landing, onboarding, or signup,
-  // automatically redirect them away directly to the main app interface (/feed).
+  // Persistent Auth Routing & Guard: If a logged-in user has completed both handle and grade,
+  // allow normal navigation to /feed. If half-onboarded (missing handle or grade), force them to stay in /onboarding.
   useEffect(() => {
     const currentUser = userRef.current;
     const userHandle = (currentUser?.handle || currentUser?.username || '').trim();
-    if (currentUser && userHandle) {
+    const userGrade = (currentUser?.grade !== null && currentUser?.grade !== undefined) ? String(currentUser.grade).trim() : '';
+    if (currentUser && userHandle && userGrade) {
       const currentPath = window.location.pathname.replace(/^\//, '');
       if (!currentPath || currentPath === 'landing' || currentPath === 'onboarding' || currentPath === 'signup') {
         window.history.replaceState(null, '', '/feed');
         setView('poll');
       }
+    } else if (session?.user && (!userHandle || !userGrade)) {
+      if (window.location.pathname !== '/onboarding') {
+        window.history.replaceState(null, '', '/onboarding');
+      }
+      setIsOnboarding(true);
     }
-  }, [user]);
+  }, [user, session]);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -528,7 +523,13 @@ export default function App() {
       setCurrentRoute(path);
       const currentUser = userRef.current;
       const userHandle = (currentUser?.handle || currentUser?.username || '').trim();
-      if (currentUser && userHandle) {
+      const userGrade = (currentUser?.grade !== null && currentUser?.grade !== undefined) ? String(currentUser.grade).trim() : '';
+      if (session?.user && (!userHandle || !userGrade)) {
+        setIsOnboarding(true);
+        window.history.replaceState(null, '', '/onboarding');
+        return;
+      }
+      if (currentUser && userHandle && userGrade) {
         if (!path || path === 'landing') {
           window.history.replaceState(null, '', '/feed');
           setView('poll');
@@ -544,7 +545,7 @@ export default function App() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  }, [session]);
 
   const loginWithGoogle = async (explicitSchool = null) => {
     setIsAuthenticating(true);
@@ -1129,7 +1130,21 @@ export default function App() {
     window.location.hash && (window.location.hash.includes('access_token=') || window.location.hash.includes('error='))
   );
 
-  if (hasOAuthFragment || isAuthenticating || (isAuthLoading && isOAuthRedirectUrl() && !isOnboarding)) {
+  // =========================================================
+  // SUPABASE ROUTE GUARD: CONDITIONAL RENDERING BLOCK
+  // =========================================================
+  // 1. Query Supabase users table data check: If either handle or grade is missing (NULL),
+  //    force the app state to render <OnboardingWizard />.
+  // 2. The user is trapped in <OnboardingWizard /> and cannot see the main feed until both fields exist.
+  // 3. If both fields exist, allow them to view the main application components normally.
+  const userHandle = (user?.handle || user?.username || '').trim();
+  const userGrade = (user?.grade !== null && user?.grade !== undefined) ? String(user.grade).trim() : '';
+  const hasCompletedProfile = Boolean(user && userHandle !== '' && userGrade !== '');
+  const isProfileIncomplete = Boolean(user && !hasCompletedProfile);
+  const isSessionWithoutProfile = Boolean(session?.user && !hasCompletedProfile);
+
+  // If user is authenticated while profile is still loading from Supabase, show auth loader
+  if (hasOAuthFragment || isAuthenticating || (session?.user && isProfileLoading && !isOnboarding && !hasCompletedProfile) || (isAuthLoading && isOAuthRedirectUrl() && !isOnboarding)) {
     return (
       <div
         id="campus-oauth-loader"
@@ -1176,14 +1191,8 @@ export default function App() {
     );
   }
 
-  // Protected Route Check:
-  // LOGIC A (Returning User): If a profile record exists with required completed fields (handle or institute), do NOT show Onboarding Wizard.
-  // LOGIC B (New User): Route to Onboarding Wizard only if profile is incomplete or explicitly onboarding.
-  const userHandle = (user?.handle || user?.username || '').trim();
-  const hasCompletedProfile = Boolean(user && userHandle !== '');
-  const isProfileIncomplete = Boolean(user && !hasCompletedProfile);
-  const isSessionWithoutProfile = Boolean(session?.user && !hasCompletedProfile);
-
+  // Route Guard: If either handle or grade is missing (NULL), force app state to render <OnboardingWizard />
+  // User is trapped in <OnboardingWizard /> and CANNOT see the main feed until those fields are saved
   if (isOnboarding || isProfileIncomplete || isSessionWithoutProfile) {
     if (window.location.pathname !== '/onboarding') {
       window.history.replaceState(null, '', '/onboarding');
