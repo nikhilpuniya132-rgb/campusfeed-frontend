@@ -156,6 +156,7 @@ const pageVariants = {
 };
 
 export default function App() {
+  const [profileStatus, setProfileStatus] = useState('CHECKING'); // 'CHECKING' | 'UNAUTHENTICATED' | 'INCOMPLETE' | 'COMPLETE'
   const [session, setSession] = useState(null);
   const [isAppReady, setIsAppReady] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
@@ -365,34 +366,40 @@ export default function App() {
     if (typeof window === 'undefined') return false;
     const hash = window.location.hash || '';
     const search = window.location.search || '';
-    return hash.includes('access_token=') || hash.includes('error=') || search.includes('code=');
+    return hash.includes('access_token=') || hash.includes('error=') || hash.includes('error_description=') || search.includes('code=');
   };
 
   // =========================================================
-  // AUTH STATE & ATOMIC isAppReady LIFECYCLE
+  // AUTH STATE & ATOMIC profileStatus LIFECYCLE
   // =========================================================
   useEffect(() => {
     let isMounted = true;
+    const hasOAuthHash = isOAuthRedirectUrl();
 
     // Helper to process session and wait for Supabase profile resolution
     const processSession = async (activeSession) => {
       if (!isMounted) return;
 
-      // 1. If no session exists: set isAppReady(true) and exit
+      // 1. If no session exists:
       if (!activeSession?.user) {
-        setSession(null);
-        setUser(null);
-        setProfileData(null);
-        userRef.current = null;
-        setIsOnboarding(false);
-        setIsAppReady(true);
-        setIsAuthLoading(false);
-        setIsCheckingSession(false);
-        setIsAuthenticating(false);
+        if (!hasOAuthHash) {
+          setSession(null);
+          setUser(null);
+          setProfileData(null);
+          userRef.current = null;
+          setIsOnboarding(false);
+          setProfileStatus('UNAUTHENTICATED');
+          setIsAppReady(true);
+          setIsProfileLoading(false);
+          setIsAuthLoading(false);
+          setIsCheckingSession(false);
+          setIsAuthenticating(false);
+        }
         return;
       }
 
-      // 2. If a session exists: KEEP isAppReady(false) and isProfileLoading(true)
+      // 2. If a session exists: transition profileStatus to 'CHECKING' and wait for DB
+      setProfileStatus('CHECKING');
       setIsAppReady(false);
       setIsProfileLoading(true);
       setSession(activeSession);
@@ -423,7 +430,7 @@ export default function App() {
         const hasInstitute = Boolean((data?.institute || data?.school) && String(data?.institute || data?.school).trim() !== '');
 
         if (!data || !hasHandle || !hasGrade || !hasInstitute) {
-          // Profile incomplete: prepare Google user context and mark for Onboarding
+          // Profile incomplete: mark as 'INCOMPLETE' and prepare Google user context
           const cleanRef = (
             localStorage.getItem('referred_by') ||
             sessionStorage.getItem('referred_by') ||
@@ -449,7 +456,8 @@ export default function App() {
             referred_by: cleanRef,
             preSelectedSchool: preSchool,
             handle: data?.handle || '',
-            grade: data?.grade || null
+            grade: data?.grade || null,
+            institute: data?.institute || preSchool || ''
           };
 
           setOnboardingGoogleUser(newGoogleUser);
@@ -457,6 +465,7 @@ export default function App() {
           setProfileData(null);
           userRef.current = null;
           setIsOnboarding(true);
+          setProfileStatus('INCOMPLETE');
           setCurrentRoute('onboarding');
           window.history.replaceState(null, '', '/onboarding');
         } else {
@@ -469,6 +478,7 @@ export default function App() {
           userRef.current = fullUser;
           setIsOnboarding(false);
           setOnboardingGoogleUser(null);
+          setProfileStatus('COMPLETE');
           setView('poll');
           window.history.replaceState(null, '', '/feed');
 
@@ -481,8 +491,9 @@ export default function App() {
         syncWithBackend(sessionUser).catch(console.warn);
       } catch (err) {
         console.error('Session processing error:', err);
+        setProfileStatus('INCOMPLETE');
       } finally {
-        // 3. ONLY after database responds (complete or incomplete), release loading
+        // ONLY after database responds (complete or incomplete), release loading
         if (isMounted) {
           setIsProfileLoading(false);
           setIsAppReady(true);
@@ -495,10 +506,21 @@ export default function App() {
 
     // 1. Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
-      processSession(session);
+      if (session?.user) {
+        processSession(session);
+      } else if (!hasOAuthHash) {
+        processSession(null);
+      } else {
+        // OAuth redirect detected in URL: hold 'CHECKING' state and let onAuthStateChange resolve the session
+        setProfileStatus('CHECKING');
+        setIsAppReady(false);
+        setIsProfileLoading(true);
+      }
     }).catch(() => {
-      if (isMounted) {
+      if (isMounted && !hasOAuthHash) {
+        setProfileStatus('UNAUTHENTICATED');
         setIsAppReady(true);
+        setIsProfileLoading(false);
         setIsAuthLoading(false);
         setIsCheckingSession(false);
         setIsAuthenticating(false);
@@ -506,7 +528,7 @@ export default function App() {
     });
 
     // 2. Auth state change listener (OAuth callback / sign in / sign out)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
       if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -516,7 +538,9 @@ export default function App() {
         userRef.current = null;
         setIsOnboarding(false);
         localStorage.removeItem('campus_cached_user');
+        setProfileStatus('UNAUTHENTICATED');
         setIsAppReady(true);
+        setIsProfileLoading(false);
         setIsAuthLoading(false);
         setIsCheckingSession(false);
         setIsAuthenticating(false);
@@ -526,14 +550,37 @@ export default function App() {
           navigate('/');
         }
       } else if (session?.user) {
-        processSession(session);
-      } else {
+        // If onAuthStateChange detects a valid session, transition profileStatus from 'UNAUTHENTICATED' back to 'CHECKING',
+        // and then fire the database profile fetch to determine if 'INCOMPLETE' or 'COMPLETE'
+        setProfileStatus('CHECKING');
+        setIsAppReady(false);
+        setIsProfileLoading(true);
+        await processSession(session);
+      } else if (!hasOAuthHash) {
         processSession(null);
       }
     });
 
+    // Safety timeout: if OAuth redirect was in URL, release 'CHECKING' lock if not resolved in 6 seconds
+    let oauthTimeout;
+    if (hasOAuthHash) {
+      oauthTimeout = setTimeout(() => {
+        if (isMounted) {
+          setProfileStatus(prev => {
+            if (prev === 'CHECKING') {
+              setIsAppReady(true);
+              setIsProfileLoading(false);
+              return 'UNAUTHENTICATED';
+            }
+            return prev;
+          });
+        }
+      }, 6000);
+    }
+
     return () => {
       isMounted = false;
+      if (oauthTimeout) clearTimeout(oauthTimeout);
       subscription?.unsubscribe();
     };
   }, []);
@@ -719,6 +766,9 @@ export default function App() {
       const fullUser = { ...data.user, ring: userRing, selected_ring: userRing };
       localStorage.setItem('campus_cached_user', JSON.stringify(fullUser));
       setUser(fullUser);
+      setProfileStatus('COMPLETE');
+      setIsAppReady(true);
+      setIsProfileLoading(false);
 
       if (data.user.institute && data.user.institute.trim()) {
         const currentPath = window.location.pathname.replace(/^\//, '');
@@ -753,6 +803,7 @@ export default function App() {
     setSession(null);
     setOnboardingGoogleUser(null);
     setIsOnboarding(false);
+    setProfileStatus('UNAUTHENTICATED');
     userRef.current = null;
     localStorage.clear();
     sessionStorage.clear();
@@ -766,6 +817,7 @@ export default function App() {
     setUser(fullUser);
     setIsOnboarding(false);
     setOnboardingGoogleUser(null);
+    setProfileStatus('COMPLETE');
     window.history.replaceState(null, '', '/feed');
     setView('poll');
     setGradeFilter(newUser.grade ? newUser.grade.toString() : '11');
@@ -1185,16 +1237,14 @@ export default function App() {
   const isProfileIncomplete = Boolean(isOnboarding || !hasCompletedProfile);
 
   // 1. Loading State
-  if (isProfileLoading || isAppReady === false) {
+  if (profileStatus === 'CHECKING' || !isAppReady || isProfileLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-black text-white">
-        Loading...
-      </div>
+      <MinimalSpinner />
     );
   }
 
   // 2. Auth State
-  if (!session) {
+  if (profileStatus === 'UNAUTHENTICATED' || !session) {
     if (currentRoute === 'signup' || (typeof window !== 'undefined' && window.location.pathname.replace(/^\//, '') === 'signup')) {
       return (
         <Suspense fallback={<MinimalSpinner />}>
@@ -1240,7 +1290,7 @@ export default function App() {
   }
 
   // 3. THE TOP-LEVEL LOCK (Must happen BEFORE tabs or feed are rendered)
-  if (isProfileIncomplete || !hasCompletedProfile) {
+  if (profileStatus === 'INCOMPLETE' || isProfileIncomplete || !hasCompletedProfile) {
     // Ensure URL matches the trap visually
     if (typeof window !== 'undefined' && window.location.pathname !== '/onboarding') {
       window.history.replaceState(null, '', '/onboarding');
