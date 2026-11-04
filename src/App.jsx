@@ -771,8 +771,26 @@ export default function App() {
       if (supabase && user?.institute) {
         try {
           const targetPollTable = String(targetGrade || user?.grade || '11').trim() === '9' ? 'polls2' : 'polls';
+
+          // Fetch user's activity history (voted and skipped poll IDs)
+          let excludedIds = [];
+          if (targetId) {
+            const { data: userActivity } = await supabase
+              .from('votes')
+              .select('poll_id')
+              .eq('voter_id', targetId);
+            if (userActivity) {
+              excludedIds = userActivity.map(a => a.poll_id).filter(Boolean);
+            }
+          }
+
+          let pollQuery = supabase.from(targetPollTable).select('*').limit(100);
+          if (excludedIds.length > 0) {
+            pollQuery = pollQuery.not('id', 'in', `(${excludedIds.join(',')})`);
+          }
+
           const [{ data: dbPolls }, { data: dbOptions }] = await Promise.all([
-            supabase.from(targetPollTable).select('*'),
+            pollQuery,
             supabase
               .from('users')
               .select('id, handle, name, avatar, profile_pic, grade, stream, institute, coaching_hub, is_pro, ring, selected_ring')
@@ -780,7 +798,10 @@ export default function App() {
               .neq('id', targetId)
           ]);
           if (dbPolls && dbPolls.length > 0) {
-            pollItem = dbPolls[Math.floor(Math.random() * dbPolls.length)];
+            const availablePolls = dbPolls.filter(p => !excludedIds.includes(p.id));
+            if (availablePolls.length > 0) {
+              pollItem = availablePolls[Math.floor(Math.random() * availablePolls.length)];
+            }
           }
           if (dbOptions) {
             pollOptions = dbOptions;

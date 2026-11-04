@@ -49,39 +49,10 @@ const getAvatarForSeedName = (name = '', index = 0) => {
   return SEED_AVATARS[(charCodeSum + index) % SEED_AVATARS.length] || '😎';
 };
 
-const JUNIOR_FALLBACK_POLLS = [
-  { id: 101, question: "Brings the best lunchbox that everyone attacks at recess?", is_crush_poll: false },
-  { id: 102, question: "Always reminds the teacher about yesterday's homework?", is_crush_poll: false },
-  { id: 103, question: "Draws the best doodles on the last page of their notebook?", is_crush_poll: false },
-  { id: 104, question: "Fastest runner during the sports period?", is_crush_poll: false },
-  { id: 105, question: "Carries the heaviest school bag with 10 different gel pens?", is_crush_poll: false },
-  { id: 106, question: "Class clown who always makes the teacher smile?", is_crush_poll: false },
-  { id: 107, question: "Secret crush in the junior wing", is_crush_poll: true },
-  { id: 108, question: "Best handwriting on the blackboard during monitor duty?", is_crush_poll: false },
-  { id: 109, question: "Always loses their sharpener or eraser by second period?", is_crush_poll: false },
-  { id: 110, question: "First to finish their tiffin box before the recess bell rings?", is_crush_poll: false },
-  { id: 111, question: "Most likely to represent the school in the Science Olympiad?", is_crush_poll: false },
-  { id: 112, question: "Can solve the hardest Maths questions without hesitation?", is_crush_poll: false }
-];
 
-const SENIOR_FALLBACK_POLLS = [
-  { id: 1, question: "Always sleeps through 5 PM Physics?", is_crush_poll: false },
-  { id: 2, question: "Most likely to crack NEET on the first attempt?", is_crush_poll: false },
-  { id: 3, question: "Spends more time at the Maggi point than in class?", is_crush_poll: false },
-  { id: 4, question: "Solves HC Verma questions during recess?", is_crush_poll: false },
-  { id: 5, question: "Has handwritten formula cheat sheets everyone borrows?", is_crush_poll: false },
-  { id: 6, question: "Sells their Allen/Aakash test series analysis for samosas?", is_crush_poll: false },
-  { id: 7, question: "Secret crush in the coaching batch", is_crush_poll: true },
-  { id: 8, question: "Biggest drip at Ajit Road", is_crush_poll: false },
-  { id: 9, question: "Who has the neatest notes in Chemistry?", is_crush_poll: false },
-  { id: 10, question: "Most likely to get AIR 1 in JEE Advanced?", is_crush_poll: false },
-  { id: 11, question: "Best partner for last-minute exam prep?", is_crush_poll: false },
-  { id: 12, question: "Always asks the hardest doubts to confuse the teacher?", is_crush_poll: false }
-];
 
 const filterPollsByAudience = (pollsList, isJunior) => {
-  const fallback = isJunior ? JUNIOR_FALLBACK_POLLS : SENIOR_FALLBACK_POLLS;
-  if (!pollsList || pollsList.length === 0) return fallback;
+  if (!pollsList || pollsList.length === 0) return [];
 
   const filtered = pollsList.filter(p => {
     if (p.audience === 'junior' || p.category === 'junior' || p.target_group === 'junior') {
@@ -101,7 +72,7 @@ const filterPollsByAudience = (pollsList, isJunior) => {
     }
   });
 
-  return filtered.length >= 4 ? filtered : fallback;
+  return filtered;
 };
 
 /**
@@ -221,52 +192,7 @@ const filterCandidates = (candidates, gradeFilter, isJunior = false) => {
   return subFiltered.length >= 4 ? subFiltered : cohortCandidates;
 };
 
-const buildPollBatch = (pollsList, candidatesList, targetGrade, count = 12, isJunior = false) => {
-  const appropriatePolls = filterPollsByAudience(pollsList, isJunior);
-  const eligibleCandidates = filterCandidates(candidatesList, targetGrade, isJunior);
 
-  const shuffledPolls = [...appropriatePolls].sort(() => 0.5 - Math.random());
-  const batch = [];
-
-  for (let i = 0; i < count; i++) {
-    const poll = shuffledPolls[i % shuffledPolls.length];
-    const selectedOptions = generatePollOptions(eligibleCandidates, 4);
-    batch.push({
-      poll,
-      options: selectedOptions
-    });
-  }
-
-  return batch;
-};
-
-/**
- * Dynamic Table Routing:
- * - If grade === '9', fetch from 'polls2' table.
- * - If grade === '10', '11', or '12', fetch from 'polls' table WITHOUT trying to filter by a 'grade' column.
- */
-const fetchPollsFromSupabase = async (grade = '11', limit = 30) => {
-  const normalizedGrade = String(grade || '').trim();
-  const isGrade9 = normalizedGrade === '9';
-  const targetTable = isGrade9 ? 'polls2' : 'polls';
-  const fallback = isGrade9 ? JUNIOR_FALLBACK_POLLS : SENIOR_FALLBACK_POLLS;
-
-  if (!supabase) return fallback;
-  try {
-    const { data, error } = await supabase
-      .from(targetTable)
-      .select('*')
-      .limit(limit);
-
-    if (error) throw error;
-    if (data && data.length > 0) {
-      return data;
-    }
-  } catch (err) {
-    console.warn(`Supabase fetch from ${targetTable} fallback:`, err);
-  }
-  return fallback;
-};
 
 const fetchCandidatesFromSupabase = async (institute, excludeUserId, isJunior = false) => {
   if (!supabase) return [];
@@ -318,8 +244,9 @@ export default function Feed({
   onUpdateUser,
   API
 }) {
-  // Local Batch Queue State
-  const [pollQueue, setPollQueue] = useState([]);
+  // 2. State variable: active unseen polls
+  const [activePolls, setActivePolls] = useState([]);
+  const [candidateOptions, setCandidateOptions] = useState([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [activeGradeFilter, setActiveGradeFilter] = useState(propGradeFilter || 'all');
   const [shuffleCount, setShuffleCount] = useState(0);
@@ -328,13 +255,7 @@ export default function Feed({
   const [isClassesOpen, setIsClassesOpen] = useState(false);
 
   const classesDropdownRef = useRef(null);
-  const pollsPoolRef = useRef([]);
   const candidatesPoolRef = useRef([]);
-  const isFetchingRef = useRef(false);
-  const isRefillingRef = useRef(false);
-  const initialFetchedRef = useRef(false);
-  const lastFetchedUserRef = useRef('');
-  const lastFetchedInstituteRef = useRef('');
   const autoAdvanceRef = useRef(null);
 
   const userId = user?.id;
@@ -373,165 +294,130 @@ export default function Feed({
     };
   }, []);
 
-  // INITIAL BATCH PRE-FETCH: exactly once on mount per user/institute, zero loops
+  // 3. useEffect hook: fetch authenticated user's ID, call Supabase RPC get_unseen_polls, set activePolls
   useEffect(() => {
-    if (!userId) return;
+    const fetchUnseenPolls = async () => {
+      setIsInitialLoading(true);
+      try {
+        let currentUserId = user?.id;
 
-    if (
-      initialFetchedRef.current &&
-      lastFetchedUserRef.current === userId &&
-      lastFetchedInstituteRef.current === userInstitute
-    ) {
-      return;
-    }
+        // Fetch authenticated user ID from Supabase Auth if needed
+        if (!currentUserId && supabase?.auth) {
+          const { data: authData, error: authErr } = await supabase.auth.getUser();
+          if (authErr) {
+            console.warn('Auth user fetch warning:', authErr.message);
+          }
+          currentUserId = authData?.user?.id;
+        }
 
-    initialFetchedRef.current = true;
-    lastFetchedUserRef.current = userId;
-    lastFetchedInstituteRef.current = userInstitute;
+        if (!currentUserId || !supabase) {
+          setIsInitialLoading(false);
+          return;
+        }
 
-    fetchInitialBatch(userInstitute, userId, activeGradeFilter);
-  }, [userId, userInstitute]);
+        const { data, error } = await supabase.rpc('get_unseen_polls', {
+          current_user_id: currentUserId
+        });
 
-  const fetchInitialBatch = async (institute, voterId, grade) => {
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
-    setIsInitialLoading(true);
-
-    try {
-      const isJuniorCohort = String(grade).trim() === '9' || isJunior;
-      const [polls, liveCandidates] = await Promise.all([
-        fetchPollsFromSupabase(grade, 30),
-        fetchCandidatesFromSupabase(institute, voterId, isJuniorCohort)
-      ]);
-
-      // Mix live registered Supabase users with the stKabirSeedNames
-      const combinedCandidates = getCombinedCandidatePool(liveCandidates, stKabirSeedNames, user);
-
-      pollsPoolRef.current = polls;
-      candidatesPoolRef.current = combinedCandidates;
-
-      const batch = buildPollBatch(polls, combinedCandidates, grade, 12, isJuniorCohort);
-      setPollQueue(batch);
-    } catch (err) {
-      console.error('Initial batch fetch failed:', err);
-      const isJuniorCohort = String(grade).trim() === '9' || isJunior;
-      const fallbackList = isJuniorCohort ? JUNIOR_FALLBACK_POLLS : SENIOR_FALLBACK_POLLS;
-      const combinedCandidates = candidatesPoolRef.current?.length > 0 
-        ? candidatesPoolRef.current 
-        : getCombinedCandidatePool([], stKabirSeedNames, user);
-      candidatesPoolRef.current = combinedCandidates;
-      const fallbackBatch = buildPollBatch(fallbackList, combinedCandidates, grade, 12, isJuniorCohort);
-      setPollQueue(fallbackBatch);
-    } finally {
-      setIsInitialLoading(false);
-      isFetchingRef.current = false;
-    }
-  };
-
-  // BACKGROUND REFILL: silently pre-fetches next 10 polls when remaining <= 3
-  const triggerBackgroundRefill = async (grade = activeGradeFilter) => {
-    if (isRefillingRef.current) return;
-    isRefillingRef.current = true;
-
-    try {
-      const isJuniorCohort = String(grade).trim() === '9' || isJunior;
-      let polls = pollsPoolRef.current;
-      if (!polls || polls.length === 0) {
-        polls = await fetchPollsFromSupabase(grade, 30);
-        pollsPoolRef.current = polls;
+        if (error) {
+          console.error('Error fetching unseen polls via get_unseen_polls RPC:', error);
+        } else if (data) {
+          setActivePolls(data);
+        }
+      } catch (err) {
+        console.error('Failed to load unseen polls:', err);
+      } finally {
+        setIsInitialLoading(false);
       }
+    };
 
-      let candidates = candidatesPoolRef.current;
-      if (!candidates || candidates.length < 4) {
+    fetchUnseenPolls();
+  }, [user?.id]);
+
+  // Load candidate pool for current institute & cohort
+  useEffect(() => {
+    const loadCandidates = async () => {
+      try {
+        const isJuniorCohort = isJuniorUser(user);
         const live = await fetchCandidatesFromSupabase(userInstitute, userId, isJuniorCohort);
-        candidates = getCombinedCandidatePool(live, stKabirSeedNames, user);
-        candidatesPoolRef.current = candidates;
+        const combined = getCombinedCandidatePool(live, stKabirSeedNames, user);
+        candidatesPoolRef.current = combined;
+        const currentP = activePolls[0] || propCurrentPoll;
+        if (currentP) {
+          const filtered = filterCandidates(combined, activeGradeFilter, isJuniorCohort);
+          const eligible = filtered.length >= 4 ? filtered : combined;
+          setCandidateOptions(generatePollOptions(eligible, 4));
+        }
+      } catch (e) {
+        console.warn('Candidate loading warning:', e);
       }
+    };
 
-      const nextBatch = buildPollBatch(polls, candidates, grade, 10, isJuniorCohort);
-      setPollQueue(prev => [...prev, ...nextBatch]);
-    } catch (err) {
-      console.warn('Background refill error:', err);
-    } finally {
-      isRefillingRef.current = false;
+    if (userId || userInstitute) {
+      loadCandidates();
     }
-  };
+  }, [userId, userInstitute, activeGradeFilter]);
 
-  // INSTANT ADVANCE: zero network delay, pop from local state array
-  const advanceToNextPoll = () => {
-    setPollQueue(prevQueue => {
-      const nextQueue = prevQueue.slice(1);
-      if (nextQueue.length <= 3 && !isRefillingRef.current) {
-        triggerBackgroundRefill(activeGradeFilter);
+  // When active poll changes, generate fresh 4 candidate options
+  useEffect(() => {
+    if (activePolls[0]) {
+      const isJuniorCohort = isJuniorUser(user);
+      const pool = candidatesPoolRef.current?.length >= 4
+        ? candidatesPoolRef.current
+        : getCombinedCandidatePool([], stKabirSeedNames, user);
+      candidatesPoolRef.current = pool;
+      const filtered = filterCandidates(pool, activeGradeFilter, isJuniorCohort);
+      const eligible = filtered.length >= 4 ? filtered : pool;
+      setCandidateOptions(generatePollOptions(eligible, 4));
+    }
+  }, [activePolls[0]?.id]);
+
+  // 4. Update the handleVote(pollId, selectedOption) function to do two things:
+  //    - Insert the vote into Supabase using: supabase.from('votes').insert([{ poll_id: pollId, voter_id: user.id }])
+  //    - Immediately update the local UI state by filtering out the answered poll from activePolls.
+  const handleVote = async (pollId, selectedOption) => {
+    if (!pollId) return;
+
+    // Immediately update the local UI state by filtering out the answered poll from activePolls
+    setActivePolls(prevPolls => prevPolls.filter(p => p.id !== pollId));
+
+    // Determine authenticated user's ID
+    let voterId = user?.id;
+    if (!voterId && supabase?.auth) {
+      const { data: authData } = await supabase.auth.getUser();
+      voterId = authData?.user?.id;
+    }
+
+    if (supabase && voterId) {
+      try {
+        const { error } = await supabase.from('votes').insert([{
+          poll_id: pollId,
+          voter_id: voterId
+        }]);
+
+        if (error) {
+          console.warn('Supabase vote insert notification:', error.message);
+        }
+      } catch (err) {
+        console.warn('Supabase vote insert error:', err);
       }
-      return nextQueue;
-    });
-  };
-
-  const currentClassLabel = !activeGradeFilter || activeGradeFilter === 'all'
-    ? (isJunior ? 'All Junior Classes (6-9)' : 'All Senior Classes')
-    : (availableClassOptions.find(c => c.toLowerCase() === activeGradeFilter.toLowerCase()) || activeGradeFilter);
-
-  // Check if active cooldown is in the future
-  const isCooldownActive = Boolean(
-    !user?.is_pro &&
-    cooldownUntil &&
-    new Date(cooldownUntil).getTime() > Date.now()
-  );
-
-  // Active Poll and Options from pre-fetched queue (with prop fallback)
-  const currentItem = pollQueue[0] || null;
-  const currentPoll = currentItem?.poll || propCurrentPoll || null;
-  const options = (currentItem?.options && currentItem.options.length >= 4)
-    ? currentItem.options
-    : (propOptions && propOptions.length >= 4)
-      ? propOptions
-      : generatePollOptions(candidatesPoolRef.current?.length >= 4 ? candidatesPoolRef.current : getCombinedCandidatePool([], stKabirSeedNames, user), 4);
-  const displayOptions = (options || []).slice(0, 4);
-
-  // Only show skeleton loader when initial batch is truly loading and no poll exists yet
-  const isLoading = pollQueue.length === 0 && isInitialLoading && !currentPoll;
-  const isVoteFinished = optimisticVoted;
-
-  const handleShuffleClick = () => {
-    if (shuffleCount >= 3) return;
-    setShuffleCount(prev => prev + 1);
-
-    if (window.navigator?.vibrate) {
-      try { window.navigator.vibrate(10); } catch (_) {}
     }
 
-    const currentCandidatePool = candidatesPoolRef.current || [];
-    if (currentCandidatePool.length >= 4) {
-      const filtered = filterCandidates(currentCandidatePool, activeGradeFilter, isJunior);
-      const eligible = filtered.length >= 4 ? filtered : currentCandidatePool;
-      const shuffledOptions = generatePollOptions(eligible, 4);
-
-      setPollQueue(prev => {
-        if (!prev.length) return prev;
-        const [first, ...rest] = prev;
-        return [{ ...first, options: shuffledOptions }, ...rest];
-      });
-    } else {
-      const fallbackPool = getCombinedCandidatePool([], stKabirSeedNames, user);
-      candidatesPoolRef.current = fallbackPool;
-      const shuffledOptions = generatePollOptions(fallbackPool, 4);
-      setPollQueue(prev => {
-        if (!prev.length) return prev;
-        const [first, ...rest] = prev;
-        return [{ ...first, options: shuffledOptions }, ...rest];
-      });
+    // Dispatch to parent if onCastVote prop is provided
+    if (onCastVote) {
+      const isRealUserUuid = Boolean(
+        selectedOption?.id &&
+        !selectedOption?.is_seed &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(selectedOption.id))
+      );
+      try {
+        onCastVote(isRealUserUuid ? selectedOption.id : null, pollId);
+      } catch (_) {}
     }
-
-    if (onShuffle) onShuffle();
   };
 
-  /**
-   * Safe Vote Handler: Guarantees that clicking ANY option (seed name or registered Supabase user)
-   * records the vote in the database without throwing unhandled exceptions or crashing the app.
-   */
   const handleVoteClick = (candidate) => {
-    if (!candidate || optimisticVoted) return;
+    if (!candidate || optimisticVoted || !currentPoll) return;
 
     setShuffleCount(0);
     setSelectedCandidate(candidate);
@@ -541,52 +427,9 @@ export default function Feed({
       try { window.navigator.vibrate(15); } catch (_) {}
     }
 
-    // Determine safe receiver ID:
-    // If the candidate is a registered Supabase user with a valid UUID, use their ID.
-    // If it's a seed name (not a database user row), use null to avoid foreign key constraint failure.
-    const isRealUserUuid = Boolean(
-      candidate.id &&
-      !candidate.is_seed &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(candidate.id))
-    );
-    const dbReceiverId = isRealUserUuid ? candidate.id : null;
+    // Call handleVote with poll ID and candidate
+    handleVote(currentPoll.id, candidate);
 
-    // Verify if currentPoll.id is a valid UUID
-    const isPollUuid = Boolean(
-      currentPoll?.id &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(currentPoll.id))
-    );
-    const dbPollId = isPollUuid ? currentPoll.id : null;
-
-    // 1. Dispatch asynchronous vote to parent App / backend
-    if (onCastVote) {
-      try {
-        onCastVote(dbReceiverId, dbPollId || currentPoll?.id);
-      } catch (err) {
-        console.warn('onCastVote dispatch error handled safely:', err);
-      }
-    }
-
-    // 2. Direct Supabase insert wrapped in async try/catch with .catch fallback
-    if (supabase && user?.id) {
-      (async () => {
-        try {
-          const votePayload = {
-            voter_id: user.id,
-            receiver_id: dbReceiverId,
-            poll_id: dbPollId
-          };
-          const { error } = await supabase.from('votes').insert([votePayload]);
-          if (error) {
-            console.warn('Supabase vote recording notification:', error.message);
-          }
-        } catch (err) {
-          console.warn('Supabase vote recording handled safely:', err);
-        }
-      })();
-    }
-
-    // Auto-advance after 1.2s if user doesn't manually tap "Next Question ➔"
     if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
     autoAdvanceRef.current = setTimeout(() => {
       handleNextClick();
@@ -601,10 +444,9 @@ export default function Feed({
     setOptimisticVoted(false);
     setSelectedCandidate(null);
     setShuffleCount(0);
-    advanceToNextPoll();
   };
 
-  const handleSkipClick = () => {
+  const handleSkipClick = async () => {
     if (window.navigator?.vibrate) {
       try { window.navigator.vibrate(8); } catch (_) {}
     }
@@ -612,10 +454,77 @@ export default function Feed({
       clearTimeout(autoAdvanceRef.current);
       autoAdvanceRef.current = null;
     }
+
+    const pollId = currentPoll?.id;
+    if (!pollId) return;
+
+    // Immediately update local UI state by filtering out skipped poll from activePolls
+    setActivePolls(prevPolls => prevPolls.filter(p => p.id !== pollId));
+
+    let voterId = user?.id;
+    if (!voterId && supabase?.auth) {
+      const { data: authData } = await supabase.auth.getUser();
+      voterId = authData?.user?.id;
+    }
+
+    if (supabase && voterId) {
+      try {
+        await supabase.from('votes').insert([{
+          poll_id: pollId,
+          voter_id: voterId,
+          receiver_id: null,
+          status: 'skipped'
+        }]);
+      } catch (_) {}
+    }
+
     setShuffleCount(0);
     setOptimisticVoted(false);
     setSelectedCandidate(null);
-    advanceToNextPoll();
+  };
+
+  const handleRefreshUnseen = async () => {
+    setIsInitialLoading(true);
+    let voterId = user?.id;
+    if (!voterId && supabase?.auth) {
+      const { data: authData } = await supabase.auth.getUser();
+      voterId = authData?.user?.id;
+    }
+    if (voterId && supabase) {
+      try {
+        const { data, error } = await supabase.rpc('get_unseen_polls', {
+          current_user_id: voterId
+        });
+        if (!error && data) {
+          setActivePolls(data);
+        }
+      } catch (e) {
+        console.warn('Refresh error:', e);
+      }
+    }
+    setIsInitialLoading(false);
+  };
+
+  const handleShuffleClick = () => {
+    if (shuffleCount >= 3) return;
+    setShuffleCount(prev => prev + 1);
+
+    if (window.navigator?.vibrate) {
+      try { window.navigator.vibrate(10); } catch (_) {}
+    }
+
+    const currentCandidatePool = candidatesPoolRef.current?.length >= 4
+      ? candidatesPoolRef.current
+      : getCombinedCandidatePool([], stKabirSeedNames, user);
+    candidatesPoolRef.current = currentCandidatePool;
+
+    const isJuniorCohort = isJuniorUser(user);
+    const filtered = filterCandidates(currentCandidatePool, activeGradeFilter, isJuniorCohort);
+    const eligible = filtered.length >= 4 ? filtered : currentCandidatePool;
+    const shuffledOptions = generatePollOptions(eligible, 4);
+    setCandidateOptions(shuffledOptions);
+
+    if (onShuffle) onShuffle();
   };
 
   const handleGradeFilterSelect = (selectedGrade) => {
@@ -628,36 +537,50 @@ export default function Feed({
     setSelectedCandidate(null);
     setShuffleCount(0);
 
-    // Instantly rebuild local queue from in-memory pool
+    const isJuniorCohort = isJuniorUser(user);
     const pool = candidatesPoolRef.current?.length >= 4
       ? candidatesPoolRef.current
       : getCombinedCandidatePool([], stKabirSeedNames, user);
-    candidatesPoolRef.current = pool;
-
-    if (pollsPoolRef.current.length > 0) {
-      const isJuniorCohort = String(selectedGrade).trim() === '9' || isJunior;
-      const newBatch = buildPollBatch(
-        pollsPoolRef.current,
-        pool,
-        selectedGrade,
-        12,
-        isJuniorCohort
-      );
-      setPollQueue(newBatch);
-    } else {
-      fetchInitialBatch(userInstitute, userId, selectedGrade);
-    }
+    const filtered = filterCandidates(pool, selectedGrade, isJuniorCohort);
+    const eligible = filtered.length >= 4 ? filtered : pool;
+    setCandidateOptions(generatePollOptions(eligible, 4));
 
     if (onLoadNextPoll) {
       onLoadNextPoll(selectedGrade);
     }
   };
 
+  const currentClassLabel = !activeGradeFilter || activeGradeFilter === 'all'
+    ? (isJunior ? 'All Junior Classes (6-9)' : 'All Senior Classes')
+    : (availableClassOptions.find(c => c.toLowerCase() === activeGradeFilter.toLowerCase()) || activeGradeFilter);
+
+  // Check if active cooldown is in the future
+  const isCooldownActive = Boolean(
+    !user?.is_pro &&
+    cooldownUntil &&
+    new Date(cooldownUntil).getTime() > Date.now()
+  );
+
+  // Active Poll and Options from activePolls
+  const currentPoll = activePolls[0] || null;
+  const options = (candidateOptions && candidateOptions.length >= 4)
+    ? candidateOptions
+    : (propOptions && propOptions.length >= 4)
+      ? propOptions
+      : generatePollOptions(candidatesPoolRef.current?.length >= 4 ? candidatesPoolRef.current : getCombinedCandidatePool([], stKabirSeedNames, user), 4);
+  const displayOptions = (options || []).slice(0, 4);
+
+  // States
+  const isLoading = isInitialLoading;
+  const isVoteFinished = optimisticVoted;
+  const isNoMorePolls = !isLoading && !isVoteFinished && (!currentPoll || activePolls.length === 0);
+
   const handleSharePoll = async () => {
     const handle = (user?.invite_code || user?.handle || 'campus').replace(/^@/, '');
     const baseOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://centerinsider.vercel.app';
     const shareUrl = `${baseOrigin}/?ref=${encodeURIComponent(handle)}`;
-    const shareText = `🔥 "${questionText}"\nVote anonymously on CenterInsider!`;
+    const qText = currentPoll?.question || 'Vote anonymously with your classmates!';
+    const shareText = `🔥 "${qText}"\nVote anonymously on CenterInsider!`;
 
     await handleShare({
       title: 'CenterInsider',
@@ -827,6 +750,45 @@ export default function Feed({
           >
             Next Question ➔
           </motion.button>
+        </motion.div>
+      ) : isNoMorePolls ? (
+        /* No More Polls State - Clean Pitch Black Floating Card */
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.22 }}
+          className="w-full bg-black rounded-3xl md:rounded-[2.5rem] shadow-2xl p-6 md:p-8 text-center flex flex-col items-center justify-center relative border-2 border-black box-border min-h-[380px]"
+          style={{
+            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.75), 0 10px 25px -5px rgba(0, 0, 0, 0.45)'
+          }}
+        >
+          <div className="text-4xl md:text-5xl mb-3 animate-pulse">✨</div>
+          <h2 className="text-white text-xl md:text-2xl font-black tracking-tight mb-2">
+            No More Polls!
+          </h2>
+          <p className="text-zinc-400 text-xs md:text-sm max-w-[280px] mx-auto mb-6 leading-relaxed">
+            You've answered or skipped all available polls for your school. Check back tomorrow for new drama or invite classmates!
+          </p>
+
+          <div className="w-full flex flex-col gap-2.5 max-w-[280px]">
+            <motion.button
+              whileTap={{ scale: 0.96 }}
+              whileHover={{ scale: 1.02 }}
+              onClick={handleRefreshUnseen}
+              className="w-full py-3 px-6 rounded-full bg-[#00ff41] text-black font-black text-xs md:text-sm shadow-[0_0_20px_rgba(0,255,65,0.4)] hover:brightness-110 cursor-pointer transition-all border-none"
+            >
+              Check for New Polls 🔄
+            </motion.button>
+
+            <motion.button
+              whileTap={{ scale: 0.96 }}
+              whileHover={{ scale: 1.02 }}
+              onClick={handleSharePoll}
+              className="w-full py-3 px-6 rounded-full bg-zinc-900 text-white font-extrabold text-xs md:text-sm border border-zinc-700/80 hover:border-zinc-500 cursor-pointer transition-all"
+            >
+              Invite Classmates 👥
+            </motion.button>
+          </div>
         </motion.div>
       ) : (
         /* 2. Central Floating Poll Card (Obsidian Contrast on Neon Green) */
