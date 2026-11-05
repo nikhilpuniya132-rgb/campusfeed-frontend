@@ -1,947 +1,275 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, School } from 'lucide-react';
-import { useNavigate } from '../useNavigate';
-import ReferralInviteSnippet from './ReferralInviteSnippet';
-import HamsterLoader from './HamsterLoader';
+import { Heart, X, Send, User, RefreshCw } from 'lucide-react';
+import { supabase as defaultSupabase } from '../supabase';
 
 export default function Explore({
   currentUser,
-  API,
-  supabase,
-  renderProfilePic,
-  onViewPublicProfile,
-  onFriendAdded
+  user: propUser,
+  supabase: propSupabase
 }) {
-  const navigate = useNavigate();
+  const supabase = propSupabase || defaultSupabase;
+  const activeUser = currentUser || propUser;
 
-  // Collapsible accordion state: defaults to closed/rest state (null)
-  const [openAccordion, setOpenAccordion] = useState(null);
+  // 1. Initialize State: profiles (array), currentIndex (number, default 0), messageText (string), and isLoading (boolean)
+  const [profiles, setProfiles] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [messageText, setMessageText] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSendingDm, setIsSendingDm] = useState(false);
+  const [dmStatus, setDmStatus] = useState('');
 
-  // Search state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [requestStatusMap, setRequestStatusMap] = useState({});
-
-  // Leaderboard data states
-  const [legends, setLegends] = useState([]);
-  const [isLoadingLegends, setIsLoadingLegends] = useState(true);
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(true);
-
-  // Toggle helper for accordions
-  const toggleAccordion = (id) => {
-    setOpenAccordion(prev => (prev === id ? null : id));
+  // Helper to retrieve current authenticated user ID
+  const getUserId = async () => {
+    if (activeUser?.id) return activeUser.id;
+    if (supabase?.auth) {
+      const { data } = await supabase.auth.getUser();
+      return data?.user?.id || null;
+    }
+    return null;
   };
 
-  // 1. Fetch Legends (Batch Captains) strictly isolated to user's institute
-  useEffect(() => {
-    const fetchLegends = async () => {
-      setIsLoadingLegends(true);
-      try {
-        const instParam = encodeURIComponent(currentUser?.institute || '');
-        const res = await fetch(`${API}/explore/legends?institute=${instParam}`);
-        const data = await res.json();
-        if (data.legends && data.legends.length > 0) {
-          const verified = data.legends
-            .filter(u => !currentUser?.institute || u.institute === currentUser.institute)
-            .filter(u => ((u.invites || u.recruits || 0) >= 25 || u.batch_captain_admin_override));
-          setLegends(verified);
-        } else if (supabase) {
-          let query = supabase
-            .from('users')
-            .select('id, handle, name, avatar, profile_pic, ring, selected_ring, total_votes, is_pro, grade, stream, institute, invites, is_batch_captain, batch_captain_admin_override');
-
-          if (currentUser?.institute) {
-            query = query.eq('institute', currentUser.institute);
-          }
-
-          const { data: dbLegends } = await query
-            .gte('invites', 25)
-            .order('invites', { ascending: false })
-            .limit(30);
-
-          const filtered = (dbLegends || [])
-            .filter(u => !currentUser?.institute || u.institute === currentUser.institute)
-            .filter(u => ((u.invites || u.recruits || 0) >= 25 || u.batch_captain_admin_override));
-          setLegends(filtered);
-        }
-      } catch (err) {
-        console.error('Failed to load legends:', err);
-      } finally {
-        setIsLoadingLegends(false);
-      }
-    };
-    fetchLegends();
-  }, [API, supabase, currentUser?.institute]);
-
-  // 2. Fetch Leaderboard strictly isolated to user's institute
-  useEffect(() => {
-    const fetchLeaderboard = async () => {
-      setIsLoadingLeaderboard(true);
-      try {
-        const instParam = encodeURIComponent(currentUser?.institute || '');
-        const res = await fetch(`${API}/explore/leaderboard?institute=${instParam}`);
-        const data = await res.json();
-        if (data.leaderboard && data.leaderboard.length > 0) {
-          const instituteFiltered = data.leaderboard.filter(u => !currentUser?.institute || u.institute === currentUser.institute);
-          setLeaderboard(instituteFiltered);
-        } else if (supabase) {
-          let query = supabase
-            .from('users')
-            .select('id, handle, name, avatar, profile_pic, ring, selected_ring, total_votes, is_pro, grade, stream, institute, coaching_hub, invites, is_batch_captain');
-
-          if (currentUser?.institute) {
-            query = query.eq('institute', currentUser.institute);
-          }
-
-          const { data: dbUsers } = await query
-            .order('total_votes', { ascending: false })
-            .limit(100);
-
-          const sanitized = (dbUsers || [])
-            .filter(u => !currentUser?.institute || u.institute === currentUser.institute)
-            .map(u => ({
-              ...u,
-              institute: u.institute || currentUser?.institute || 'Kapil Institute',
-              stream: u.stream || (u.grade === 12 ? '12th Board' : '11th Medical'),
-              grade: u.grade || 11,
-              coaching_hub: u.coaching_hub || 'Ajit Road Hub'
-            }));
-          setLeaderboard(sanitized);
-        }
-      } catch (err) {
-        console.error('Failed to load leaderboard:', err);
-      } finally {
-        setIsLoadingLeaderboard(false);
-      }
-    };
-    fetchLeaderboard();
-  }, [API, supabase, currentUser?.institute]);
-
-  // 3. Handle Friend Search
-  useEffect(() => {
-    const query = searchQuery.trim().replace(/^@/, '');
-    if (!query) {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
-    }
-
-    setIsSearching(true);
-    const delayTimer = setTimeout(async () => {
-      try {
-        const instParam = encodeURIComponent(currentUser?.institute || '');
-        const url = `${API}/friends/search?q=${encodeURIComponent(query)}&userId=${currentUser?.id || ''}&institute=${instParam}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        const isolatedUsers = (data.users || []).filter(u => !currentUser?.institute || u.institute === currentUser.institute);
-        setSearchResults(isolatedUsers);
-      } catch (err) {
-        console.error('Friend search error:', err);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 280);
-
-    return () => clearTimeout(delayTimer);
-  }, [searchQuery, API, currentUser?.id, currentUser?.institute]);
-
-  // 4. Send Friend Request
-  const handleSendFriendRequest = async (targetUserId) => {
-    if (!currentUser?.id || !targetUserId) return;
-    setRequestStatusMap(prev => ({ ...prev, [targetUserId]: 'sending' }));
-
+  // 2. Fetch Logic: Call RPC function get_unswiped_users({ current_user_id: user.id }) and set result to profiles
+  const fetchUnswipedUsers = async () => {
+    setIsLoading(true);
     try {
-      const res = await fetch(`${API}/friends/request`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUser.id, friendId: targetUserId })
+      const userId = await getUserId();
+      if (!userId || !supabase) {
+        setIsLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase.rpc('get_unswiped_users', {
+        current_user_id: userId
       });
-      const data = await res.json();
-      if (data.success) {
-        setRequestStatusMap(prev => ({
-          ...prev,
-          [targetUserId]: data.alreadyExisted ? 'accepted' : 'pending'
-        }));
-        if (onFriendAdded) onFriendAdded();
+
+      if (error) {
+        console.error('Error calling get_unswiped_users RPC:', error);
       } else {
-        setRequestStatusMap(prev => ({ ...prev, [targetUserId]: 'error' }));
+        setProfiles(data || []);
+        setCurrentIndex(0);
       }
     } catch (err) {
-      console.error('Send friend request error:', err);
-      setRequestStatusMap(prev => ({ ...prev, [targetUserId]: 'error' }));
+      console.error('Failed to fetch unswiped users:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // 5. Strict Class Rank Filtering by Institute AND Class/Stream
-  const currentUserInstitute = (currentUser?.institute || 'Kapil Institute').trim();
-  const currentUserStream = (currentUser?.stream || (currentUser?.grade === 12 ? '12th Board' : '11th Medical')).trim();
-  const currentUserGrade = (currentUser?.grade || 11).toString();
+  useEffect(() => {
+    fetchUnswipedUsers();
+  }, [activeUser?.id]);
 
-  const classLeaderboard = leaderboard.filter(student => {
-    const sInst = (student.institute || 'Kapil Institute').trim().toLowerCase();
-    const myInst = currentUserInstitute.toLowerCase();
+  const currentProfile = profiles[currentIndex] || null;
 
-    // Strict filter: User institute MUST match
-    const instituteMatches = sInst === myInst || sInst.includes(myInst) || myInst.includes(sInst);
-    if (!instituteMatches) return false;
+  // 4. Swipe Logic: Skip and Like buttons, insert record into swipes table, advance currentIndex by 1
+  const handleSwipe = async (action) => {
+    if (!currentProfile) return;
 
-    // Strict filter: Class / Stream MUST match
-    const sStream = (student.stream || '').trim().toLowerCase();
-    const myStream = currentUserStream.toLowerCase();
-    const sGrade = (student.grade || '').toString();
+    const swipedOnId = currentProfile.id;
+    const userId = await getUserId();
 
-    const isMedical = myStream.includes('med') && !myStream.includes('non');
-    const isNonMed = myStream.includes('non');
-    const isBoard = myStream.includes('12') || myStream.includes('board') || currentUserGrade === '12';
-    const isDropper = myStream.includes('drop') || currentUserGrade.includes('drop');
+    // Advance currentIndex by 1
+    setCurrentIndex(prev => prev + 1);
+    setMessageText('');
+    setDmStatus('');
 
-    if (isMedical) return sStream.includes('med') && !sStream.includes('non');
-    if (isNonMed) return sStream.includes('non');
-    if (isBoard) return sStream.includes('12') || sGrade === '12';
-    if (isDropper) return sStream.includes('drop') || sGrade.includes('drop');
+    // Insert into swipes table ({ swiper_id, swiped_on_id, action })
+    if (supabase && userId && swipedOnId) {
+      try {
+        const { error } = await supabase.from('swipes').insert([{
+          swiper_id: userId,
+          swiped_on_id: swipedOnId,
+          action // 'like' or 'skip'
+        }]);
 
-    return sStream === myStream || sGrade === currentUserGrade;
-  });
+        if (error) {
+          console.warn('Swipe record notification:', error.message);
+        }
+      } catch (err) {
+        console.error('Failed to record swipe:', err);
+      }
+    }
+  };
+
+  // 5. DM Logic: Insert into messages table ({ sender_id, receiver_id, content: messageText }) and clear input
+  const handleSendDm = async (e) => {
+    e?.preventDefault();
+    if (!messageText.trim() || !currentProfile) return;
+
+    setIsSendingDm(true);
+    setDmStatus('');
+
+    try {
+      const userId = await getUserId();
+      if (!userId || !supabase) {
+        setDmStatus('Must be signed in to send DMs');
+        setIsSendingDm(false);
+        return;
+      }
+
+      const contentToSend = messageText.trim();
+
+      const { error } = await supabase.from('messages').insert([{
+        sender_id: userId,
+        receiver_id: currentProfile.id,
+        content: contentToSend
+      }]);
+
+      if (error) {
+        throw error;
+      }
+
+      // Clear input field on success
+      setMessageText('');
+      setDmStatus('Message sent!');
+      setTimeout(() => setDmStatus(''), 3000);
+    } catch (err) {
+      console.error('Failed to send DM:', err);
+      setDmStatus('Failed to send message');
+    } finally {
+      setIsSendingDm(false);
+    }
+  };
 
   return (
-    <div
-      style={{
-        width: '100%',
-        minHeight: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: '4px 0 calc(70px + env(safe-area-inset-bottom, 10px)) 0',
-        boxSizing: 'border-box',
-        background: 'transparent',
-        color: '#ffffff',
-        overflowX: 'hidden'
-      }}
-    >
-      {/* SCREEN FOCUS CONTAINER */}
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '448px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'stretch',
-          boxSizing: 'border-box'
-        }}
-      >
-        {/* 1. Header (Pitch Black Floating Pill) */}
-        <div
-          className="bg-black text-white rounded-3xl shadow-2xl p-5 mb-4 border-2 border-black text-left"
-          style={{
-            textAlign: 'left',
-            marginBottom: '16px',
-            background: '#000000',
-            borderRadius: '1.5rem',
-            padding: '20px 24px',
-            boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.65)',
-            border: '2px solid #000000'
-          }}
+    <div className="w-full max-w-md mx-auto p-4 flex flex-col justify-center min-h-[560px] text-white">
+      {/* 3. UI Rendering */}
+      {isLoading ? (
+        /* Loading Indicator */
+        <div className="w-full bg-black border border-zinc-800 rounded-3xl p-12 text-center flex flex-col items-center justify-center gap-3">
+          <div className="w-8 h-8 border-2 border-[#00ff41] border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-bold text-zinc-400">Finding campus profiles...</span>
+        </div>
+      ) : currentIndex >= profiles.length || !currentProfile ? (
+        /* No more profiles state */
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full bg-black border-2 border-zinc-800 rounded-3xl p-8 text-center flex flex-col items-center justify-center gap-4 shadow-2xl"
         >
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '4px 12px',
-              borderRadius: '20px',
-              background: 'rgba(0, 144, 255, 0.15)',
-              border: '1px solid rgba(0, 144, 255, 0.4)',
-              color: '#0090ff',
-              fontSize: '10px',
-              fontWeight: '900',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              marginBottom: '8px'
-            }}
-          >
-            <span>🔥</span>
-            <span>CAMPUS RADAR</span>
-          </div>
-
-          <h1
-            style={{
-              fontSize: '28px',
-              fontWeight: '950',
-              color: '#ffffff',
-              margin: '0 0 4px 0',
-              letterSpacing: '-1.2px',
-              lineHeight: 1.05
-            }}
-          >
-            EXPLORE
-          </h1>
-          <p
-            style={{
-              fontSize: '13px',
-              fontWeight: '700',
-              color: '#a1a1aa',
-              margin: 0,
-              letterSpacing: '-0.2px'
-            }}
-          >
-            Find classmates. Unlock perks. Rank your batch.
+          <div className="text-4xl">✨</div>
+          <h2 className="text-lg font-black text-white">No more profiles to swipe</h2>
+          <p className="text-xs text-zinc-400 max-w-xs leading-relaxed">
+            You have viewed all matching student profiles for now. Check back soon for new classmates!
           </p>
-        </div>
-
-        {/* 2. Bold Search Input (Un-boxed Floating Card with rounded-3xl) */}
-        <div style={{ position: 'relative', marginBottom: '16px' }}>
-          <div
-            className="bg-black text-white rounded-3xl shadow-2xl p-4 border-2 border-black flex items-center"
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={fetchUnswipedUsers}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#00ff41] text-black font-black text-xs hover:brightness-110 cursor-pointer border-none shadow-[0_0_15px_rgba(0,255,65,0.4)]"
+          >
+            <RefreshCw size={14} />
+            <span>Check Again</span>
+          </motion.button>
+        </motion.div>
+      ) : (
+        /* Card for profiles[currentIndex] showing profile_pic_url, handle, and bio */
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentProfile.id}
+            initial={{ opacity: 0, scale: 0.96, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="w-full bg-black border-2 border-zinc-800 rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col box-border"
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: '#000000',
-              border: '2px solid #000000',
-              borderRadius: '1.5rem',
-              padding: '6px 20px',
-              boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.65)',
-              transition: 'all 0.2s ease'
+              boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 10px 25px -5px rgba(0, 0, 0, 0.5)'
             }}
           >
-            <span style={{ fontSize: '16px', color: '#00ff41', marginRight: '10px', fontWeight: '900' }}>🔍</span>
-            <input
-              type="text"
-              placeholder="Search classmates @handle..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '14px 0',
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: '#ffffff',
-                fontSize: '14px',
-                fontWeight: '800'
-              }}
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#71717a',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  padding: '4px'
-                }}
-              >
-                ✕
-              </button>
-            )}
-          </div>
+            {/* Profile Picture */}
+            <div className="relative w-full aspect-square bg-zinc-950 flex items-center justify-center overflow-hidden">
+              {currentProfile.profile_pic_url ? (
+                <img
+                  src={currentProfile.profile_pic_url}
+                  alt={currentProfile.handle || 'Profile'}
+                  className="w-full h-full object-cover select-none"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900 text-zinc-600 gap-2">
+                  <User size={64} strokeWidth={1.5} />
+                  <span className="text-xs font-semibold text-zinc-500">No photo uploaded</span>
+                </div>
+              )}
 
-          {/* Live Search Results Dropdown */}
-          <AnimatePresence>
-            {searchQuery.trim() && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  marginTop: '8px',
-                  background: '#09090b',
-                  border: '2px solid #27272a',
-                  borderRadius: '18px',
-                  padding: '8px',
-                  zIndex: 40,
-                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.7)',
-                  maxHeight: '260px',
-                  overflowY: 'auto'
-                }}
-              >
-                {isSearching ? (
-                  <div style={{ padding: '16px', textAlign: 'center', color: '#a1a1aa', fontSize: '13px', fontWeight: '700' }}>
-                    Searching Bathinda Hubs...
-                  </div>
-                ) : searchResults.length === 0 ? (
-                  <div style={{ padding: '16px', textAlign: 'center', color: '#a1a1aa', fontSize: '13px', fontWeight: '700' }}>
-                    No classmates found for "{searchQuery}"
-                  </div>
-                ) : (
-                  searchResults.map((user, idx) => {
-                    const status = requestStatusMap[user.id] || user.friendshipStatus;
-                    const searchKey = user.id || `search-${user.handle || 'user'}-${idx}`;
-                    return (
-                      <div
-                        key={searchKey}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '10px 12px',
-                          borderRadius: '12px',
-                          background: '#18181b',
-                          border: '1px solid #27272a',
-                          marginBottom: '6px'
-                        }}
-                      >
-                        <div
-                          onClick={() => onViewPublicProfile && onViewPublicProfile(user.id)}
-                          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', flex: 1 }}
-                        >
-                          {renderProfilePic
-                            ? renderProfilePic(user.profile_pic, user.avatar, user.is_pro, user.selected_ring || user.ring, 38, Boolean(user.invites >= 25 || user.recruits >= 25 || user.is_god_mode || user.is_legend))
-                            : (
-                              <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                {user.avatar || '😎'}
-                              </div>
-                            )}
-                          <div style={{ textAlign: 'left' }}>
-                            <span style={{ fontSize: '13.5px', fontWeight: '950', color: '#ffffff', display: 'block' }}>
-                              {user.name || `@${user.handle}`}
-                            </span>
-                            <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '600' }}>
-                              @{user.handle} • {user.institute || 'Kapil Institute'}
-                            </span>
-                          </div>
-                        </div>
+              {/* Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent pointer-events-none" />
 
-                        {/* Request Action Button */}
-                        <div>
-                          {status === 'accepted' ? (
-                            <span style={{ fontSize: '11px', color: '#10b981', fontWeight: '900', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', minHeight: '36px' }}>
-                              ✓ Friends
-                            </span>
-                          ) : status === 'pending' || status === 'sending' ? (
-                            <span style={{ fontSize: '11px', color: '#f59e0b', fontWeight: '800', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', minHeight: '36px' }}>
-                              ⏳ Sent
-                            </span>
-                          ) : (
-                            <motion.button
-                              whileTap={{ scale: 0.92 }}
-                              onClick={() => handleSendFriendRequest(user.id)}
-                              style={{
-                                padding: '8px 16px',
-                                minHeight: '44px',
-                                minWidth: '44px',
-                                borderRadius: '12px',
-                                border: 'none',
-                                background: '#ffffff',
-                                color: '#000000',
-                                fontSize: '12px',
-                                fontWeight: '900',
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                            >
-                              + Add
-                            </motion.button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* ======================================================== */}
-        {/* 4. COLLAPSIBLE ACCORDIONS (80% FOCUS / GEN-Z TYPOGRAPHY) */}
-        {/* ======================================================== */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
-
-          {/* ACCORDION 2: LEGENDS (BATCH CAPTAINS) - Pitch Black */}
-          <div
-            className="bg-black text-white rounded-3xl shadow-2xl p-5 mb-4 border-2 border-black overflow-hidden"
-            style={{
-              background: '#000000',
-              border: '2px solid #000000',
-              borderRadius: '1.5rem',
-              overflow: 'hidden',
-              boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.65)',
-              padding: '20px',
-              marginBottom: '16px'
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => toggleAccordion('legends')}
-              className="w-full flex items-center justify-between bg-black text-white border-0 cursor-pointer text-left p-0 min-h-[48px]"
-              style={{
-                width: '100%',
-                minHeight: '48px',
-                padding: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '20px' }}>👑</span>
+              {/* Handle Tag */}
+              <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between">
                 <div>
-                  <div style={{ fontSize: '15px', fontWeight: '950', color: '#ffffff', letterSpacing: '-0.3px' }}>
-                    Legends (Batch Captains)
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '700', marginTop: '1px' }}>
-                    25+ Recruits • Hall of Fame
-                  </div>
+                  <h3 className="text-xl font-black text-white tracking-tight drop-shadow-md">
+                    @{currentProfile.handle || 'anonymous'}
+                  </h3>
                 </div>
               </div>
-              <span
-                style={{
-                  fontSize: '13px',
-                  fontWeight: '900',
-                  color: '#ffffff',
-                  transform: openAccordion === 'legends' ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s ease'
-                }}
-              >
-                ▼
-              </span>
-            </button>
+            </div>
 
-            <AnimatePresence>
-              {openAccordion === 'legends' && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22, ease: 'easeInOut' }}
-                  style={{ overflow: 'hidden', borderTop: '1px solid #27272a' }}
-                >
-                  <div style={{ padding: '12px 16px 16px 16px' }}>
-                    <p style={{ margin: '0 0 12px 0', fontSize: '12px', fontWeight: '700', color: '#a1a1aa', textAlign: 'left' }}>
-                      Students with official Batch Captain status across Bathinda hubs.
-                    </p>
+            {/* Bio & Details */}
+            <div className="p-4 flex flex-col gap-4">
+              <div className="min-h-[44px]">
+                <p className="text-xs text-zinc-300 leading-relaxed font-medium">
+                  {currentProfile.bio || 'No bio written yet.'}
+                </p>
+              </div>
 
-                    {isLoadingLegends ? (
-                      <div style={{ padding: '24px 0', display: 'flex', justifyContent: 'center' }}>
-                        <HamsterLoader message="Loading Legends..." color="#ffffff" />
-                      </div>
-                    ) : legends.length === 0 ? (
-                      <div style={{ padding: '20px 8px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '32px', marginBottom: '8px' }}>👑</div>
-                        <p style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: '950', color: '#ffffff', lineHeight: '1.3' }}>
-                          No Batch Captains yet. Claim the crown!
-                        </p>
-                        <p style={{ margin: '0 0 14px 0', fontSize: '12px', color: '#a1a1aa', fontWeight: '600' }}>
-                          Invite 25 classmates to become an official Batch Captain and lead your hub.
-                        </p>
-                        <button
-                          onClick={() => navigate('/captains')}
-                          style={{
-                            padding: '12px 20px',
-                            minHeight: '44px',
-                            background: '#ffffff',
-                            color: '#000000',
-                            border: 'none',
-                            borderRadius: '12px',
-                            fontSize: '12.5px',
-                            fontWeight: '900',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          Apply for Batch Captain ➔
-                        </button>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        {legends.map((legend, idx) => (
-                          <div
-                            key={legend.id || `legend-${legend.handle || 'cap'}-${idx}`}
-                            onClick={() => onViewPublicProfile && onViewPublicProfile(legend.id)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '12px 0',
-                              borderBottom: idx === legends.length - 1 ? 'none' : '1px solid #27272a',
-                              cursor: 'pointer',
-                              textAlign: 'left'
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              {renderProfilePic
-                                ? renderProfilePic(legend.profile_pic, legend.avatar, true, legend.selected_ring || legend.ring || 'gold', 42, true)
-                                : (
-                                  <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
-                                    {legend.avatar || '👑'}
-                                  </div>
-                                )}
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                <span style={{ fontSize: '14.5px', fontWeight: '950', color: '#ffffff', letterSpacing: '-0.2px' }}>
-                                  {legend.name || `@${legend.handle}`}
-                                </span>
-                                <span style={{ fontSize: '12px', color: '#a1a1aa', fontWeight: '600' }}>
-                                  @{legend.handle}
-                                </span>
-                                <div
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    background: '#18181b',
-                                    border: '1px solid #27272a',
-                                    color: '#ffffff',
-                                    fontSize: '9.5px',
-                                    fontWeight: '900',
-                                    padding: '2px 8px',
-                                    borderRadius: '6px',
-                                    marginTop: '3px',
-                                    letterSpacing: '0.02em'
-                                  }}
-                                >
-                                  <span>👑</span>
-                                  <span>Batch Captain</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div style={{ textAlign: 'right' }}>
-                              <span style={{ fontSize: '13px', fontWeight: '950', color: '#ffffff' }}>
-                                {legend.total_votes || 0} 🔥
-                              </span>
-                              <div style={{ fontSize: '11px', color: '#a1a1aa', marginTop: '1px', fontWeight: '700' }}>
-                                {legend.invites ? `${legend.invites} recruits` : 'Leader'}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* ACCORDION 3: CLASS RANK (STRICTLY LOGGED-IN INSTITUTE & CLASS) */}
-          <div
-            className="bg-[#00ff41] rounded-3xl shadow-2xl p-5 mb-4 border-2 border-black overflow-hidden"
-            style={{
-              background: '#00ff41',
-              borderRadius: '1.5rem',
-              boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.65)',
-              border: '2px solid #000000',
-              padding: '20px',
-              marginBottom: '16px',
-              overflow: 'hidden'
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => toggleAccordion('classRank')}
-              className="w-full flex items-center justify-between bg-transparent border-0 cursor-pointer text-left p-0 min-h-[48px]"
-              style={{
-                width: '100%',
-                minHeight: '48px',
-                padding: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-            >
-              <div className="flex flex-col items-start" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <div className="flex items-center gap-2.5" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Users size={20} strokeWidth={2.4} color="#000000" className="text-black" />
-                  <span className="text-black font-bold" style={{ fontSize: '15px', fontWeight: '950', color: '#000000', letterSpacing: '-0.3px' }}>
-                    Class Rank
+              {/* DM Section: Text input and Send DM button */}
+              <form onSubmit={handleSendDm} className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Send a direct message..."
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    disabled={isSendingDm}
+                    className="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#00ff41] transition-colors"
+                  />
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    type="submit"
+                    disabled={isSendingDm || !messageText.trim()}
+                    className={`px-3 py-2 rounded-xl font-bold text-xs flex items-center gap-1 border-none cursor-pointer transition-all ${
+                      isSendingDm || !messageText.trim()
+                        ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                        : 'bg-white text-black hover:bg-zinc-200'
+                    }`}
+                  >
+                    <Send size={12} />
+                    <span>Send</span>
+                  </motion.button>
+                </div>
+                {dmStatus && (
+                  <span className="text-[10px] text-[#00ff41] font-semibold px-1">
+                    {dmStatus}
                   </span>
-                </div>
-                <span className="text-gray-900 font-bold" style={{ fontSize: '11.5px', color: '#111827', fontWeight: '800', marginTop: '2px', paddingLeft: '30px' }}>
-                  {currentUserInstitute} • {currentUserStream}
-                </span>
-              </div>
-              <span
-                className="text-black font-black"
-                style={{
-                  fontSize: '13px',
-                  fontWeight: '900',
-                  color: '#000000',
-                  transform: openAccordion === 'classRank' ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s ease'
-                }}
-              >
-                ▼
-              </span>
-            </button>
+                )}
+              </form>
 
-            <AnimatePresence>
-              {openAccordion === 'classRank' && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22, ease: 'easeInOut' }}
-                  style={{ overflow: 'hidden', borderTop: '2px solid rgba(0, 0, 0, 0.15)', marginTop: '16px', paddingTop: '16px' }}
+              {/* Swipe Action Buttons: Skip and Like */}
+              <div className="grid grid-cols-2 gap-3 pt-1 border-t border-zinc-800/80">
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
+                  whileHover={{ scale: 1.02 }}
+                  onClick={() => handleSwipe('skip')}
+                  className="py-3 rounded-2xl bg-zinc-900 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all"
                 >
-                  <div
-                    style={{
-                      background: '#000000',
-                      borderRadius: '1rem',
-                      padding: '16px',
-                      color: '#ffffff',
-                      border: '1px solid #18181b',
-                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
-                    }}
-                  >
-                    <div
-                      style={{
-                        padding: '8px 12px',
-                        borderRadius: '12px',
-                        background: '#18181b',
-                        border: '1px solid #27272a',
-                        marginBottom: '12px',
-                        textAlign: 'left'
-                      }}
-                    >
-                      <span style={{ fontSize: '11.5px', color: '#00ff41', fontWeight: '800' }}>
-                        📍 Isolated to {currentUserInstitute} • {currentUserStream} students only
-                      </span>
-                    </div>
+                  <X size={16} className="text-zinc-400" />
+                  <span>Skip</span>
+                </motion.button>
 
-                    {isLoadingLeaderboard ? (
-                      <div style={{ padding: '24px 0', display: 'flex', justifyContent: 'center' }}>
-                        <HamsterLoader message="Calculating class rank..." color="#ffffff" />
-                      </div>
-                    ) : classLeaderboard.length === 0 ? (
-                      <div style={{ padding: '20px 0', textAlign: 'left' }}>
-                        <p style={{ margin: '0 0 6px 0', fontSize: '14px', fontWeight: '950', color: '#ffffff' }}>
-                          You are the first from {currentUserInstitute} ({currentUserStream})!
-                        </p>
-                        <p style={{ margin: 0, fontSize: '12px', color: '#a1a1aa', fontWeight: '600' }}>
-                          Invite your classmates to kickstart the live batch ranking.
-                        </p>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        {classLeaderboard.map((student, idx) => {
-                          const isMe = student.id === currentUser?.id;
-                          return (
-                            <div
-                              key={student.id || `class-rank-${student.handle || 'student'}-${idx}`}
-                              onClick={() => onViewPublicProfile && onViewPublicProfile(student.id)}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '12px 0',
-                                borderBottom: idx === classLeaderboard.length - 1 ? 'none' : '1px solid #27272a',
-                                cursor: 'pointer',
-                                background: isMe ? '#18181b' : 'transparent',
-                                borderRadius: isMe ? '12px' : '0',
-                                paddingLeft: isMe ? '8px' : '0',
-                                paddingRight: isMe ? '8px' : '0'
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <span
-                                  style={{
-                                    width: '26px',
-                                    fontSize: '14px',
-                                    fontWeight: '950',
-                                    color: idx === 0 ? '#00ff41' : '#a1a1aa',
-                                    textAlign: 'left'
-                                  }}
-                                >
-                                  #{idx + 1}
-                                </span>
-                                {renderProfilePic
-                                  ? renderProfilePic(student.profile_pic, student.avatar, student.is_pro, student.selected_ring || student.ring, 40, Boolean(student.invites >= 25 || student.recruits >= 25 || student.is_god_mode || student.is_legend))
-                                  : (
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                      {student.avatar || '😎'}
-                                    </div>
-                                  )}
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                  <span style={{ fontSize: '14px', fontWeight: '950', color: '#ffffff', letterSpacing: '-0.2px' }}>
-                                    {student.name || `@${student.handle}`} {isMe && ' (You)'}
-                                  </span>
-                                  <span style={{ fontSize: '11.5px', color: '#a1a1aa', fontWeight: '600' }}>
-                                    @{student.handle}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <span style={{ fontSize: '13px', fontWeight: '950', color: '#ffffff' }}>
-                                {student.total_votes || 0} 🔥
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* ACCORDION 4: SCHOOL RANK / INSTITUTE-WIDE LEADERBOARD */}
-          <div
-            className="bg-[#00ff41] rounded-3xl shadow-2xl p-5 mb-4 border-2 border-black overflow-hidden"
-            style={{
-              background: '#00ff41',
-              borderRadius: '1.5rem',
-              boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.65)',
-              border: '2px solid #000000',
-              padding: '20px',
-              marginBottom: '16px',
-              overflow: 'hidden'
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => toggleAccordion('allBathinda')}
-              className="w-full flex items-center justify-between bg-transparent border-0 cursor-pointer text-left p-0 min-h-[48px]"
-              style={{
-                width: '100%',
-                minHeight: '48px',
-                padding: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-            >
-              <div className="flex items-center gap-2.5" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <School size={20} strokeWidth={2.4} color="#000000" className="text-black" />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                  <div className="text-black font-bold" style={{ fontSize: '15px', fontWeight: '950', color: '#000000', letterSpacing: '-0.3px' }}>
-                    School Rank
-                  </div>
-                  <div className="text-gray-900 font-bold" style={{ fontSize: '11px', color: '#111827', fontWeight: '800', marginTop: '1px' }}>
-                    {currentUserInstitute} • Institute-wide Leaderboard
-                  </div>
-                </div>
-              </div>
-              <span
-                className="text-black font-black"
-                style={{
-                  fontSize: '13px',
-                  fontWeight: '900',
-                  color: '#000000',
-                  transform: openAccordion === 'allBathinda' ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s ease'
-                }}
-              >
-                ▼
-              </span>
-            </button>
-
-            <AnimatePresence>
-              {openAccordion === 'allBathinda' && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22, ease: 'easeInOut' }}
-                  style={{ overflow: 'hidden', borderTop: '2px solid rgba(0, 0, 0, 0.15)', marginTop: '16px', paddingTop: '16px' }}
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
+                  whileHover={{ scale: 1.02 }}
+                  onClick={() => handleSwipe('like')}
+                  className="py-3 rounded-2xl bg-[#00ff41] text-black font-black text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(0,255,65,0.4)] hover:brightness-110 transition-all border-none"
                 >
-                  <div
-                    style={{
-                      background: '#000000',
-                      borderRadius: '1rem',
-                      padding: '16px',
-                      color: '#ffffff',
-                      border: '1px solid #18181b',
-                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
-                    }}
-                  >
-                    <p style={{ margin: '0 0 12px 0', fontSize: '12px', fontWeight: '700', color: '#a1a1aa', textAlign: 'left' }}>
-                      Rankings strictly isolated to {currentUserInstitute} students.
-                    </p>
-
-                    {isLoadingLeaderboard ? (
-                      <div style={{ padding: '24px 0', display: 'flex', justifyContent: 'center' }}>
-                        <HamsterLoader message={`Loading ${currentUserInstitute} ranks...`} color="#ffffff" />
-                      </div>
-                    ) : leaderboard.length === 0 ? (
-                      <div style={{ padding: '20px 0', textAlign: 'center', color: '#a1a1aa', fontSize: '13px', fontWeight: '700' }}>
-                        No students ranked yet. Cast votes in the feed to start trends!
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        {leaderboard.map((student, idx) => (
-                          <div
-                            key={student.id || `school-rank-${student.handle || 'student'}-${idx}`}
-                            onClick={() => onViewPublicProfile && onViewPublicProfile(student.id)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '12px 0',
-                              borderBottom: idx === leaderboard.length - 1 ? 'none' : '1px solid #27272a',
-                              cursor: 'pointer',
-                              textAlign: 'left'
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <span
-                                style={{
-                                  width: '26px',
-                                  fontSize: '14px',
-                                  fontWeight: '950',
-                                  color: idx === 0 ? '#00ff41' : '#a1a1aa',
-                                  textAlign: 'left'
-                                }}
-                              >
-                                #{idx + 1}
-                              </span>
-                              {renderProfilePic
-                                ? renderProfilePic(student.profile_pic, student.avatar, student.is_pro, student.selected_ring || student.ring, 40, Boolean(student.invites >= 25 || student.recruits >= 25 || student.is_god_mode || student.is_legend))
-                                : (
-                                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    {student.avatar || '😎'}
-                                  </div>
-                                )}
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                <span style={{ fontSize: '14px', fontWeight: '950', color: '#ffffff', letterSpacing: '-0.2px' }}>
-                                  {student.name || `@${student.handle}`}
-                                </span>
-                                <span style={{ fontSize: '11.5px', color: '#a1a1aa', fontWeight: '600' }}>
-                                  @{student.handle} • {student.stream || student.institute || 'Kapil Institute'}
-                                </span>
-                              </div>
-                            </div>
-
-                            <span style={{ fontSize: '13px', fontWeight: '950', color: '#ffffff' }}>
-                              {student.total_votes || 0} 🔥
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-        </div>
-      </div>
+                  <Heart size={16} className="fill-black text-black" />
+                  <span>Like</span>
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      )}
     </div>
   );
 }

@@ -1,539 +1,374 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { handleShare } from '../utils/share';
-import { Share2, Sword } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { Heart, Upload, Image as ImageIcon, Send, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
+import { supabase as defaultSupabase } from '../supabase';
 
 export default function GodMode({
-  user,
-  onNavigate = () => {},
-  supabase,
-  API,
-  onUpdateUser,
-  renderProfilePic
+  user: propUser,
+  supabase: propSupabase
 }) {
-  const [openSubmenu, setOpenSubmenu] = useState(null); // strictly closed by default
-  const [toastMessage, setToastMessage] = useState('');
-  const [liveInvites, setLiveInvites] = useState(user?.invites || user?.recruits || 0);
-  const [visitors, setVisitors] = useState([]);
-  const [isLoadingVisitors, setIsLoadingVisitors] = useState(false);
+  const supabase = propSupabase || defaultSupabase;
 
-  // Fetch real-time count of referred user profiles from Supabase
-  useEffect(() => {
-    let isMounted = true;
-    const fetchInvites = async () => {
-      const uId = user?.id;
-      const uHandle = user?.handle;
-      if (!uId && !uHandle) return;
+  // Upload State
+  const [file, setFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
+  const [caption, setCaption] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const fileInputRef = useRef(null);
 
-      try {
-        let count = user?.invites || user?.recruits || 0;
-        if (supabase) {
-          const { count: c } = await supabase
-            .from('users')
-            .select('id', { count: 'exact', head: true })
-            .or(`referred_by.eq.${uId},referred_by.ilike.${uHandle || ''}`);
-          if (c !== null && c !== undefined) {
-            count = Math.max(count, c);
-          }
-        }
-        if (isMounted) setLiveInvites(count);
-      } catch (err) {
-        console.warn('GodMode live invite count query warning:', err);
-      }
-    };
-    fetchInvites();
-    return () => { isMounted = false; };
-  }, [user?.id, user?.handle, user?.invites, user?.recruits, supabase]);
+  // Feed State
+  const [posts, setPosts] = useState([]);
+  const [isLoadingFeed, setIsLoadingFeed] = useState(true);
+  const [votedPostIds, setVotedPostIds] = useState(new Set());
 
-  const effectiveInvites = Math.max(liveInvites, user?.invites || user?.recruits || 0);
-
-  // Auto-Unlock Milestones:
-  // Tier 1: 3 Friends -> 1 Month Access (Utility perks only)
-  const hasMonthAccess = effectiveInvites >= 3 || Boolean(user?.is_pro || user?.is_god_mode);
-  // Tier 2: 25 Friends -> Lifetime Legend (Utility + Vanity perks)
-  const hasLifetimeLegend = effectiveInvites >= 25 || Boolean(user?.is_god_mode);
-
-  // Auto-activate user perks in state & Supabase when milestones are crossed
-  useEffect(() => {
-    if (!user?.id) return;
-
-    if (effectiveInvites >= 25 && (!user?.is_god_mode || !user?.is_pro)) {
-      const updated = { ...user, is_god_mode: true, is_pro: true, invites: effectiveInvites };
-      if (onUpdateUser) onUpdateUser(updated);
-      if (supabase) {
-        supabase.from('users').update({ is_god_mode: true, is_pro: true }).eq('id', user.id).then().catch(console.warn);
-      }
-    } else if (effectiveInvites >= 3 && !user?.is_pro) {
-      const updated = { ...user, is_pro: true, invites: effectiveInvites };
-      if (onUpdateUser) onUpdateUser(updated);
-      if (supabase) {
-        supabase.from('users').update({ is_pro: true }).eq('id', user.id).then().catch(console.warn);
-      }
+  // Helper to fetch user ID
+  const getUserId = async () => {
+    if (propUser?.id) return propUser.id;
+    if (supabase?.auth) {
+      const { data } = await supabase.auth.getUser();
+      return data?.user?.id || null;
     }
-  }, [effectiveInvites, user, onUpdateUser, supabase]);
+    return null;
+  };
 
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    if (typeof window !== 'undefined' && window.navigator?.vibrate) {
-      try { window.navigator.vibrate(10); } catch (_) {}
+  // Fetch all posts ordered by created_at descending
+  const fetchPosts = async () => {
+    setIsLoadingFeed(true);
+    try {
+      const { data, error } = await supabase
+        .from('photo_posts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching photo posts:', error);
+      } else {
+        setPosts(data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch posts:', err);
+    } finally {
+      setIsLoadingFeed(false);
     }
-    setTimeout(() => setToastMessage(''), 2500);
   };
 
-  const handleNativeShare = async () => {
-    const referralCode = (user?.invite_code || user?.handle || user?.id || 'friend').replace(/^@/, '').trim();
-    const baseOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://centerinsider.vercel.app';
-    const shareUrl = `${baseOrigin}/?ref=${encodeURIComponent(referralCode)}`;
-    const streamText = user?.stream || user?.grade || 'your coaching batch';
-    const shareText = `Someone from ${streamText} voted for you on CenterInsider! Join to see who: ${shareUrl}`;
+  // Fetch initial posts on mount
+  useEffect(() => {
+    fetchPosts();
+  }, []);
 
-    await handleShare({
-      title: 'CenterInsider',
-      text: shareText,
-      url: shareUrl
-    });
+  // Handle file selection
+  const handleFileChange = (e) => {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setFile(selected);
+      setFilePreview(URL.createObjectURL(selected));
+      setUploadError('');
+    }
   };
 
-  const toggleSubmenu = (menuId) => {
-    setOpenSubmenu(prev => (prev === menuId ? null : menuId));
+  // Handle Upload
+  const handleUpload = async (e) => {
+    e?.preventDefault();
+    if (!file) {
+      setUploadError('Please select an image to post.');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError('');
+    setUploadSuccess(false);
+
+    try {
+      const userId = await getUserId();
+      if (!userId) {
+        setUploadError('You must be signed in to upload.');
+        setIsUploading(false);
+        return;
+      }
+
+      // 1. Upload to 'post_images' storage bucket with unique filename (${user.id}-${Date.now()})
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+
+      const { error: storageError } = await supabase.storage
+        .from('post_images')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (storageError) {
+        throw storageError;
+      }
+
+      // 2. Retrieve public URL
+      const { data: urlData } = supabase.storage
+        .from('post_images')
+        .getPublicUrl(fileName);
+
+      const publicUrl = urlData?.publicUrl;
+      if (!publicUrl) {
+        throw new Error('Failed to retrieve public URL for uploaded image.');
+      }
+
+      // 3. Insert new record into photo_posts table (author_id, image_url, caption)
+      const { error: insertError } = await supabase
+        .from('photo_posts')
+        .insert([{
+          author_id: userId,
+          image_url: publicUrl,
+          caption: caption.trim()
+        }]);
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      // 4. Reset form & refresh feed automatically upon success
+      setFile(null);
+      setFilePreview(null);
+      setCaption('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setUploadSuccess(true);
+      setTimeout(() => setUploadSuccess(false), 3000);
+
+      await fetchPosts();
+    } catch (err) {
+      console.error('Upload failed:', err);
+      setUploadError(err.message || 'Failed to upload photo post.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
-  const tier1Progress = Math.min(100, Math.round((effectiveInvites / 3) * 100));
-  const tier2Progress = Math.min(100, Math.round((effectiveInvites / 25) * 100));
+  // Handle Vote / Like
+  const handleVote = async (postId) => {
+    if (!postId || votedPostIds.has(postId)) return;
+
+    // Optimistic UI update
+    setVotedPostIds(prev => new Set(prev).add(postId));
+
+    try {
+      const userId = await getUserId();
+      if (!userId) return;
+
+      const { error } = await supabase
+        .from('photo_votes')
+        .insert([{
+          post_id: postId,
+          voter_id: userId
+        }]);
+
+      if (error) {
+        console.warn('Vote insert notification:', error.message);
+      }
+    } catch (err) {
+      console.error('Failed to submit vote:', err);
+    }
+  };
 
   return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: '448px',
-        margin: '0 auto',
-        padding: '4px 0 calc(70px + env(safe-area-inset-bottom, 10px)) 0',
-        boxSizing: 'border-box',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        background: 'transparent',
-        color: '#ffffff'
-      }}
-    >
-      {/* Toast Notification */}
-      <AnimatePresence>
-        {toastMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            style={{
-              position: 'fixed',
-              top: '20px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 9999,
-              background: '#000000',
-              border: '2px solid #ff007f',
-              color: '#ffffff',
-              padding: '10px 18px',
-              borderRadius: '9999px',
-              fontSize: '12.5px',
-              fontWeight: '800',
-              boxShadow: '0 12px 30px rgba(0,0,0,0.7)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <span>✓</span>
-            <span>{toastMessage}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="w-full max-w-lg mx-auto p-4 flex flex-col gap-6 text-white pb-24">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="text-[#00ff41]" size={22} />
+          <h1 className="text-xl font-black tracking-tight text-white">Photo Feed</h1>
+        </div>
+        <span className="text-xs font-bold text-zinc-400 bg-zinc-900 border border-zinc-800 px-3 py-1 rounded-full">
+          📸 Campus Photos
+        </span>
+      </div>
 
-      {/* VIP Crown Header - Un-boxed Floating Pitch Black Card */}
+      {/* Upload Section */}
       <motion.div
-        initial={{ opacity: 0, y: -8 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        style={{
-          textAlign: 'center',
-          marginBottom: '18px',
-          width: '100%',
-          background: '#000000',
-          borderRadius: '2.5rem',
-          padding: '28px 24px',
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.75)',
-          border: '2px solid #ff007f',
-          boxSizing: 'border-box'
-        }}
+        className="w-full bg-black border-2 border-zinc-800 rounded-3xl p-5 shadow-2xl flex flex-col gap-4 box-border"
       >
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '4px 14px',
-            borderRadius: '20px',
-            background: hasLifetimeLegend ? 'rgba(245, 158, 11, 0.2)' : hasMonthAccess ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 0, 127, 0.15)',
-            border: hasLifetimeLegend ? '1px solid rgba(245, 158, 11, 0.5)' : hasMonthAccess ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(255, 0, 127, 0.4)',
-            color: hasLifetimeLegend ? '#fbbf24' : hasMonthAccess ? '#34d399' : '#ff007f',
-            fontSize: '11px',
-            fontWeight: '900',
-            letterSpacing: '0.04em',
-            marginBottom: '10px'
-          }}
-        >
-          <span>{hasLifetimeLegend ? '👑' : hasMonthAccess ? <Sword size={13} strokeWidth={2} /> : '👤'}</span>{' '}
-          {hasLifetimeLegend ? 'LIFETIME LEGEND' : hasMonthAccess ? 'BASIC GOD MODE (1 MONTH)' : 'NORMAL USER'}
+        <div className="flex items-center gap-2 text-sm font-bold text-zinc-300">
+          <Upload size={16} className="text-[#00ff41]" />
+          <span>Create a New Photo Post</span>
         </div>
 
-        <h2
-          style={{
-            fontSize: '26px',
-            fontWeight: '900',
-            margin: '0 0 8px 0',
-            color: '#ffffff',
-            letterSpacing: '-0.5px'
-          }}
-        >
-          {hasLifetimeLegend ? 'Lifetime Legend 👑' : hasMonthAccess ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-              Basic God Mode <Sword size={20} strokeWidth={2} />
-            </span>
-          ) : 'God Mode Privileges'}
-        </h2>
-        <p
-          style={{
-            color: '#a1a1aa',
-            fontSize: '13px',
-            lineHeight: '1.45',
-            margin: '0 0 16px 0',
-            padding: '0 8px'
-          }}
-        >
-          {hasLifetimeLegend
-            ? 'Full status + utility powers active. Tap below to manage privileges.'
-            : hasMonthAccess
-            ? 'Basic utility powers active for 1 month! Invite 25 friends for Lifetime Legend.'
-            : 'Invite classmates to unlock unlimited voting, voter reveals, and custom polls.'}
-        </p>
+        {uploadError && (
+          <div className="flex items-center gap-2 text-xs text-red-400 bg-red-950/40 border border-red-800/60 p-2.5 rounded-xl">
+            <AlertCircle size={15} />
+            <span>{uploadError}</span>
+          </div>
+        )}
 
-        {/* Universal Share Button */}
+        {uploadSuccess && (
+          <div className="flex items-center gap-2 text-xs text-[#00ff41] bg-[#00ff41]/10 border border-[#00ff41]/30 p-2.5 rounded-xl">
+            <CheckCircle2 size={15} />
+            <span>Photo posted successfully!</span>
+          </div>
+        )}
+
+        {/* File Input and Preview */}
+        <div className="flex flex-col gap-2">
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            disabled={isUploading}
+            className="hidden"
+            id="godmode-file-upload"
+          />
+
+          {filePreview ? (
+            <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-zinc-700 bg-zinc-900 flex items-center justify-center">
+              <img
+                src={filePreview}
+                alt="Upload preview"
+                className="w-full h-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setFile(null);
+                  setFilePreview(null);
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+                disabled={isUploading}
+                className="absolute top-2 right-2 bg-black/80 hover:bg-black text-white text-xs px-2.5 py-1 rounded-full border border-zinc-700 cursor-pointer"
+              >
+                Change
+              </button>
+            </div>
+          ) : (
+            <label
+              htmlFor="godmode-file-upload"
+              className="w-full border-2 border-dashed border-zinc-700 hover:border-[#00ff41] rounded-2xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors bg-zinc-950/50"
+            >
+              <ImageIcon size={28} className="text-zinc-500" />
+              <span className="text-xs font-bold text-zinc-300">Click to choose an image</span>
+              <span className="text-[10px] text-zinc-500">PNG, JPG, WEBP up to 10MB</span>
+            </label>
+          )}
+        </div>
+
+        {/* Caption Input */}
+        <input
+          type="text"
+          placeholder="Write a caption..."
+          value={caption}
+          onChange={(e) => setCaption(e.target.value)}
+          disabled={isUploading}
+          className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#00ff41] transition-colors"
+        />
+
+        {/* Post Button */}
         <motion.button
-          whileTap={{ scale: 0.98 }}
-          whileHover={{ scale: 1.02 }}
-          onClick={handleNativeShare}
-          type="button"
-          aria-label="Share"
-          style={{
-            width: '100%',
-            background: '#ff007f',
-            border: 'none',
-            color: '#ffffff',
-            padding: '14px 20px',
-            borderRadius: '9999px',
-            fontSize: '14px',
-            fontWeight: '900',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            boxShadow: '0 0 20px rgba(255, 0, 127, 0.55)',
-            transition: 'all 0.2s ease'
-          }}
+          whileTap={{ scale: 0.97 }}
+          whileHover={{ scale: 1.01 }}
+          onClick={handleUpload}
+          disabled={isUploading || !file}
+          className={`w-full py-2.5 px-4 rounded-full font-black text-xs flex items-center justify-center gap-2 cursor-pointer transition-all border-none ${
+            isUploading || !file
+              ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+              : 'bg-[#00ff41] text-black shadow-[0_0_15px_rgba(0,255,65,0.4)] hover:brightness-110'
+          }`}
         >
-          <Share2 size={16} strokeWidth={2.4} />
-          <span>Share to Unlock</span>
+          {isUploading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+              <span>Posting...</span>
+            </>
+          ) : (
+            <>
+              <Send size={14} />
+              <span>Post Photo</span>
+            </>
+          )}
         </motion.button>
       </motion.div>
 
-      {/* ======================================================== */}
-      {/* 4 TAP-TO-EXPAND COLLAPSIBLE SUB-MENUS (ACCORDIONS)       */}
-      {/* ======================================================== */}
-      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-
-        {/* SUB-MENU 1: UTILITY FEATURES UNLOCKED */}
-        <div
-          style={{
-            background: '#000000',
-            border: hasMonthAccess ? '2px solid #10b981' : '1px solid #27272a',
-            borderRadius: '2rem',
-            overflow: 'hidden',
-            boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.65)'
-          }}
-        >
+      {/* Feed Section */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-black uppercase tracking-wider text-zinc-400">Recent Posts</h2>
           <button
-            type="button"
-            onClick={() => toggleSubmenu('utility')}
-            style={{
-              width: '100%',
-              padding: '16px 18px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: '#000000',
-              border: 'none',
-              cursor: 'pointer',
-              textAlign: 'left'
-            }}
+            onClick={fetchPosts}
+            disabled={isLoadingFeed}
+            className="text-xs text-zinc-400 hover:text-white cursor-pointer bg-transparent border-none font-bold"
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '18px' }}>⚡</span>
-              <div>
-                <div style={{ fontSize: '14.5px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.2px' }}>
-                  Utility Features Unlocked
-                </div>
-                <div style={{ fontSize: '11px', color: '#a1a1aa', marginTop: '1px' }}>
-                  3-invite perks • 1 Month Access
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span
-                style={{
-                  fontSize: '10.5px',
-                  fontWeight: '800',
-                  padding: '3px 8px',
-                  borderRadius: '10px',
-                  background: hasMonthAccess ? 'rgba(16, 185, 129, 0.15)' : '#18181b',
-                  color: hasMonthAccess ? '#34d399' : '#a1a1aa'
-                }}
-              >
-                {hasMonthAccess ? '✓ Unlocked' : `${effectiveInvites}/3 Invites`}
-              </span>
-              <span style={{ fontSize: '12px', color: '#a1a1aa', transform: openSubmenu === 'utility' ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                ▼
-              </span>
-            </div>
+            {isLoadingFeed ? 'Refreshing...' : 'Refresh 🔄'}
           </button>
-
-          <AnimatePresence>
-            {openSubmenu === 'utility' && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                style={{ overflow: 'hidden', borderTop: '1px solid #27272a' }}
-              >
-                <div style={{ padding: '14px 16px 16px 16px' }}>
-                  {/* Progress bar */}
-                  <div style={{ width: '100%', height: '5px', background: '#18181b', borderRadius: '4px', overflow: 'hidden', marginBottom: '12px' }}>
-                    <div
-                      style={{
-                        width: `${tier1Progress}%`,
-                        height: '100%',
-                        background: hasMonthAccess ? '#10b981' : '#ffffff',
-                        transition: 'width 0.4s ease'
-                      }}
-                    />
-                  </div>
-
-                  {/* Clean bullet points only */}
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#e4e4e7' }}>
-                      <span style={{ color: hasMonthAccess ? '#10b981' : '#ffffff', fontWeight: '900' }}>✓</span>
-                      <span><strong>Unlimited votes</strong> (cooldown timer permanently disabled for 1 month)</span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#e4e4e7' }}>
-                      <span style={{ color: hasMonthAccess ? '#10b981' : '#ffffff', fontWeight: '900' }}>✓</span>
-                      <span><strong>See who voted for you</strong> (Voter Reveal)</span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#e4e4e7' }}>
-                      <span style={{ color: hasMonthAccess ? '#10b981' : '#ffffff', fontWeight: '900' }}>✓</span>
-                      <span><strong>Create up to 3 custom polls</strong> per month</span>
-                    </li>
-                  </ul>
-
-                  {!hasMonthAccess && (
-                    <div style={{ marginTop: '12px', textAlign: 'center' }}>
-                      <button
-                        type="button"
-                        onClick={handleNativeShare}
-                        style={{
-                          background: '#ffffff',
-                          color: '#000000',
-                          border: 'none',
-                          borderRadius: '10px',
-                          padding: '8px 16px',
-                          fontSize: '11.5px',
-                          fontWeight: '800',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Invite {Math.max(1, 3 - effectiveInvites)} more to unlock ➔
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
-        {/* SUB-MENU 2: FEATURES LOCKED 👑 (LIFETIME LEGEND PERKS) */}
-        <div
-          style={{
-            background: '#09090b',
-            border: hasLifetimeLegend ? '2px solid #fbbf24' : '1px solid #27272a',
-            borderRadius: '18px',
-            overflow: 'hidden',
-            boxShadow: 'none',
-            color: '#ffffff'
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => toggleSubmenu('locked')}
-            style={{
-              width: '100%',
-              padding: '15px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: '#09090b',
-              border: 'none',
-              cursor: 'pointer',
-              textAlign: 'left',
-              color: 'inherit'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '18px' }}>👑</span>
-              <div>
-                <div style={{ fontSize: '14.5px', fontWeight: '900', color: hasLifetimeLegend ? '#fbbf24' : '#ffffff', letterSpacing: '-0.2px' }}>
-                  Features Locked 👑
-                </div>
-                <div style={{ fontSize: '11px', color: '#a1a1aa', marginTop: '1px' }}>
-                  25-invite Lifetime Legend perks
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span
-                style={{
-                  fontSize: '10.5px',
-                  fontWeight: '800',
-                  padding: '3px 8px',
-                  borderRadius: '10px',
-                  background: hasLifetimeLegend ? '#fbbf24' : '#18181b',
-                  color: hasLifetimeLegend ? '#000000' : '#a1a1aa'
-                }}
-              >
-                {hasLifetimeLegend ? '★ Unlocked' : `${effectiveInvites}/25 Invites`}
-              </span>
-              <span style={{ fontSize: '12px', color: hasLifetimeLegend ? '#fbbf24' : '#a1a1aa', transform: openSubmenu === 'locked' ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                ▼
-              </span>
-            </div>
-          </button>
-
-          <AnimatePresence>
-            {openSubmenu === 'locked' && (
+        {isLoadingFeed ? (
+          <div className="w-full py-12 flex flex-col items-center justify-center gap-2 text-zinc-400">
+            <div className="w-6 h-6 border-2 border-[#00ff41] border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs font-semibold">Loading photo feed...</span>
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="w-full bg-black border border-zinc-800 rounded-3xl p-8 text-center flex flex-col items-center justify-center gap-2">
+            <span className="text-3xl">📷</span>
+            <p className="text-sm font-bold text-white">No photo posts yet</p>
+            <p className="text-xs text-zinc-400 max-w-xs">
+              Be the first to upload a photo and get votes from your campus classmates!
+            </p>
+          </div>
+        ) : (
+          posts.map((post) => {
+            const hasVoted = votedPostIds.has(post.id);
+            return (
               <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                style={{ overflow: 'hidden', borderTop: '1px solid #27272a' }}
+                key={post.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="w-full bg-black border border-zinc-800 rounded-3xl overflow-hidden shadow-xl flex flex-col"
               >
-                <div style={{ padding: '14px 16px 16px 16px' }}>
-                  {/* Progress bar */}
-                  <div style={{ width: '100%', height: '5px', background: '#18181b', borderRadius: '4px', overflow: 'hidden', marginBottom: '12px' }}>
-                    <div
-                      style={{
-                        width: `${tier2Progress}%`,
-                        height: '100%',
-                        background: hasLifetimeLegend ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' : '#ffffff',
-                        transition: 'width 0.4s ease'
-                      }}
-                    />
-                  </div>
+                {/* Image */}
+                <div className="w-full aspect-square bg-zinc-950 flex items-center justify-center overflow-hidden">
+                  <img
+                    src={post.image_url}
+                    alt={post.caption || 'Campus photo'}
+                    loading="lazy"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
 
-                  {/* Clean bullet points only */}
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#e4e4e7' }}>
-                      <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-                      <span><strong>Unlimited votes</strong> (no timers ever)</span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#e4e4e7' }}>
-                      <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-                      <span><strong>See who voted for you</strong> (Voter Reveal)</span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#e4e4e7' }}>
-                      <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-                      <span><strong>Create up to 150 custom polls/month</strong></span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#e4e4e7' }}>
-                      <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-                      <span><strong>Select & equip custom Aura Rings</strong></span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#e4e4e7' }}>
-                      <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-                      <span><strong>Crown badge under profile picture</strong></span>
-                    </li>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#e4e4e7' }}>
-                      <span style={{ color: '#fbbf24', fontWeight: '900' }}>★</span>
-                      <span><strong>Prominently featured in Legends Tab</strong></span>
-                    </li>
-                  </ul>
-
-                  {!hasLifetimeLegend && (
-                    <div style={{ marginTop: '12px', textAlign: 'center' }}>
-                      <button
-                        type="button"
-                        onClick={handleNativeShare}
-                        title="Share / Invite Friends"
-                        aria-label="Share / Invite Friends"
-                        style={{
-                          background: '#18181b',
-                          color: '#ffffff',
-                          border: '1.5px solid #3f3f46',
-                          borderRadius: '12px',
-                          padding: '8px 14px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        <Share2 size={16} strokeWidth={1.8} />
-                      </button>
-                    </div>
+                {/* Caption & Actions */}
+                <div className="p-4 flex flex-col gap-3">
+                  {post.caption && (
+                    <p className="text-sm text-zinc-200 leading-relaxed font-medium">
+                      {post.caption}
+                    </p>
                   )}
+
+                  <div className="flex items-center justify-between pt-1 border-t border-zinc-800/80">
+                    <span className="text-[10px] text-zinc-500 font-medium">
+                      {post.created_at ? new Date(post.created_at).toLocaleDateString() : 'Just now'}
+                    </span>
+
+                    <motion.button
+                      whileTap={{ scale: 0.92 }}
+                      onClick={() => handleVote(post.id)}
+                      disabled={hasVoted}
+                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                        hasVoted
+                          ? 'bg-[#ff007f]/20 text-[#ff007f] border-[#ff007f]/40 cursor-default'
+                          : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:border-[#ff007f] hover:text-[#ff007f] cursor-pointer'
+                      }`}
+                    >
+                      <Heart
+                        size={14}
+                        className={hasVoted ? 'fill-[#ff007f] text-[#ff007f]' : ''}
+                      />
+                      <span>{hasVoted ? 'Voted' : 'Vote / Like'}</span>
+                    </motion.button>
+                  </div>
                 </div>
               </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-      </div>
-
-      {/* Return to Feed Action */}
-      <div
-        style={{
-          width: '100%',
-          marginTop: '20px',
-          textAlign: 'center'
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => onNavigate('poll')}
-          style={{
-            padding: '11px 24px',
-            borderRadius: '14px',
-            background: '#ffffff',
-            color: '#000000',
-            border: 'none',
-            fontSize: '13px',
-            fontWeight: '800',
-            cursor: 'pointer'
-          }}
-        >
-          Return to Feed ➔
-        </button>
+            );
+          })
+        )}
       </div>
     </div>
   );
