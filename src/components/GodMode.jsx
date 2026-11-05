@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Heart,
@@ -11,7 +11,11 @@ import {
   X,
   Sparkles,
   CheckCircle2,
-  Bookmark
+  Bookmark,
+  Music,
+  Search,
+  Play,
+  Pause
 } from 'lucide-react';
 import { supabase as defaultSupabase } from '../supabase';
 import TalesBar from './TalesBar';
@@ -41,6 +45,15 @@ export default function GodMode({
   const [isPostingComment, setIsPostingComment] = useState(false);
   const [commentsList, setCommentsList] = useState([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
+
+  // Task 1: Spotify Search & Add to Tale Modal State
+  const [showTaleModal, setShowTaleModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isPostingTale, setIsPostingTale] = useState(false);
+  const [previewingTrackId, setPreviewingTrackId] = useState(null);
+  const audioPreviewRef = useRef(null);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -97,11 +110,13 @@ export default function GodMode({
   // 5. Skip Mechanism: increments currentIndex by 1
   const handleNext = () => {
     setShowCommentModal(false);
+    setShowTaleModal(false);
     setCurrentIndex(prev => prev + 1);
   };
 
   const handleStartOver = () => {
     setShowCommentModal(false);
+    setShowTaleModal(false);
     setCurrentIndex(0);
   };
 
@@ -277,23 +292,150 @@ export default function GodMode({
     }
   };
 
-  // Action f: 📖 Add to Tale (copies current post's image_url and inserts into tales table)
-  const handleAddToTale = async () => {
-    if (!currentPost || taleAddedPostIds.has(currentPost.id)) return;
+  // Task 1.3: Spotify Auth Helper
+  const getSpotifyToken = async () => {
+    const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID || '89e25dda422048b6847b20c322ce9197';
+    const clientSecret = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET || '16a4002448f74f7497fe1e08b3de7eb0';
 
-    setTaleAddedPostIds(prev => new Set(prev).add(currentPost.id));
-    // Immediately show success toast and dynamically apply colored CSS ring
-    setUserHasActiveTale(true);
-    showToast('Added to your Tale! 📖');
+    const res = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
+      },
+      body: 'grant_type=client_credentials'
+    });
 
-    // Notify TalesBar to immediately refresh its list
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('campus-tale-posted'));
+    if (!res.ok) {
+      throw new Error(`Spotify auth token failed with status: ${res.status}`);
     }
+
+    const data = await res.json();
+    return data.access_token;
+  };
+
+  // Task 1.4: Spotify Search Logic
+  const handleSearch = async (e) => {
+    if (e) e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    setIsSearching(true);
+    try {
+      const token = await getSpotifyToken();
+      const res = await fetch(
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=10`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error(`Spotify search failed with status: ${res.status}`);
+      }
+
+      const data = await res.json();
+      // Filter the returned tracks.items to ONLY include tracks where preview_url is not null
+      const filtered = (data?.tracks?.items || []).filter(track => track.preview_url);
+      setSearchResults(filtered);
+    } catch (err) {
+      console.error('Spotify Search Error:', err);
+      showToast('Spotify search failed');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Task 1.1: Update 📖 "Add to Tale" button to open modal overlay
+  const handleOpenTaleModal = () => {
+    if (!currentPost) return;
+    setShowTaleModal(true);
+    setSearchQuery('');
+    setSearchResults([]);
+    setPreviewingTrackId(null);
+  };
+
+  // Track Audio Preview toggle in search list
+  const toggleTrackPreview = (track) => {
+    if (previewingTrackId === track.id) {
+      if (audioPreviewRef.current) {
+        audioPreviewRef.current.pause();
+      }
+      setPreviewingTrackId(null);
+    } else {
+      if (audioPreviewRef.current) {
+        audioPreviewRef.current.pause();
+      }
+      const audio = new Audio(track.preview_url);
+      audioPreviewRef.current = audio;
+      audio.play().catch(() => {});
+      audio.onended = () => setPreviewingTrackId(null);
+      setPreviewingTrackId(track.id);
+    }
+  };
+
+  // Task 1.6: Post Logic when "Select" track is clicked
+  const handleSelectTrack = async (track) => {
+    if (!currentPost) return;
+    if (audioPreviewRef.current) {
+      audioPreviewRef.current.pause();
+    }
+    setIsPostingTale(true);
 
     try {
       const userId = await getUserId();
-      if (!userId || !supabase) return;
+      if (!userId || !supabase) {
+        showToast('Please sign in to add to Tale');
+        setIsPostingTale(false);
+        return;
+      }
+
+      // Insert into public.tales with author_id, image_url, audio_url, song_name
+      const { error } = await supabase
+        .from('tales')
+        .insert([{
+          author_id: userId,
+          image_url: currentPost.image_url,
+          audio_url: track.preview_url,
+          song_name: track.name
+        }]);
+
+      if (error) {
+        console.warn('Add to Tale insert warning:', error.message);
+      }
+
+      setTaleAddedPostIds(prev => new Set(prev).add(currentPost.id));
+      setUserHasActiveTale(true);
+      setShowTaleModal(false);
+      showToast('Added to your Tale! 🎵');
+
+      // Dispatch event for TalesBar to refresh immediately
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('campus-tale-posted'));
+      }
+    } catch (err) {
+      console.error('Failed to post tale with music:', err);
+      showToast('Could not add to Tale');
+    } finally {
+      setIsPostingTale(false);
+    }
+  };
+
+  // Optional: Post to Tale without soundtrack
+  const handlePostWithoutMusic = async () => {
+    if (!currentPost) return;
+    if (audioPreviewRef.current) {
+      audioPreviewRef.current.pause();
+    }
+    setIsPostingTale(true);
+
+    try {
+      const userId = await getUserId();
+      if (!userId || !supabase) {
+        showToast('Please sign in to add to Tale');
+        return;
+      }
 
       const { error } = await supabase
         .from('tales')
@@ -303,10 +445,22 @@ export default function GodMode({
         }]);
 
       if (error) {
-        console.warn('Add to Tale notification:', error.message);
+        console.warn('Add to Tale insert warning:', error.message);
+      }
+
+      setTaleAddedPostIds(prev => new Set(prev).add(currentPost.id));
+      setUserHasActiveTale(true);
+      setShowTaleModal(false);
+      showToast('Added to your Tale! 📖');
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('campus-tale-posted'));
       }
     } catch (err) {
       console.error('Failed to add to tale:', err);
+      showToast('Could not add to Tale');
+    } finally {
+      setIsPostingTale(false);
     }
   };
 
@@ -387,7 +541,7 @@ export default function GodMode({
               {/* Cinematic Vignette Gradients */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 pointer-events-none" />
 
-              {/* Spotlight Pill Badge (Top Left) with dynamic active ring on user if active */}
+              {/* Spotlight Pill Badge (Top Left) */}
               <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-[11px] font-black uppercase tracking-wider text-white">
                 <Sparkles size={12} className="text-[#ff007f]" />
                 <span>Spotlight</span>
@@ -441,7 +595,7 @@ export default function GodMode({
                   <span className="text-[7.5px] font-black mt-0.5">Repost</span>
                 </motion.button>
 
-                {/* 💾 Save Action (Task 2 Requirement) */}
+                {/* 💾 Save Action */}
                 <motion.button
                   whileTap={{ scale: 0.82 }}
                   onClick={handleSave}
@@ -472,12 +626,12 @@ export default function GodMode({
                   <span className="text-[7.5px] font-black mt-0.5">Share</span>
                 </motion.button>
 
-                {/* 📖 Add to Tale Action (with dynamic colored ring feedback) */}
+                {/* 📖 Task 1.1: Add to Tale (Opens Modal Overlay instead of instantly posting) */}
                 <motion.button
                   whileTap={{ scale: 0.82 }}
-                  onClick={handleAddToTale}
-                  title="Add to Tale"
-                  aria-label="Add to Tale"
+                  onClick={handleOpenTaleModal}
+                  title="Add to Tale with Music"
+                  aria-label="Add to Tale with Music"
                   className={`w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border flex flex-col items-center justify-center cursor-pointer transition-all shadow-lg ${
                     taleAddedPostIds.has(currentPost.id) || userHasActiveTale
                       ? 'border-[#ec4899] text-[#ec4899] shadow-[0_0_12px_rgba(236,72,153,0.5)]'
@@ -576,6 +730,177 @@ export default function GodMode({
                       <Send size={14} />
                     </button>
                   </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Task 1.5: Spotify Search & Add to Tale Modal Overlay */}
+            <AnimatePresence>
+              {showTaleModal && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+                  onClick={() => {
+                    if (audioPreviewRef.current) audioPreviewRef.current.pause();
+                    setShowTaleModal(false);
+                  }}
+                >
+                  <motion.div
+                    initial={{ scale: 0.95, opacity: 0, y: 15 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0.95, opacity: 0, y: 15 }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full max-w-sm bg-zinc-950 border border-zinc-800 rounded-3xl p-5 shadow-2xl flex flex-col gap-4 text-white max-h-[85vh] overflow-hidden"
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-[#1db954]/20 text-[#1db954] flex items-center justify-center">
+                          <Music size={16} />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-black text-white m-0">Add Music to Tale</h3>
+                          <span className="text-[10px] text-zinc-400">Powered by Spotify</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (audioPreviewRef.current) audioPreviewRef.current.pause();
+                          setShowTaleModal(false);
+                        }}
+                        className="w-7 h-7 rounded-full bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+
+                    {/* Thumbnail of currentPost.image_url */}
+                    <div className="flex items-center gap-3 bg-zinc-900/80 p-2.5 rounded-2xl border border-zinc-800">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-black border border-zinc-700">
+                        <img
+                          src={currentPost.image_url}
+                          alt="Tale preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[11px] font-bold text-zinc-400 block">Selected Post</span>
+                        <p className="text-xs font-semibold text-white truncate m-0">
+                          {currentPost.caption || 'Spotlight photo'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Search Input & Search Music Button */}
+                    <form onSubmit={handleSearch} className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                        <input
+                          type="text"
+                          placeholder="Search track (e.g. Starboy, Drake)..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#1db954] box-border"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={isSearching || !searchQuery.trim()}
+                        className={`px-3 py-2 rounded-xl text-xs font-black flex items-center gap-1 border-none cursor-pointer transition-all ${
+                          isSearching || !searchQuery.trim()
+                            ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                            : 'bg-[#1db954] text-black hover:brightness-110 shadow-[0_0_12px_rgba(29,185,84,0.4)]'
+                        }`}
+                      >
+                        {isSearching ? '...' : 'Search'}
+                      </button>
+                    </form>
+
+                    {/* Search Results List */}
+                    <div className="flex-1 overflow-y-auto flex flex-col gap-2 min-h-[140px] max-h-[220px] pr-1">
+                      {isSearching ? (
+                        <div className="py-8 flex flex-col items-center justify-center gap-2 text-zinc-400 text-xs">
+                          <div className="w-5 h-5 border-2 border-[#1db954] border-t-transparent rounded-full animate-spin" />
+                          <span>Searching Spotify...</span>
+                        </div>
+                      ) : searchResults.length === 0 ? (
+                        <div className="py-8 text-center text-zinc-500 text-xs">
+                          {searchQuery ? 'No tracks with audio preview found. Try another title!' : 'Type a song or artist name to search.'}
+                        </div>
+                      ) : (
+                        searchResults.map((track) => {
+                          const artistName = track.artists?.map(a => a.name).join(', ') || 'Artist';
+                          const isPlayingThis = previewingTrackId === track.id;
+
+                          return (
+                            <div
+                              key={track.id}
+                              className="flex items-center justify-between gap-2.5 p-2 rounded-xl bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 transition-all"
+                            >
+                              {/* Play Preview button */}
+                              <button
+                                type="button"
+                                onClick={() => toggleTrackPreview(track)}
+                                title={isPlayingThis ? 'Pause Preview' : 'Play Preview'}
+                                className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border cursor-pointer transition-all ${
+                                  isPlayingThis
+                                    ? 'bg-[#1db954] text-black border-[#1db954]'
+                                    : 'bg-zinc-800 text-white border-zinc-700 hover:bg-zinc-700'
+                                }`}
+                              >
+                                {isPlayingThis ? <Pause size={13} /> : <Play size={13} className="ml-0.5" />}
+                              </button>
+
+                              {/* Track Name - Artist Name */}
+                              <div className="flex-1 min-w-0">
+                                <span className="text-xs font-bold text-white truncate block">
+                                  {track.name}
+                                </span>
+                                <span className="text-[10px] text-zinc-400 truncate block">
+                                  {artistName}
+                                </span>
+                              </div>
+
+                              {/* Select Button */}
+                              <button
+                                type="button"
+                                disabled={isPostingTale}
+                                onClick={() => handleSelectTrack(track)}
+                                className="px-3 py-1.5 rounded-full bg-[#1db954] text-black font-black text-xs hover:brightness-110 border-none cursor-pointer flex-shrink-0 transition-all shadow-sm"
+                              >
+                                Select
+                              </button>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Footer Alternative: Post without Music */}
+                    <div className="pt-2 border-t border-zinc-800 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        disabled={isPostingTale}
+                        onClick={handlePostWithoutMusic}
+                        className="text-[11px] font-bold text-zinc-400 hover:text-white bg-transparent border-none cursor-pointer transition-colors"
+                      >
+                        Skip & Post without Music
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (audioPreviewRef.current) audioPreviewRef.current.pause();
+                          setShowTaleModal(false);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-700 text-xs font-bold text-zinc-300 hover:text-white cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>

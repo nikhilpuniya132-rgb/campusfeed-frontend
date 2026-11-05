@@ -43,13 +43,15 @@ export default function TalesBar({
     try {
       const nowIso = new Date().toISOString();
 
-      // First attempt: Joined query with users
+      // First attempt: Joined query with users, including audio_url and song_name
       const { data: joinedData, error: joinError } = await supabase
         .from('tales')
         .select(`
           id,
           author_id,
           image_url,
+          audio_url,
+          song_name,
           created_at,
           expires_at,
           users:author_id (
@@ -202,7 +204,7 @@ export default function TalesBar({
     }
   };
 
-  const currentTale = activeStoryUser?.tales?.[currentTaleIndex];
+  const activeTale = activeStoryUser?.tales?.[currentTaleIndex];
   const currentUserHasTaleInList = propUser?.id && talesUsers.some(u => u.authorId === propUser.id);
   const showCurrentUserPill = !currentUserHasTaleInList && (propUser || userHasActiveTale);
 
@@ -296,9 +298,9 @@ export default function TalesBar({
         )}
       </div>
 
-      {/* 5. Full-Screen Modal/Overlay Displaying User's Active Tale */}
+      {/* Task 2.1: Full-Screen Modal/Overlay Displaying User's Active Tale */}
       <AnimatePresence>
-        {activeStoryUser && currentTale && (
+        {activeStoryUser && activeTale && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -306,6 +308,17 @@ export default function TalesBar({
             className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center"
             onClick={handleCloseStory}
           >
+            {/* Task 2.2: Hidden Audio Element for Auto-Playing Tale Music */}
+            {activeTale.audio_url && (
+              <audio
+                key={activeTale.id || activeTale.audio_url}
+                src={activeTale.audio_url}
+                autoPlay
+                loop
+                style={{ display: 'none' }}
+              />
+            )}
+
             {/* Tale Container Card */}
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
@@ -358,7 +371,7 @@ export default function TalesBar({
                       @{activeStoryUser.handle}
                     </span>
                     <span className="text-[10px] text-zinc-300 font-medium">
-                      {formatTimeAgo(currentTale.created_at)}
+                      {formatTimeAgo(activeTale.created_at)}
                     </span>
                   </div>
                 </div>
@@ -374,10 +387,20 @@ export default function TalesBar({
                 </button>
               </div>
 
+              {/* Task 2.3: Music Sticker Overlay (Styled visual sticker with music note icon) */}
+              {activeTale.song_name && (
+                <div className="absolute top-20 left-4 z-30 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white shadow-xl animate-pulse pointer-events-none select-none">
+                  <span className="text-sm">🎵</span>
+                  <span className="text-xs font-black tracking-wide max-w-[220px] truncate">
+                    {activeTale.song_name}
+                  </span>
+                </div>
+              )}
+
               {/* Active Tale Image */}
               <div className="relative w-full h-full bg-zinc-950 flex items-center justify-center overflow-hidden">
                 <img
-                  src={currentTale.image_url}
+                  src={activeTale.image_url}
                   alt={`Tale by ${activeStoryUser.handle}`}
                   className="w-full h-full object-cover select-none"
                 />
@@ -422,4 +445,3 @@ export default function TalesBar({
     </div>
   );
 }
-
