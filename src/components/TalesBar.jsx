@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Sparkles, Plus } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Sparkles, Plus, ExternalLink } from 'lucide-react';
 import { supabase as defaultSupabase } from '../supabase';
 
 export default function TalesBar({
@@ -308,8 +308,8 @@ export default function TalesBar({
             className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center"
             onClick={handleCloseStory}
           >
-            {/* Task 2.2: Hidden Audio Element for Auto-Playing Tale Music */}
-            {activeTale.audio_url && (
+            {/* Task 2.2: Audio Element - Rendered ONLY if audio_url exists AND does not equal 'NO_PREVIEW' */}
+            {activeTale.audio_url && activeTale.audio_url !== 'NO_PREVIEW' && (
               <audio
                 key={activeTale.id || activeTale.audio_url}
                 src={activeTale.audio_url}
@@ -387,15 +387,42 @@ export default function TalesBar({
                 </button>
               </div>
 
-              {/* Task 2.3: Music Sticker Overlay (Styled visual sticker with music note icon) */}
-              {activeTale.song_name && (
-                <div className="absolute top-20 left-4 z-30 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white shadow-xl animate-pulse pointer-events-none select-none">
-                  <span className="text-sm">🎵</span>
-                  <span className="text-xs font-black tracking-wide max-w-[220px] truncate">
-                    {activeTale.song_name}
-                  </span>
-                </div>
-              )}
+              {/* Task 2.3: Music Sticker UI Update */}
+              {activeTale.song_name && (() => {
+                const isNoPreview = !activeTale.audio_url || activeTale.audio_url === 'NO_PREVIEW';
+
+                return (
+                  <div
+                    onClick={(e) => {
+                      if (isNoPreview) {
+                        e.stopPropagation();
+                        window.open(
+                          'https://open.spotify.com/search/' + encodeURIComponent(activeTale.song_name),
+                          '_blank'
+                        );
+                      }
+                    }}
+                    className={`absolute top-20 left-4 z-30 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/70 backdrop-blur-md border text-white shadow-xl select-none transition-all ${
+                      isNoPreview
+                        ? 'border-[#1db954]/60 hover:bg-black/90 cursor-pointer pointer-events-auto hover:scale-105'
+                        : 'border-white/20 pointer-events-none animate-pulse'
+                    }`}
+                  >
+                    <span className="text-sm">🎵</span>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black tracking-wide max-w-[200px] truncate leading-tight">
+                        {activeTale.song_name}
+                      </span>
+                      {isNoPreview && (
+                        <span className="text-[9.5px] font-bold text-[#1db954] flex items-center gap-1 leading-tight">
+                          <span>Tap to play on Spotify</span>
+                          <ExternalLink size={10} />
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Active Tale Image */}
               <div className="relative w-full h-full bg-zinc-950 flex items-center justify-center overflow-hidden">

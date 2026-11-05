@@ -44,7 +44,7 @@ export default function GodMode({
   const [commentsList, setCommentsList] = useState([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
 
-  // Task 1.5: Retain Spotify Search & Add to Tale Modal State
+  // Task 1: Retain Spotify Search & Add to Tale Modal State
   const [activeTalePost, setActiveTalePost] = useState(null);
   const [showTaleModal, setShowTaleModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -274,7 +274,7 @@ export default function GodMode({
     }
   };
 
-  // Task 1.5: Retain Spotify Auth Helper
+  // Task 1.3: Spotify Auth Helper
   const getSpotifyToken = async () => {
     const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID || '89e25dda422048b6847b20c322ce9197';
     const clientSecret = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET || '16a4002448f74f7497fe1e08b3de7eb0';
@@ -296,7 +296,7 @@ export default function GodMode({
     return data.access_token;
   };
 
-  // Task 1.5: Retain Spotify Search Logic
+  // Task 1: Fix Spotify Search Filter (Remove strict filter, take top 10 results directly)
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -318,9 +318,9 @@ export default function GodMode({
       }
 
       const data = await res.json();
-      // Filter tracks to ONLY include those where preview_url is not null
-      const filtered = (data?.tracks?.items || []).filter(track => track.preview_url);
-      setSearchResults(filtered);
+      // Remove the strict filter: Take top 10 results directly
+      const topTracks = (data?.tracks?.items || []).slice(0, 10);
+      setSearchResults(topTracks);
     } catch (err) {
       console.error('Spotify Search Error:', err);
       showToast('Spotify search failed');
@@ -341,6 +341,7 @@ export default function GodMode({
 
   // Track Audio Preview toggle in search list
   const toggleTrackPreview = (track) => {
+    if (!track.preview_url) return;
     if (previewingTrackId === track.id) {
       if (audioPreviewRef.current) {
         audioPreviewRef.current.pause();
@@ -358,7 +359,7 @@ export default function GodMode({
     }
   };
 
-  // Post Logic: When "Select" track is clicked in Spotify Modal
+  // Task 1.3: Post Logic: When "Select" is clicked on a track
   const handleSelectTrack = async (track) => {
     if (!activeTalePost) return;
     if (audioPreviewRef.current) {
@@ -374,12 +375,13 @@ export default function GodMode({
         return;
       }
 
+      // Insert into public.tales with author_id, image_url, audio_url (track.preview_url || 'NO_PREVIEW'), song_name
       const { error } = await supabase
         .from('tales')
         .insert([{
           author_id: userId,
           image_url: activeTalePost.image_url,
-          audio_url: track.preview_url,
+          audio_url: track.preview_url || 'NO_PREVIEW',
           song_name: track.name
         }]);
 
@@ -487,7 +489,7 @@ export default function GodMode({
           </p>
         </div>
       ) : (
-        /* 2 & 3. Vertical Scrolling Column of Post Cards with Neon Glow */
+        /* Vertical Scrolling Column of Post Cards with Neon Glow */
         <div className="w-full flex flex-col gap-6">
           {posts.map((post) => (
             <motion.div
@@ -622,7 +624,7 @@ export default function GodMode({
                 </div>
               </div>
 
-              {/* 3. Caption Rendered Below the Image & Action Bar */}
+              {/* Caption Rendered Below the Image & Action Bar */}
               {post.caption && (
                 <div className="px-4 pb-4 pt-0">
                   <p className="text-xs md:text-sm text-zinc-200 leading-relaxed m-0 font-medium">
@@ -709,7 +711,7 @@ export default function GodMode({
         )}
       </AnimatePresence>
 
-      {/* Task 1.5: Retained Spotify Search & Add to Tale Modal Overlay */}
+      {/* Task 1: Spotify Search & Add to Tale Modal Overlay (Top 10 tracks direct selection) */}
       <AnimatePresence>
         {showTaleModal && activeTalePost && (
           <motion.div
@@ -794,7 +796,7 @@ export default function GodMode({
                 </button>
               </form>
 
-              {/* Search Results List */}
+              {/* Search Results List (Top 10 results direct) */}
               <div className="flex-1 overflow-y-auto flex flex-col gap-2 min-h-[140px] max-h-[220px] pr-1">
                 {isSearching ? (
                   <div className="py-8 flex flex-col items-center justify-center gap-2 text-zinc-400 text-xs">
@@ -803,7 +805,7 @@ export default function GodMode({
                   </div>
                 ) : searchResults.length === 0 ? (
                   <div className="py-8 text-center text-zinc-500 text-xs">
-                    {searchQuery ? 'No tracks with audio preview found. Try another title!' : 'Type a song or artist name to search.'}
+                    {searchQuery ? 'No results found. Try another title or artist!' : 'Type a song or artist name to search.'}
                   </div>
                 ) : (
                   searchResults.map((track) => {
@@ -815,19 +817,28 @@ export default function GodMode({
                         key={track.id}
                         className="flex items-center justify-between gap-2.5 p-2 rounded-xl bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 transition-all"
                       >
-                        {/* Play Preview button */}
-                        <button
-                          type="button"
-                          onClick={() => toggleTrackPreview(track)}
-                          title={isPlayingThis ? 'Pause Preview' : 'Play Preview'}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border cursor-pointer transition-all ${
-                            isPlayingThis
-                              ? 'bg-[#1db954] text-black border-[#1db954]'
-                              : 'bg-zinc-800 text-white border-zinc-700 hover:bg-zinc-700'
-                          }`}
-                        >
-                          {isPlayingThis ? <Pause size={13} /> : <Play size={13} className="ml-0.5" />}
-                        </button>
+                        {/* Play Preview button if available, or Spotify music icon */}
+                        {track.preview_url ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleTrackPreview(track)}
+                            title={isPlayingThis ? 'Pause Preview' : 'Play 30s Preview'}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border cursor-pointer transition-all ${
+                              isPlayingThis
+                                ? 'bg-[#1db954] text-black border-[#1db954]'
+                                : 'bg-zinc-800 text-white border-zinc-700 hover:bg-zinc-700'
+                            }`}
+                          >
+                            {isPlayingThis ? <Pause size={13} /> : <Play size={13} className="ml-0.5" />}
+                          </button>
+                        ) : (
+                          <div
+                            title="Full track on Spotify"
+                            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-zinc-800 text-[#1db954] border border-zinc-700/80"
+                          >
+                            <Music size={13} />
+                          </div>
+                        )}
 
                         {/* Track Name - Artist Name */}
                         <div className="flex-1 min-w-0">
