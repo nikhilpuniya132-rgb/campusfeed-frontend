@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Repeat, Share2, BookOpen, ChevronDown, Send, X, Sparkles, CheckCircle2 } from 'lucide-react';
+import {
+  Heart,
+  MessageCircle,
+  Repeat,
+  Share2,
+  BookOpen,
+  ChevronDown,
+  Send,
+  X,
+  Sparkles,
+  CheckCircle2,
+  Bookmark
+} from 'lucide-react';
 import { supabase as defaultSupabase } from '../supabase';
+import TalesBar from './TalesBar';
 
 export default function GodMode({
   user: propUser,
@@ -17,7 +30,9 @@ export default function GodMode({
   // Interaction feedback states
   const [likedPostIds, setLikedPostIds] = useState(new Set());
   const [repostedPostIds, setRepostedPostIds] = useState(new Set());
+  const [savedPostIds, setSavedPostIds] = useState(new Set());
   const [taleAddedPostIds, setTaleAddedPostIds] = useState(new Set());
+  const [userHasActiveTale, setUserHasActiveTale] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
   // Comment Submenu / Modal State
@@ -42,13 +57,14 @@ export default function GodMode({
     return null;
   };
 
-  // 4. Fetch Logic: useEffect to fetch all photo_posts ordered by created_at descending
+  // 4. Fetch Logic: query photo_posts where is_archived = false ordered by created_at descending
   const fetchPhotoPosts = async () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('photo_posts')
         .select('*')
+        .eq('is_archived', false)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -208,7 +224,36 @@ export default function GodMode({
     }
   };
 
-  // Action d: 📤 Share (uses native navigator.share or copies URL)
+  // Action d: 💾 Save Button (inserts into saved_posts with success toast)
+  const handleSave = async () => {
+    if (!currentPost || savedPostIds.has(currentPost.id)) return;
+
+    setSavedPostIds(prev => new Set(prev).add(currentPost.id));
+    showToast('Saved to your collection! 💾');
+
+    try {
+      const userId = await getUserId();
+      if (!userId || !supabase) {
+        showToast('Please sign in to save');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('saved_posts')
+        .insert([{
+          post_id: currentPost.id,
+          user_id: userId
+        }]);
+
+      if (error) {
+        console.warn('Save post notification:', error.message);
+      }
+    } catch (err) {
+      console.error('Failed to save post:', err);
+    }
+  };
+
+  // Action e: 📤 Share (uses native navigator.share or copies URL)
   const handleShare = async () => {
     if (!currentPost) return;
 
@@ -232,12 +277,19 @@ export default function GodMode({
     }
   };
 
-  // Action e: 📖 Add to Tale (copies current post's image_url and inserts into tales table)
+  // Action f: 📖 Add to Tale (copies current post's image_url and inserts into tales table)
   const handleAddToTale = async () => {
     if (!currentPost || taleAddedPostIds.has(currentPost.id)) return;
 
     setTaleAddedPostIds(prev => new Set(prev).add(currentPost.id));
+    // Immediately show success toast and dynamically apply colored CSS ring
+    setUserHasActiveTale(true);
     showToast('Added to your Tale! 📖');
+
+    // Notify TalesBar to immediately refresh its list
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('campus-tale-posted'));
+    }
 
     try {
       const userId = await getUserId();
@@ -259,7 +311,16 @@ export default function GodMode({
   };
 
   return (
-    <div className="w-full max-w-md mx-auto h-[calc(100vh-160px)] min-h-[540px] max-h-[760px] flex flex-col items-center justify-center relative select-none pb-14 text-white box-border">
+    <div className="w-full max-w-md mx-auto h-[calc(100vh-140px)] min-h-[560px] max-h-[800px] flex flex-col items-center relative select-none pb-12 text-white box-border gap-2">
+      {/* 1. Mount TalesBar Component at the Absolute Top of the Feed Viewport */}
+      <div className="w-full flex-shrink-0">
+        <TalesBar
+          user={propUser}
+          supabase={supabase}
+          userHasActiveTale={userHasActiveTale}
+        />
+      </div>
+
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
@@ -267,7 +328,7 @@ export default function GodMode({
             initial={{ opacity: 0, y: -20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            className="absolute top-3 z-50 bg-[#00ff41] text-black font-black text-xs px-4 py-2 rounded-full shadow-[0_0_20px_rgba(0,255,65,0.6)] flex items-center gap-1.5"
+            className="absolute top-20 z-50 bg-[#00ff41] text-black font-black text-xs px-4 py-2 rounded-full shadow-[0_0_20px_rgba(0,255,65,0.6)] flex items-center gap-1.5"
           >
             <CheckCircle2 size={14} />
             <span>{toastMessage}</span>
@@ -277,7 +338,7 @@ export default function GodMode({
 
       {/* 2. Loading State */}
       {isLoading ? (
-        <div className="w-full h-full bg-black border border-zinc-800 rounded-3xl md:rounded-[2.5rem] flex flex-col items-center justify-center gap-3">
+        <div className="w-full flex-1 bg-black border border-zinc-800 rounded-3xl md:rounded-[2.5rem] flex flex-col items-center justify-center gap-3">
           <div className="w-8 h-8 border-2 border-[#ff007f] border-t-transparent rounded-full animate-spin" />
           <span className="text-xs font-bold text-zinc-400">Loading spotlight reel...</span>
         </div>
@@ -286,7 +347,7 @@ export default function GodMode({
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-full h-full bg-black border-2 border-zinc-800 rounded-3xl md:rounded-[2.5rem] p-8 text-center flex flex-col items-center justify-center gap-4 shadow-2xl"
+          className="w-full flex-1 bg-black border-2 border-zinc-800 rounded-3xl md:rounded-[2.5rem] p-8 text-center flex flex-col items-center justify-center gap-4 shadow-2xl"
         >
           <div className="text-5xl animate-bounce">✨</div>
           <h2 className="text-2xl font-black text-white tracking-tight">You're caught up!</h2>
@@ -310,7 +371,7 @@ export default function GodMode({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.94 }}
             transition={{ duration: 0.2 }}
-            className="relative w-full h-full bg-black border-2 border-zinc-800 rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col box-border"
+            className="relative w-full flex-1 bg-black border-2 border-zinc-800 rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col box-border"
             style={{
               boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 35px rgba(0, 0, 0, 0.8)'
             }}
@@ -326,7 +387,7 @@ export default function GodMode({
               {/* Cinematic Vignette Gradients */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 pointer-events-none" />
 
-              {/* Spotlight Pill Badge (Top Left) */}
+              {/* Spotlight Pill Badge (Top Left) with dynamic active ring on user if active */}
               <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-[11px] font-black uppercase tracking-wider text-white">
                 <Sparkles size={12} className="text-[#ff007f]" />
                 <span>Spotlight</span>
@@ -336,20 +397,20 @@ export default function GodMode({
               </div>
 
               {/* 6. Post Actions UI: Stacked vertically on the right side */}
-              <div className="absolute right-3 bottom-16 z-30 flex flex-col items-center gap-3">
+              <div className="absolute right-3 bottom-14 z-30 flex flex-col items-center gap-2.5">
                 {/* ❤️ Like Action */}
                 <motion.button
                   whileTap={{ scale: 0.82 }}
                   onClick={handleLike}
                   title="Like Photo"
                   aria-label="Like Photo"
-                  className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border border-white/20 hover:border-[#ff007f] flex flex-col items-center justify-center cursor-pointer transition-all shadow-lg"
+                  className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 hover:border-[#ff007f] flex flex-col items-center justify-center cursor-pointer transition-all shadow-lg"
                 >
                   <Heart
-                    size={20}
+                    size={18}
                     className={likedPostIds.has(currentPost.id) ? 'fill-[#ff007f] text-[#ff007f]' : 'text-white'}
                   />
-                  <span className="text-[8px] font-black text-white mt-0.5">Like</span>
+                  <span className="text-[7.5px] font-black text-white mt-0.5">Like</span>
                 </motion.button>
 
                 {/* 💬 Comment Action */}
@@ -358,10 +419,10 @@ export default function GodMode({
                   onClick={openComments}
                   title="Comment"
                   aria-label="Comment"
-                  className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border border-white/20 hover:border-[#0090ff] flex flex-col items-center justify-center cursor-pointer transition-all shadow-lg"
+                  className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 hover:border-[#0090ff] flex flex-col items-center justify-center cursor-pointer transition-all shadow-lg"
                 >
-                  <MessageCircle size={19} className="text-white" />
-                  <span className="text-[8px] font-black text-white mt-0.5">Chat</span>
+                  <MessageCircle size={18} className="text-white" />
+                  <span className="text-[7.5px] font-black text-white mt-0.5">Chat</span>
                 </motion.button>
 
                 {/* 🔄 Repost Action */}
@@ -370,14 +431,33 @@ export default function GodMode({
                   onClick={handleRepost}
                   title="Repost"
                   aria-label="Repost"
-                  className={`w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border flex flex-col items-center justify-center cursor-pointer transition-all shadow-lg ${
+                  className={`w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border flex flex-col items-center justify-center cursor-pointer transition-all shadow-lg ${
                     repostedPostIds.has(currentPost.id)
                       ? 'border-[#00ff41] text-[#00ff41]'
                       : 'border-white/20 hover:border-[#00ff41] text-white'
                   }`}
                 >
-                  <Repeat size={19} />
-                  <span className="text-[8px] font-black mt-0.5">Repost</span>
+                  <Repeat size={18} />
+                  <span className="text-[7.5px] font-black mt-0.5">Repost</span>
+                </motion.button>
+
+                {/* 💾 Save Action (Task 2 Requirement) */}
+                <motion.button
+                  whileTap={{ scale: 0.82 }}
+                  onClick={handleSave}
+                  title="Save Post"
+                  aria-label="Save Post"
+                  className={`w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border flex flex-col items-center justify-center cursor-pointer transition-all shadow-lg ${
+                    savedPostIds.has(currentPost.id)
+                      ? 'border-[#ffe600] text-[#ffe600]'
+                      : 'border-white/20 hover:border-[#ffe600] text-white'
+                  }`}
+                >
+                  <Bookmark
+                    size={18}
+                    className={savedPostIds.has(currentPost.id) ? 'fill-[#ffe600]' : ''}
+                  />
+                  <span className="text-[7.5px] font-black mt-0.5">Save</span>
                 </motion.button>
 
                 {/* 📤 Share Action */}
@@ -386,33 +466,33 @@ export default function GodMode({
                   onClick={handleShare}
                   title="Share"
                   aria-label="Share"
-                  className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border border-white/20 hover:border-[#ffe600] text-white flex flex-col items-center justify-center cursor-pointer transition-all shadow-lg"
+                  className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 hover:border-white text-white flex flex-col items-center justify-center cursor-pointer transition-all shadow-lg"
                 >
-                  <Share2 size={19} />
-                  <span className="text-[8px] font-black mt-0.5">Share</span>
+                  <Share2 size={18} />
+                  <span className="text-[7.5px] font-black mt-0.5">Share</span>
                 </motion.button>
 
-                {/* 📖 Add to Tale Action */}
+                {/* 📖 Add to Tale Action (with dynamic colored ring feedback) */}
                 <motion.button
                   whileTap={{ scale: 0.82 }}
                   onClick={handleAddToTale}
                   title="Add to Tale"
                   aria-label="Add to Tale"
-                  className={`w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border flex flex-col items-center justify-center cursor-pointer transition-all shadow-lg ${
-                    taleAddedPostIds.has(currentPost.id)
-                      ? 'border-[#a855f7] text-[#a855f7]'
-                      : 'border-white/20 hover:border-[#a855f7] text-white'
+                  className={`w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border flex flex-col items-center justify-center cursor-pointer transition-all shadow-lg ${
+                    taleAddedPostIds.has(currentPost.id) || userHasActiveTale
+                      ? 'border-[#ec4899] text-[#ec4899] shadow-[0_0_12px_rgba(236,72,153,0.5)]'
+                      : 'border-white/20 hover:border-[#ec4899] text-white'
                   }`}
                 >
-                  <BookOpen size={19} />
-                  <span className="text-[8px] font-black mt-0.5">Tale</span>
+                  <BookOpen size={18} />
+                  <span className="text-[7.5px] font-black mt-0.5">Tale</span>
                 </motion.button>
               </div>
 
               {/* Bottom Caption & Post Metadata */}
               <div className="absolute left-4 right-16 bottom-4 z-20 flex flex-col gap-1.5 pointer-events-auto">
                 {currentPost.caption && (
-                  <div className="bg-black/60 backdrop-blur-md border border-white/15 rounded-2xl px-3.5 py-2 inline-block max-w-[280px]">
+                  <div className="bg-black/60 backdrop-blur-md border border-white/15 rounded-2xl px-3.5 py-2 inline-block max-w-[270px]">
                     <p className="text-xs font-semibold text-white leading-relaxed m-0 drop-shadow">
                       {currentPost.caption}
                     </p>

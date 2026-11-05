@@ -3,8 +3,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import HamsterLoader from './HamsterLoader';
 import InstituteCombobox, { findHubForInstitute } from './InstituteCombobox';
 import { handleShare } from '../utils/share';
-import { Share2, UserSearch } from 'lucide-react';
+import {
+  Share2,
+  UserSearch,
+  Grid,
+  Repeat,
+  Archive,
+  Bookmark,
+  ArchiveRestore,
+  X,
+  CheckCircle2
+} from 'lucide-react';
 import { MASTER_CLASS_OPTIONS, CLASS_OPTIONS } from '../constants/classes';
+import { supabase as defaultSupabase } from '../supabase';
 
 const AURA_RING_OPTIONS = [
   { id: 'gold', label: 'Gold Ring', color: '#d97706', desc: 'Championship gold halo' },
@@ -20,7 +31,7 @@ export default function Profile({
   profileData,
   acceptedFriends = [],
   API,
-  supabase,
+  supabase: propSupabase,
   onUpdateUser,
   onLogout,
   onDeleteAccount,
@@ -29,6 +40,8 @@ export default function Profile({
   onInviteShare,
   onRefreshFriends
 }) {
+  const supabase = propSupabase || defaultSupabase;
+
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(user?.name || '');
   const [editBio, setEditBio] = useState(user?.bio || '');
@@ -67,11 +80,208 @@ export default function Profile({
   const [copySuccess, setCopySuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Task 3: Tabbed Navigation & Grid State
+  const [activeTab, setActiveTab] = useState('posts'); // 'posts' | 'reposts' | 'archived'
+  const [archivedSubTab, setArchivedSubTab] = useState('archived'); // 'archived' | 'saved'
+  const [gridItems, setGridItems] = useState([]);
+  const [isLoadingGrid, setIsLoadingGrid] = useState(false);
+  const [selectedGridItem, setSelectedGridItem] = useState(null);
+  const [actionToast, setActionToast] = useState('');
+
+  const showActionToast = (msg) => {
+    setActionToast(msg);
+    setTimeout(() => setActionToast(''), 2500);
+  };
+
   const effectiveInvites = Math.max(
     Number(user?.invites || 0),
     Number(user?.recruits || 0)
   );
   const isLifetimeLegend = effectiveInvites >= 25 || user?.is_god_mode === true || user?.is_legend === true;
+
+  // Task 3.2: Fetch Logic based on active tab
+  const fetchGridContent = async () => {
+    if (!user?.id || !supabase) return;
+    setIsLoadingGrid(true);
+    try {
+      if (activeTab === 'posts') {
+        // Posts: Fetch from photo_posts where author_id = user.id AND is_archived = false
+        const { data, error } = await supabase
+          .from('photo_posts')
+          .select('*')
+          .eq('author_id', user.id)
+          .eq('is_archived', false)
+          .order('created_at', { ascending: false });
+
+        if (!error) {
+          setGridItems(data || []);
+        } else {
+          console.error('Error fetching posts:', error);
+          setGridItems([]);
+        }
+      } else if (activeTab === 'reposts') {
+        // Reposts: Fetch from reposts where user_id = user.id, joined with photo_posts
+        const { data, error } = await supabase
+          .from('reposts')
+          .select(`
+            id,
+            post_id,
+            created_at,
+            photo_posts (
+              id,
+              author_id,
+              image_url,
+              caption,
+              created_at,
+              is_archived
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          const list = data
+            .map(r => r.photo_posts)
+            .flat()
+            .filter(Boolean);
+          setGridItems(list);
+        } else {
+          // Fallback query if relation join is not foreign-keyed
+          const { data: rawReposts } = await supabase
+            .from('reposts')
+            .select('post_id')
+            .eq('user_id', user.id);
+
+          const postIds = (rawReposts || []).map(r => r.post_id).filter(Boolean);
+          if (postIds.length > 0) {
+            const { data: postsData } = await supabase
+              .from('photo_posts')
+              .select('*')
+              .in('id', postIds);
+            setGridItems(postsData || []);
+          } else {
+            setGridItems([]);
+          }
+        }
+      } else if (activeTab === 'archived') {
+        if (archivedSubTab === 'archived') {
+          // Archived: Fetch from photo_posts where author_id = user.id AND is_archived = true
+          const { data, error } = await supabase
+            .from('photo_posts')
+            .select('*')
+            .eq('author_id', user.id)
+            .eq('is_archived', true)
+            .order('created_at', { ascending: false });
+
+          if (!error) {
+            setGridItems(data || []);
+          } else {
+            console.error('Error fetching archived posts:', error);
+            setGridItems([]);
+          }
+        } else {
+          // Saved (Archived Sub-tab): Fetch from saved_posts where user_id = user.id, joined with photo_posts
+          const { data, error } = await supabase
+            .from('saved_posts')
+            .select(`
+              id,
+              post_id,
+              created_at,
+              photo_posts (
+                id,
+                author_id,
+                image_url,
+                caption,
+                created_at,
+                is_archived
+              )
+            `)
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+          if (!error && data) {
+            const list = data
+              .map(s => s.photo_posts)
+              .flat()
+              .filter(Boolean);
+            setGridItems(list);
+          } else {
+            // Fallback query
+            const { data: rawSaved } = await supabase
+              .from('saved_posts')
+              .select('post_id')
+              .eq('user_id', user.id);
+
+            const postIds = (rawSaved || []).map(s => s.post_id).filter(Boolean);
+            if (postIds.length > 0) {
+              const { data: postsData } = await supabase
+                .from('photo_posts')
+                .select('*')
+                .in('id', postIds);
+              setGridItems(postsData || []);
+            } else {
+              setGridItems([]);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch grid items:', err);
+      setGridItems([]);
+    } finally {
+      setIsLoadingGrid(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGridContent();
+  }, [activeTab, archivedSubTab, user?.id]);
+
+  // Task 3.4: Archive an item on the "Posts" grid (updates is_archived to true)
+  const handleArchivePost = async (e, postId) => {
+    e?.stopPropagation();
+    try {
+      const { error } = await supabase
+        .from('photo_posts')
+        .update({ is_archived: true })
+        .eq('id', postId);
+
+      if (!error) {
+        setGridItems(prev => prev.filter(item => item.id !== postId));
+        showActionToast('Post moved to Archive 🗄️');
+        if (selectedGridItem?.id === postId) {
+          setSelectedGridItem(null);
+        }
+      } else {
+        showActionToast('Could not archive post');
+      }
+    } catch (err) {
+      console.error('Error archiving post:', err);
+    }
+  };
+
+  // Complementary: Unarchive an item on the "Archived" grid (updates is_archived to false)
+  const handleUnarchivePost = async (e, postId) => {
+    e?.stopPropagation();
+    try {
+      const { error } = await supabase
+        .from('photo_posts')
+        .update({ is_archived: false })
+        .eq('id', postId);
+
+      if (!error) {
+        setGridItems(prev => prev.filter(item => item.id !== postId));
+        showActionToast('Post restored to Posts ✨');
+        if (selectedGridItem?.id === postId) {
+          setSelectedGridItem(null);
+        }
+      } else {
+        showActionToast('Could not unarchive post');
+      }
+    } catch (err) {
+      console.error('Error unarchiving post:', err);
+    }
+  };
 
   // Fetch today's voting history from Supabase/Backend
   const fetchTodayVotingHistory = async () => {
@@ -375,6 +585,21 @@ export default function Profile({
   return (
     <div style={{ padding: '4px 0 calc(70px + env(safe-area-inset-bottom, 10px)) 0', maxWidth: '448px', margin: '0 auto', boxSizing: 'border-box', position: 'relative', background: 'transparent', color: '#ffffff', minHeight: '100%' }}>
       
+      {/* Action Toast Feedback */}
+      <AnimatePresence>
+        {actionToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#00ff41] text-black font-black text-xs px-4 py-2 rounded-full shadow-[0_0_20px_rgba(0,255,65,0.6)] flex items-center gap-1.5"
+          >
+            <CheckCircle2 size={14} />
+            <span>{actionToast}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Top Bar: Unified Share Button & Settings 3-Dots Menu */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', position: 'relative', marginBottom: '12px' }} ref={settingsMenuRef}>
         <motion.button
@@ -508,7 +733,7 @@ export default function Profile({
       {/* 1. INSTAGRAM-STYLE PROFILE HEADER (Floating Pitch Black Card with rounded-[2.5rem]) */}
       <div
         style={{
-          marginBottom: '18px',
+          marginBottom: '16px',
           background: '#000000',
           borderRadius: '2.5rem',
           padding: '24px 20px',
@@ -521,10 +746,10 @@ export default function Profile({
           {/* Avatar (Left) */}
           <div style={{ position: 'relative', flexShrink: 0 }}>
             {renderProfilePic
-              ? renderProfilePic(editProfilePic || user.profile_pic, editAvatar || user.avatar, user.is_pro, selectedRing, 84, isLifetimeLegend)
+              ? renderProfilePic(editProfilePic || user?.profile_pic, editAvatar || user?.avatar, user?.is_pro, selectedRing, 84, isLifetimeLegend)
               : (
                 <div style={{ fontSize: '42px', width: '84px', height: '84px', borderRadius: '50%', background: '#18181b', border: '1.5px solid #27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {user.avatar || '😎'}
+                  {user?.avatar || '😎'}
                 </div>
               )}
           </div>
@@ -541,7 +766,7 @@ export default function Profile({
               </span>
             </div>
 
-            {/* Stat 2: Friends (Clickable to open Friends List modal) */}
+            {/* Stat 2: Friends */}
             <motion.button
               type="button"
               whileTap={{ scale: 0.95 }}
@@ -567,7 +792,7 @@ export default function Profile({
               </span>
             </motion.button>
 
-            {/* Stat 3: Spies (Clickable to open Spies modal) */}
+            {/* Stat 3: Spies */}
             <motion.button
               type="button"
               whileTap={{ scale: 0.95 }}
@@ -598,26 +823,26 @@ export default function Profile({
         {/* User Handle & Details */}
         <div style={{ textAlign: 'left', marginBottom: '14px' }}>
           <h2 style={{ margin: '0 0 3px 0', fontSize: '16.5px', fontWeight: '900', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>@{user.handle}</span>
+            <span>@{user?.handle}</span>
             {isLifetimeLegend && <span title="Lifetime Legend" style={{ fontSize: '13px' }}>👑</span>}
           </h2>
 
           <p style={{ margin: '0 0 6px 0', fontSize: '12px', color: '#a1a1aa', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-            <span style={{ color: '#ffffff', fontWeight: '700' }}>{user.stream || '11th Medical'}</span>
+            <span style={{ color: '#ffffff', fontWeight: '700' }}>{user?.stream || '11th Medical'}</span>
             <span>•</span>
-            <span>{user.institute || user.school || 'Kapil Institute'}</span>
+            <span>{user?.institute || user?.school || 'Kapil Institute'}</span>
             <span>•</span>
-            <span style={{ color: '#a1a1aa' }}>📍 {user.coaching_hub || user.hub || 'Ajit Road Hub'}</span>
+            <span style={{ color: '#a1a1aa' }}>📍 {user?.coaching_hub || user?.hub || 'Ajit Road Hub'}</span>
           </p>
 
           {/* Bio */}
           <p style={{ color: '#d4d4d8', fontSize: '13px', margin: 0, lineHeight: '1.45' }}>
-            {user.bio || `${user.stream || '11th Medical'} student at ${user.institute || 'Kapil Institute'}`}
+            {user?.bio || `${user?.stream || '11th Medical'} student at ${user?.institute || 'Kapil Institute'}`}
           </p>
         </div>
 
         {/* Action Buttons (Edit Profile & Share Profile) */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
           <motion.button
             type="button"
             whileTap={{ scale: 0.98 }}
@@ -997,7 +1222,222 @@ export default function Profile({
         </div>
       )}
 
-      {/* 3. FRIENDS POPUP MODAL (Clean, Minimalist Sheet) */}
+      {/* 3. TABBED NAVIGATION MENU BELOW PROFILE INFO (Task 3 Requirement) */}
+      <div className="w-full mt-2">
+        {/* Main Tabs: Posts | Reposts | Archived */}
+        <div className="flex items-center justify-around border-b border-zinc-800 pb-2 mb-3">
+          <button
+            type="button"
+            onClick={() => setActiveTab('posts')}
+            className={`flex items-center gap-1.5 pb-1 text-xs font-black uppercase tracking-wider transition-all border-b-2 cursor-pointer bg-transparent ${
+              activeTab === 'posts'
+                ? 'text-white border-white'
+                : 'text-zinc-500 border-transparent hover:text-zinc-300'
+            }`}
+          >
+            <Grid size={15} />
+            <span>Posts</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('reposts')}
+            className={`flex items-center gap-1.5 pb-1 text-xs font-black uppercase tracking-wider transition-all border-b-2 cursor-pointer bg-transparent ${
+              activeTab === 'reposts'
+                ? 'text-white border-white'
+                : 'text-zinc-500 border-transparent hover:text-zinc-300'
+            }`}
+          >
+            <Repeat size={15} />
+            <span>Reposts</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('archived')}
+            className={`flex items-center gap-1.5 pb-1 text-xs font-black uppercase tracking-wider transition-all border-b-2 cursor-pointer bg-transparent ${
+              activeTab === 'archived'
+                ? 'text-white border-white'
+                : 'text-zinc-500 border-transparent hover:text-zinc-300'
+            }`}
+          >
+            <Archive size={15} />
+            <span>Archived</span>
+          </button>
+        </div>
+
+        {/* Sub-toggle inside Archived Tab for Saved Posts */}
+        {activeTab === 'archived' && (
+          <div className="flex items-center justify-center gap-2 mb-3 px-1">
+            <button
+              type="button"
+              onClick={() => setArchivedSubTab('archived')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer border ${
+                archivedSubTab === 'archived'
+                  ? 'bg-white text-black border-white shadow-sm'
+                  : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white'
+              }`}
+            >
+              🗄️ Archived Posts
+            </button>
+            <button
+              type="button"
+              onClick={() => setArchivedSubTab('saved')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer border ${
+                archivedSubTab === 'saved'
+                  ? 'bg-white text-black border-white shadow-sm'
+                  : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white'
+              }`}
+            >
+              💾 Saved Posts
+            </button>
+          </div>
+        )}
+
+        {/* 3.3 UI Rendering: 3-column image grid (like Instagram profile) */}
+        {isLoadingGrid ? (
+          <div className="py-14 flex flex-col items-center justify-center gap-2 text-zinc-500 text-xs">
+            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <span>Loading photos...</span>
+          </div>
+        ) : gridItems.length === 0 ? (
+          <div className="py-14 text-center text-zinc-500 flex flex-col items-center justify-center gap-2">
+            <div className="text-3xl">
+              {activeTab === 'posts' ? '📸' : activeTab === 'reposts' ? '🔄' : archivedSubTab === 'saved' ? '💾' : '🗄️'}
+            </div>
+            <p className="text-xs font-semibold text-zinc-400 m-0">
+              {activeTab === 'posts'
+                ? 'No photos posted yet'
+                : activeTab === 'reposts'
+                ? 'No reposted photos yet'
+                : archivedSubTab === 'saved'
+                ? 'No saved photos in collection'
+                : 'No archived photos'}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-1 md:gap-1.5 w-full">
+            {gridItems.map((item) => (
+              <div
+                key={item.id}
+                onClick={() => setSelectedGridItem(item)}
+                className="relative aspect-square bg-zinc-900 rounded-xl overflow-hidden cursor-pointer group border border-zinc-800/80 hover:border-zinc-700 transition-all shadow-sm"
+              >
+                <img
+                  src={item.image_url}
+                  alt={item.caption || 'Post image'}
+                  className="w-full h-full object-cover select-none group-hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
+                />
+
+                {/* 3.4 Archive option on "Posts" grid items */}
+                {activeTab === 'posts' && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleArchivePost(e, item.id)}
+                    title="Archive this post"
+                    aria-label="Archive this post"
+                    className="absolute top-1.5 right-1.5 bg-black/75 backdrop-blur-md text-zinc-200 hover:text-white p-1.5 rounded-lg border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer shadow-md"
+                  >
+                    <Archive size={12} />
+                  </button>
+                )}
+
+                {/* Unarchive option on "Archived" grid items */}
+                {activeTab === 'archived' && archivedSubTab === 'archived' && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleUnarchivePost(e, item.id)}
+                    title="Restore to Posts"
+                    aria-label="Restore to Posts"
+                    className="absolute top-1.5 right-1.5 bg-black/75 backdrop-blur-md text-zinc-200 hover:text-white p-1.5 rounded-lg border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer shadow-md"
+                  >
+                    <ArchiveRestore size={12} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Grid Item Photo Preview Modal */}
+      <AnimatePresence>
+        {selectedGridItem && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedGridItem(null)}
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden max-w-sm w-full flex flex-col shadow-2xl"
+            >
+              <div className="flex items-center justify-between p-3 border-b border-zinc-800">
+                <span className="text-xs font-black text-white uppercase tracking-wider">
+                  {activeTab === 'posts' ? 'My Post' : activeTab === 'reposts' ? 'Repost' : archivedSubTab === 'saved' ? 'Saved Post' : 'Archived Post'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedGridItem(null)}
+                  className="w-7 h-7 rounded-full bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="relative aspect-square w-full bg-black overflow-hidden flex items-center justify-center">
+                <img
+                  src={selectedGridItem.image_url}
+                  alt={selectedGridItem.caption || 'Post image'}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              <div className="p-3.5 flex flex-col gap-2">
+                {selectedGridItem.caption && (
+                  <p className="text-xs text-white leading-relaxed m-0 font-medium">
+                    {selectedGridItem.caption}
+                  </p>
+                )}
+                <span className="text-[10px] text-zinc-400 font-medium">
+                  {selectedGridItem.created_at ? new Date(selectedGridItem.created_at).toLocaleDateString() : 'Recent'}
+                </span>
+
+                {/* Modal Action Buttons */}
+                <div className="flex items-center gap-2 pt-2 border-t border-zinc-800">
+                  {activeTab === 'posts' ? (
+                    <button
+                      type="button"
+                      onClick={(e) => handleArchivePost(e, selectedGridItem.id)}
+                      className="flex-1 py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                    >
+                      <Archive size={14} />
+                      <span>Archive Post</span>
+                    </button>
+                  ) : activeTab === 'archived' && archivedSubTab === 'archived' ? (
+                    <button
+                      type="button"
+                      onClick={(e) => handleUnarchivePost(e, selectedGridItem.id)}
+                      className="flex-1 py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                    >
+                      <ArchiveRestore size={14} />
+                      <span>Restore to Posts</span>
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 4. FRIENDS POPUP MODAL (Clean, Minimalist Sheet) */}
       <AnimatePresence>
         {showFriendsModal && (
           <motion.div
@@ -1121,7 +1561,7 @@ export default function Profile({
         )}
       </AnimatePresence>
 
-      {/* 4. SPIES POPUP MODAL */}
+      {/* 5. SPIES POPUP MODAL */}
       <AnimatePresence>
         {showSpiesModal && (
           <motion.div
