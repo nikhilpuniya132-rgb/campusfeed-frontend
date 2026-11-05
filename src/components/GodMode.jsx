@@ -44,7 +44,7 @@ export default function GodMode({
   const [commentsList, setCommentsList] = useState([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
 
-  // Task 1: Retain Spotify Search & Add to Tale Modal State
+  // Task 1: Apple iTunes Search & Add to Tale Modal State
   const [activeTalePost, setActiveTalePost] = useState(null);
   const [showTaleModal, setShowTaleModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,7 +69,7 @@ export default function GodMode({
     return null;
   };
 
-  // 2. Fetch Logic: Fetch photo_posts where is_archived = false ordered by created_at descending
+  // Fetch Logic: Fetch photo_posts where is_archived = false ordered by created_at descending
   const fetchPhotoPosts = async () => {
     setIsLoading(true);
     try {
@@ -105,7 +105,7 @@ export default function GodMode({
     }
   }, []);
 
-  // 4. Action Handlers: ❤️ Like (inserts into photo_votes)
+  // Action Handlers: ❤️ Like (inserts into photo_votes)
   const handleLike = async (post) => {
     if (!post || likedPostIds.has(post.id)) return;
 
@@ -274,54 +274,32 @@ export default function GodMode({
     }
   };
 
-  // Task 1: Fix Spotify 403 Auth & Headers
-  const getSpotifyToken = async () => {
-    const response = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + btoa(import.meta.env.VITE_SPOTIFY_CLIENT_ID + ':' + import.meta.env.VITE_SPOTIFY_CLIENT_SECRET)
-      },
-      body: 'grant_type=client_credentials'
-    });
-    if (!response.ok) throw new Error('Token fetch failed');
-    const data = await response.json();
-    return data.access_token;
-  };
-
+  // Task 1.2: Public, Unauthenticated iTunes Search API
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
     try {
-      const token = await getSpotifyToken();
       const response = await fetch(
-        `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=10`,
-        {
-          headers: {
-            Authorization: 'Bearer ' + token
-          }
-        }
+        `https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&media=music&entity=song&limit=10`
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Spotify Search Failed:', response.status, errorText);
-        throw new Error('Search request failed: ' + errorText);
+        throw new Error(`iTunes Search failed with status: ${response.status}`);
       }
 
       const data = await response.json();
-      setSearchResults(data.tracks.items);
+      setSearchResults(data.results || []);
     } catch (err) {
-      console.error('Spotify Search Error:', err);
-      showToast('Spotify search failed');
+      console.error('iTunes Search Error:', err);
+      showToast('Music search failed');
     } finally {
       setIsSearching(false);
     }
   };
 
-  // 📖 Add to Tale: Opens Spotify search modal for specific post
+  // 📖 Add to Tale: Opens Music search modal for specific post
   const handleOpenTaleModal = (post) => {
     if (!post) return;
     setActiveTalePost(post);
@@ -333,8 +311,11 @@ export default function GodMode({
 
   // Track Audio Preview toggle in search list
   const toggleTrackPreview = (track) => {
-    if (!track.preview_url) return;
-    if (previewingTrackId === track.id) {
+    const audioUrl = track.previewUrl || track.preview_url;
+    if (!audioUrl) return;
+
+    const trackId = track.trackId || track.id;
+    if (previewingTrackId === trackId) {
       if (audioPreviewRef.current) {
         audioPreviewRef.current.pause();
       }
@@ -343,15 +324,15 @@ export default function GodMode({
       if (audioPreviewRef.current) {
         audioPreviewRef.current.pause();
       }
-      const audio = new Audio(track.preview_url);
+      const audio = new Audio(audioUrl);
       audioPreviewRef.current = audio;
       audio.play().catch(() => {});
       audio.onended = () => setPreviewingTrackId(null);
-      setPreviewingTrackId(track.id);
+      setPreviewingTrackId(trackId);
     }
   };
 
-  // Task 1.3: Post Logic: When "Select" is clicked on a track
+  // Task 1.4: Post Logic when "Select" is clicked on a track
   const handleSelectTrack = async (track) => {
     if (!activeTalePost) return;
     if (audioPreviewRef.current) {
@@ -367,14 +348,18 @@ export default function GodMode({
         return;
       }
 
-      // Insert into public.tales with author_id, image_url, audio_url (track.preview_url || 'NO_PREVIEW'), song_name
+      const songTitle = (track.trackName && track.artistName)
+        ? `${track.trackName} - ${track.artistName}`
+        : (track.trackName || track.name || 'Song');
+
+      // Insert record into public.tales
       const { error } = await supabase
         .from('tales')
         .insert([{
           author_id: userId,
           image_url: activeTalePost.image_url,
-          audio_url: track.preview_url || 'NO_PREVIEW',
-          song_name: track.name
+          audio_url: track.previewUrl || track.preview_url || 'NO_PREVIEW',
+          song_name: songTitle
         }]);
 
       if (error) {
@@ -518,7 +503,7 @@ export default function GodMode({
                 />
               </div>
 
-              {/* 4. Action Bar (Horizontal Row Directly Below the Image - Classic Instagram Style) */}
+              {/* Action Bar (Horizontal Row Directly Below the Image - Classic Instagram Style) */}
               <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-800/50">
                 {/* Left Action Buttons: Like, Comment, Repost, Share */}
                 <div className="flex items-center gap-4">
@@ -578,21 +563,21 @@ export default function GodMode({
                   </motion.button>
                 </div>
 
-                {/* Right Action Buttons: 📖 Add to Tale (with Spotify) & 💾 Save */}
+                {/* Right Action Buttons: 📖 Add to Tale (with Music) & 💾 Save */}
                 <div className="flex items-center gap-3">
-                  {/* 📖 Add to Tale with Spotify */}
+                  {/* 📖 Add to Tale with Music */}
                   <motion.button
                     whileTap={{ scale: 0.82 }}
                     onClick={() => handleOpenTaleModal(post)}
-                    title="Add to Tale with Spotify Music"
-                    aria-label="Add to Tale with Spotify Music"
+                    title="Add to Tale with Music"
+                    aria-label="Add to Tale with Music"
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black border cursor-pointer transition-all ${
                       taleAddedPostIds.has(post.id)
                         ? 'bg-[#ec4899]/20 border-[#ec4899] text-[#ec4899] shadow-[0_0_12px_rgba(236,72,153,0.5)]'
                         : 'bg-zinc-900 border-zinc-700 hover:border-[#ec4899] text-zinc-300 hover:text-white'
                     }`}
                   >
-                    <Music size={14} className="text-[#1db954]" />
+                    <Music size={14} className="text-[#ec4899]" />
                     <span>Tale</span>
                   </motion.button>
 
@@ -703,7 +688,7 @@ export default function GodMode({
         )}
       </AnimatePresence>
 
-      {/* Task 1: Spotify Search & Add to Tale Modal Overlay (Top 10 tracks direct selection) */}
+      {/* Task 1: iTunes Music Search & Add to Tale Modal Overlay */}
       <AnimatePresence>
         {showTaleModal && activeTalePost && (
           <motion.div
@@ -726,12 +711,12 @@ export default function GodMode({
               {/* Header */}
               <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-[#1db954]/20 text-[#1db954] flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-full bg-[#ec4899]/20 text-[#ec4899] flex items-center justify-center">
                     <Music size={16} />
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-white m-0">Add Music to Tale</h3>
-                    <span className="text-[10px] text-zinc-400">Powered by Spotify</span>
+                    <span className="text-[10px] text-zinc-400">iTunes Music Library</span>
                   </div>
                 </div>
                 <button
@@ -769,10 +754,10 @@ export default function GodMode({
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                   <input
                     type="text"
-                    placeholder="Search track (e.g. Starboy, Drake)..."
+                    placeholder="Search song or artist..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#1db954] box-border"
+                    className="w-full pl-9 pr-3 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#ec4899] box-border"
                   />
                 </div>
                 <button
@@ -781,64 +766,66 @@ export default function GodMode({
                   className={`px-3 py-2 rounded-xl text-xs font-black flex items-center gap-1 border-none cursor-pointer transition-all ${
                     isSearching || !searchQuery.trim()
                       ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                      : 'bg-[#1db954] text-black hover:brightness-110 shadow-[0_0_12px_rgba(29,185,84,0.4)]'
+                      : 'bg-[#ec4899] text-white hover:brightness-110 shadow-[0_0_12px_rgba(236,72,153,0.4)]'
                   }`}
                 >
                   {isSearching ? '...' : 'Search'}
                 </button>
               </form>
 
-              {/* Search Results List (Top 10 results direct) */}
+              {/* Task 1.3: Search Results List (iTunes data.results) */}
               <div className="flex-1 overflow-y-auto flex flex-col gap-2 min-h-[140px] max-h-[220px] pr-1">
                 {isSearching ? (
                   <div className="py-8 flex flex-col items-center justify-center gap-2 text-zinc-400 text-xs">
-                    <div className="w-5 h-5 border-2 border-[#1db954] border-t-transparent rounded-full animate-spin" />
-                    <span>Searching Spotify...</span>
+                    <div className="w-5 h-5 border-2 border-[#ec4899] border-t-transparent rounded-full animate-spin" />
+                    <span>Searching iTunes Music...</span>
                   </div>
                 ) : searchResults.length === 0 ? (
                   <div className="py-8 text-center text-zinc-500 text-xs">
-                    {searchQuery ? 'No results found. Try another title or artist!' : 'Type a song or artist name to search.'}
+                    {searchQuery ? 'No results found. Try another song or artist!' : 'Type a song or artist name to search.'}
                   </div>
                 ) : (
-                  searchResults.map((track) => {
-                    const artistName = track.artists?.map(a => a.name).join(', ') || 'Artist';
-                    const isPlayingThis = previewingTrackId === track.id;
+                  searchResults.map((track, i) => {
+                    const trackId = track.trackId || i;
+                    const isPlayingThis = previewingTrackId === trackId;
+                    const hasPreview = Boolean(track.previewUrl || track.preview_url);
 
                     return (
                       <div
-                        key={track.id}
+                        key={trackId}
                         className="flex items-center justify-between gap-2.5 p-2 rounded-xl bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 transition-all"
                       >
-                        {/* Play Preview button if available, or Spotify music icon */}
-                        {track.preview_url ? (
-                          <button
-                            type="button"
-                            onClick={() => toggleTrackPreview(track)}
-                            title={isPlayingThis ? 'Pause Preview' : 'Play 30s Preview'}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border cursor-pointer transition-all ${
-                              isPlayingThis
-                                ? 'bg-[#1db954] text-black border-[#1db954]'
-                                : 'bg-zinc-800 text-white border-zinc-700 hover:bg-zinc-700'
-                            }`}
-                          >
-                            {isPlayingThis ? <Pause size={13} /> : <Play size={13} className="ml-0.5" />}
-                          </button>
-                        ) : (
-                          <div
-                            title="Full track on Spotify"
-                            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-zinc-800 text-[#1db954] border border-zinc-700/80"
-                          >
-                            <Music size={13} />
-                          </div>
-                        )}
+                        {/* Thumbnail: track.artworkUrl60 or Play/Pause Button */}
+                        <div className="relative w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-black border border-zinc-700 flex items-center justify-center">
+                          {track.artworkUrl60 ? (
+                            <img
+                              src={track.artworkUrl60}
+                              alt={track.trackName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Music size={14} className="text-[#ec4899]" />
+                          )}
+
+                          {hasPreview && (
+                            <button
+                              type="button"
+                              onClick={() => toggleTrackPreview(track)}
+                              title={isPlayingThis ? 'Pause' : 'Play Preview'}
+                              className="absolute inset-0 bg-black/50 hover:bg-black/70 flex items-center justify-center text-white cursor-pointer border-none transition-colors"
+                            >
+                              {isPlayingThis ? <Pause size={12} /> : <Play size={12} className="ml-0.5" />}
+                            </button>
+                          )}
+                        </div>
 
                         {/* Track Name - Artist Name */}
                         <div className="flex-1 min-w-0">
                           <span className="text-xs font-bold text-white truncate block">
-                            {track.name}
+                            {track.trackName || track.name}
                           </span>
                           <span className="text-[10px] text-zinc-400 truncate block">
-                            {artistName}
+                            {track.artistName}
                           </span>
                         </div>
 
@@ -847,7 +834,7 @@ export default function GodMode({
                           type="button"
                           disabled={isPostingTale}
                           onClick={() => handleSelectTrack(track)}
-                          className="px-3 py-1.5 rounded-full bg-[#1db954] text-black font-black text-xs hover:brightness-110 border-none cursor-pointer flex-shrink-0 transition-all shadow-sm"
+                          className="px-3 py-1.5 rounded-full bg-[#ec4899] text-white font-black text-xs hover:brightness-110 border-none cursor-pointer flex-shrink-0 transition-all shadow-sm"
                         >
                           Select
                         </button>
