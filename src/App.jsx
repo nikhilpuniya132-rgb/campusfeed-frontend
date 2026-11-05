@@ -22,6 +22,7 @@ import Signup from './components/Signup';
 import AddToHomeScreenGuide from './components/AddToHomeScreenGuide';
 import InstituteCombobox, { findHubForInstitute } from './components/InstituteCombobox';
 import CustomPollSubmit from './components/CustomPollSubmit';
+import Sidebar from './components/Sidebar';
 import { handleShare, showAppToast } from './utils/share';
 import { isJuniorUser } from './constants/classes';
 import { Plus, Heart, Home, Search, Crown, User } from 'lucide-react';
@@ -2016,80 +2017,22 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        <AnimatePresence>
-          {showAddPollModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="gas-modal-overlay"
-              onClick={() => setShowAddPollModal(false)}
-              style={{ zIndex: 1000 }}
-            >
-              <motion.div
-                initial={{ y: 50, opacity: 0, scale: 0.95 }}
-                animate={{ y: 0, opacity: 1, scale: 1 }}
-                exit={{ y: 50, opacity: 0, scale: 0.95 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 260 }}
-                className="gas-modal-sheet"
-                style={{
-                  maxWidth: '420px',
-                  margin: 'auto',
-                  borderRadius: '28px',
-                  padding: '20px 18px',
-                  background: '#0a0a0a',
-                  border: '1px solid #27272a',
-                  boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
-                  maxHeight: '88vh',
-                  overflowY: 'auto'
-                }}
-                onClick={e => e.stopPropagation()}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '18px' }}>✍️</span>
-                    <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '900', color: '#ffffff' }}>
-                      Add New Poll
-                    </h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddPollModal(false)}
-                    aria-label="Close modal"
-                    style={{
-                      background: '#18181b',
-                      border: 'none',
-                      color: '#a1a1aa',
-                      borderRadius: '50%',
-                      width: '30px',
-                      height: '30px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                      fontSize: '13px'
-                    }}
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <CustomPollSubmit
-                  user={user}
-                  API={API}
-                  supabase={supabase}
-                  onPollCreated={() => {
-                    setShowAddPollModal(false);
-                    if (view === 'poll') {
-                      loadNextPoll();
-                    }
-                  }}
-                />
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <Sidebar
+          isOpen={showAddPollModal}
+          onClose={() => setShowAddPollModal(false)}
+          user={user}
+          API={API}
+          supabase={supabase}
+          onPollCreated={() => {
+            setShowAddPollModal(false);
+            if (view === 'poll') {
+              loadNextPoll();
+            }
+          }}
+          onPhotoPosted={() => {
+            setShowAddPollModal(false);
+          }}
+        />
       </div>
     </div>
   );
