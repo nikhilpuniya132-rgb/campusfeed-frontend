@@ -274,29 +274,21 @@ export default function GodMode({
     }
   };
 
-  // Task 1.3: Spotify Auth Helper
+  // Task 1: Fix Spotify 403 Auth & Headers
   const getSpotifyToken = async () => {
-    const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID || '89e25dda422048b6847b20c322ce9197';
-    const clientSecret = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET || '16a4002448f74f7497fe1e08b3de7eb0';
-
-    const res = await fetch('https://accounts.spotify.com/api/token', {
+    const response = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
+        'Authorization': 'Basic ' + btoa(import.meta.env.VITE_SPOTIFY_CLIENT_ID + ':' + import.meta.env.VITE_SPOTIFY_CLIENT_SECRET)
       },
       body: 'grant_type=client_credentials'
     });
-
-    if (!res.ok) {
-      throw new Error(`Spotify auth token failed with status: ${res.status}`);
-    }
-
-    const data = await res.json();
+    if (!response.ok) throw new Error('Token fetch failed');
+    const data = await response.json();
     return data.access_token;
   };
 
-  // Task 1: Fix Spotify Search Filter (Remove strict filter, take top 10 results directly)
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -304,23 +296,23 @@ export default function GodMode({
     setIsSearching(true);
     try {
       const token = await getSpotifyToken();
-      const res = await fetch(
+      const response = await fetch(
         `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=10`,
         {
           headers: {
-            'Authorization': `Bearer ${token}`
+            Authorization: 'Bearer ' + token
           }
         }
       );
 
-      if (!res.ok) {
-        throw new Error(`Spotify search failed with status: ${res.status}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Spotify Search Failed:', response.status, errorText);
+        throw new Error('Search request failed: ' + errorText);
       }
 
-      const data = await res.json();
-      // Remove the strict filter: Take top 10 results directly
-      const topTracks = (data?.tracks?.items || []).slice(0, 10);
-      setSearchResults(topTracks);
+      const data = await response.json();
+      setSearchResults(data.tracks.items);
     } catch (err) {
       console.error('Spotify Search Error:', err);
       showToast('Spotify search failed');
