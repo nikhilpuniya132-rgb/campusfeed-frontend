@@ -233,6 +233,7 @@ export default function Inbox({
     }
   };
 
+  // 2. Fetch messages & Realtime channel
   useEffect(() => {
     if (!activeChatUser) {
       setMessages([]);
@@ -241,25 +242,22 @@ export default function Inbox({
 
     fetchMessages();
 
-    // Supabase Realtime Listener for instant incoming messages
+    // Supabase real-time channel
     const channel = supabase
-      .channel(`chat_${user?.id}_${activeChatUser}`)
+      .channel('realtime:messages')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'direct_messages'
-        },
+        { event: 'INSERT', schema: 'public', table: 'direct_messages' },
         (payload) => {
-          const newMsg = payload.new;
+          const newMessage = payload.new;
+          // Only add the message to state if it belongs to the current open chat
           if (
-            (newMsg.sender_id === user?.id && newMsg.receiver_id === activeChatUser) ||
-            (newMsg.sender_id === activeChatUser && newMsg.receiver_id === user?.id)
+            (newMessage.sender_id === user?.id && newMessage.receiver_id === activeChatUser) ||
+            (newMessage.sender_id === activeChatUser && newMessage.receiver_id === user?.id)
           ) {
             setMessages((prev) => {
-              if (prev.some((m) => m.id === newMsg.id)) return prev;
-              return [...prev, newMsg];
+              if (prev.some((m) => m.id === newMessage.id)) return prev;
+              return [...prev, newMessage];
             });
           }
         }
@@ -269,7 +267,7 @@ export default function Inbox({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, activeChatUser]);
+  }, [user?.id, activeChatUser, supabase]);
 
   // Auto-scroll to bottom of messages container
   useEffect(() => {
