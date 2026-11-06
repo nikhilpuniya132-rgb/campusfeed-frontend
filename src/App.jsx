@@ -25,7 +25,7 @@ import CustomPollSubmit from './components/CustomPollSubmit';
 import Sidebar from './components/Sidebar';
 import { handleShare, showAppToast } from './utils/share';
 import { isJuniorUser } from './constants/classes';
-import { Plus, Heart, Home, Search, Crown, User } from 'lucide-react';
+import { Plus, Heart, Home, Search, Crown, User, MessageSquare } from 'lucide-react';
 
 // --- INITIALIZE CONFIGURED SUPABASE CLIENT & NAVIGATION ---
 import { supabase } from './supabase';
@@ -55,7 +55,8 @@ const bgMap = {
   '/feed': 'bg-[#00ff41]',
   '/explore': 'bg-[#0090ff]',
   '/pro': 'bg-[#ff007f]',
-  '/profile': 'bg-[#f8f9fa]'
+  '/profile': 'bg-[#f8f9fa]',
+  '/inbox': 'bg-[#18181b]'
 };
 
 const ROUTE_THEMES = {
@@ -315,7 +316,8 @@ export default function App() {
         window.history.replaceState(null, '', '/onboarding');
         return;
       }
-      const targetView = e.detail?.view;
+      const rawView = e.detail?.view || '';
+      const targetView = rawView.split('?')[0];
       if (targetView === 'feed' || targetView === 'poll' || !targetView) {
         setView('poll');
       } else if (targetView === 'captains' || targetView === 'referrals' || targetView === 'leaderboard') {
@@ -1278,6 +1280,8 @@ export default function App() {
     ? '/explore'
     : (view === 'profile')
     ? '/profile'
+    : (view === 'inbox')
+    ? '/inbox'
     : '/feed';
 
   const currentBgClass = bgMap[activeRoute] || bgMap['/feed'];
@@ -1408,15 +1412,9 @@ export default function App() {
                 <motion.div key="inbox" {...pageVariants} className="flex-1 flex flex-col justify-center w-full overflow-hidden">
                   <Inbox
                     user={user}
-                    inbox={inbox}
-                    inviteStats={inviteStats}
-                    onOpenReveal={handleOpenReveal}
-                    onInviteShare={handleInviteShare}
-                    showFriendSearch={showFriendSearch}
-                    setShowFriendSearch={setShowFriendSearch}
-                    API={API}
                     supabase={supabase}
-                    onFriendAdded={() => fetchAcceptedFriends(user.id)}
+                    API={API}
+                    acceptedFriends={acceptedFriends}
                   />
                 </motion.div>
               )}
@@ -1599,7 +1597,35 @@ export default function App() {
             )}
           </motion.div>
 
-          {/* d) Profile Avatar -> Profile (Neon Glow) */}
+          {/* d) Inbox (Direct Messages) */}
+          <motion.div
+            whileTap={{ scale: 0.86 }}
+            onClick={() => handleNav('inbox')}
+            className={`gas-dock-item relative ${view === 'inbox' ? 'active' : ''}`}
+            aria-label="Direct Messages"
+            role="button"
+          >
+            <div className="relative flex items-center justify-center">
+              <MessageSquare
+                size={24}
+                strokeWidth={view === 'inbox' ? 2.5 : 1.8}
+                color={view === 'inbox' ? '#ec4899' : '#71717a'}
+                style={view === 'inbox' ? { filter: 'drop-shadow(0 0 8px rgba(236,72,153,0.8))' } : {}}
+              />
+              {/* Notification Hook (FOMO): Tiny absolute-positioned badge */}
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-black animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.8)]" />
+            </div>
+
+            {view === 'inbox' && (
+              <motion.div
+                layoutId="activeDockGlow"
+                className="gas-dock-glow-pill"
+                style={{ backgroundColor: '#ec4899', boxShadow: '0 0 10px rgba(236,72,153,0.8)' }}
+              />
+            )}
+          </motion.div>
+
+          {/* e) Profile Avatar -> Profile (Neon Glow) */}
           <motion.div
             whileTap={{ scale: 0.86 }}
             onClick={() => handleNav('profile')}

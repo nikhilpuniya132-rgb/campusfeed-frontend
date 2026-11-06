@@ -389,6 +389,19 @@ export default function Profile({
     }
   };
 
+  // Task 1: Navigate to chat with this profile in Inbox
+  const handleNavigateToChat = () => {
+    const targetUrl = `/inbox?chatWith=${profileId}`;
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', targetUrl);
+      window.dispatchEvent(
+        new CustomEvent('campus-navigate', {
+          detail: { path: targetUrl, view: 'inbox', chatWith: profileId }
+        })
+      );
+    }
+  };
+
   // 1. Archive an item on the "Posts" grid (updates is_archived to true)
   const handleArchivePost = async (e, postId) => {
     e?.stopPropagation();
@@ -1068,30 +1081,41 @@ export default function Profile({
           </p>
         </div>
 
-        {/* Action Buttons (Edit Profile & Share Profile) */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.98 }}
-            onClick={openEditProfile}
-            style={{
-              flex: 1,
-              padding: '9px 12px',
-              borderRadius: '10px',
-              background: '#18181b',
-              border: '1px solid #27272a',
-              color: '#ffffff',
-              fontWeight: '700',
-              fontSize: '13px',
-              cursor: 'pointer',
-              textAlign: 'center',
-              transition: 'background-color 0.15s ease'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#27272a'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#18181b'}
-          >
-            Edit Profile
-          </motion.button>
+        {/* Action Buttons (Message / Edit Profile & Share Profile) */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+          {!isProfileOwner ? (
+            <button
+              type="button"
+              onClick={handleNavigateToChat}
+              className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold py-2 px-6 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:scale-105 transition-transform flex items-center justify-center gap-2 cursor-pointer text-sm"
+            >
+              <span>💬</span>
+              <span>Message</span>
+            </button>
+          ) : (
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.98 }}
+              onClick={openEditProfile}
+              style={{
+                flex: 1,
+                padding: '9px 12px',
+                borderRadius: '10px',
+                background: '#18181b',
+                border: '1px solid #27272a',
+                color: '#ffffff',
+                fontWeight: '700',
+                fontSize: '13px',
+                cursor: 'pointer',
+                textAlign: 'center',
+                transition: 'background-color 0.15s ease'
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#27272a')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '#18181b')}
+            >
+              Edit Profile
+            </motion.button>
+          )}
 
           <motion.button
             type="button"
@@ -1113,8 +1137,8 @@ export default function Profile({
               gap: '6px',
               transition: 'background-color 0.15s ease'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#27272a'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#18181b'}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#27272a')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#18181b')}
           >
             <Share2 size={14} strokeWidth={2.2} />
             <span>Share Profile</span>
@@ -1546,23 +1570,35 @@ export default function Profile({
               <div className="w-full flex flex-col gap-5">
                 {/* 1. "Ask Me Anything Anonymously" input box and submit button */}
                 <div className="w-full bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-zinc-950/95 border border-[#ff007f]/40 hover:border-[#ff007f]/70 rounded-3xl p-5 shadow-[0_0_25px_rgba(255,0,127,0.15)] backdrop-blur-md transition-all">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-9 h-9 rounded-full p-[2px] bg-gradient-to-tr from-[#ff007f] via-[#ec4899] to-[#00f0ff] shadow-[0_0_12px_rgba(255,0,127,0.5)]">
-                      <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-base">
-                        🤫
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full p-[2px] bg-gradient-to-tr from-[#ff007f] via-[#ec4899] to-[#00f0ff] shadow-[0_0_12px_rgba(255,0,127,0.5)]">
+                        <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-base">
+                          🤫
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-black text-white leading-tight flex items-center gap-1.5">
+                          <span>Ask Me Anything Anonymously</span>
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-[#ff007f]/20 text-[#ff007f] border border-[#ff007f]/30">
+                            Tellonym
+                          </span>
+                        </h3>
+                        <p className="text-[11px] text-zinc-400 font-medium">
+                          Your identity is completely hidden. Speak your mind!
+                        </p>
                       </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-black text-white leading-tight flex items-center gap-1.5">
-                        <span>Ask Me Anything Anonymously</span>
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-[#ff007f]/20 text-[#ff007f] border border-[#ff007f]/30">
-                          Tellonym
-                        </span>
-                      </h3>
-                      <p className="text-[11px] text-zinc-400 font-medium">
-                        Your identity is completely hidden. Speak your mind!
-                      </p>
-                    </div>
+
+                    {/* Prominent Message Button next to Ask Me Anything section */}
+                    <button
+                      type="button"
+                      onClick={handleNavigateToChat}
+                      className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold py-2 px-5 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:scale-105 transition-transform flex items-center gap-1.5 cursor-pointer text-xs flex-shrink-0"
+                    >
+                      <span>💬</span>
+                      <span>Message</span>
+                    </button>
                   </div>
 
                   <form onSubmit={handleSendAnonymousQuestion} className="flex flex-col gap-3">

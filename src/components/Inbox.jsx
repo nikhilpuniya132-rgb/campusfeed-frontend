@@ -1,364 +1,593 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import FriendSearch from './FriendSearch';
+import { Send, ArrowLeft, MessageSquare, Sparkles, User, Search } from 'lucide-react';
+import { supabase as defaultSupabase } from '../supabase';
 
 export default function Inbox({
   user,
-  inbox = [],
-  inviteStats = { effectiveInvites: 0, remaining: 3, canReveal: false },
-  onOpenReveal,
-  onInviteShare,
-  showFriendSearch,
-  setShowFriendSearch,
+  supabase: propSupabase,
   API,
-  supabase,
-  onFriendAdded
+  acceptedFriends = [],
+  initialChatUser = null
 }) {
-  const effectiveInvites = inviteStats?.effectiveInvites || user?.invites || 0;
-  const remaining = Math.max(0, 3 - effectiveInvites);
-  const progressPercent = Math.min(100, Math.round((effectiveInvites / 3) * 100));
+  const supabase = propSupabase || defaultSupabase;
+
+  // 2. State: activeChatUser (uuid), messages (array), newMessage (string)
+  const [activeChatUser, setActiveChatUser] = useState(() => {
+    if (initialChatUser) return initialChatUser;
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('chatWith') || null;
+    }
+    return null;
+  });
+
+  const [activeChatProfile, setActiveChatProfile] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [conversations, setConversations] = useState([]);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [contactSearchQuery, setContactSearchQuery] = useState('');
+
+  const messagesEndRef = useRef(null);
+
+  // Sync with URL query parameter changes
+  useEffect(() => {
+    const handleUrlChatWith = () => {
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const chatWith = urlParams.get('chatWith');
+        if (chatWith) {
+          setActiveChatUser(chatWith);
+        }
+      }
+    };
+
+    handleUrlChatWith();
+    window.addEventListener('popstate', handleUrlChatWith);
+    window.addEventListener('campus-navigate', handleUrlChatWith);
+    return () => {
+      window.removeEventListener('popstate', handleUrlChatWith);
+      window.removeEventListener('campus-navigate', handleUrlChatWith);
+    };
+  }, []);
+
+  // Fetch active chat user profile details
+  useEffect(() => {
+    if (!activeChatUser || !supabase) {
+      setActiveChatProfile(null);
+      return;
+    }
+
+    // Check if user is in acceptedFriends first
+    const friendMatch = acceptedFriends.find(
+      (f) => f.id === activeChatUser || f.user_id === activeChatUser
+    );
+    if (friendMatch) {
+      setActiveChatProfile({
+        id: activeChatUser,
+        handle: friendMatch.handle || friendMatch.name || 'Classmate',
+        avatar: friendMatch.avatar || '😎',
+        profile_pic_url: friendMatch.profile_pic || friendMatch.profile_pic_url || ''
+      });
+    }
+
+    const fetchPartnerProfile = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, handle, bio, profile_pic_url')
+          .eq('id', activeChatUser)
+          .single();
+
+        if (!error && data) {
+          setActiveChatProfile(data);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch partner profile:', err);
+      }
+    };
+
+    fetchPartnerProfile();
+  }, [activeChatUser, supabase]);
+
+  // 3. Fetch Logic: Fetch messages where (sender_id == user.id AND receiver_id == activeChatUser) OR (sender_id == activeChatUser AND receiver_id == user.id) ordered by created_at ascending
+  const fetchMessages = async () => {
+    if (!user?.id || !activeChatUser || !supabase) return;
+    setIsLoadingMessages(true);
+    try {
+      const { data, error } = await supabase
+        .from('direct_messages')
+        .select('*')
+        .or(
+          `and(sender_id.eq.${user.id},receiver_id.eq.${activeChatUser}),and(sender_id.eq.${activeChatUser},receiver_id.eq.${user.id})`
+        )
+        .order('created_at', { ascending: true });
+
+      if (!error && data) {
+        setMessages(data);
+      } else {
+        // Fallback filter
+        const { data: allDms, error: err2 } = await supabase
+          .from('direct_messages')
+          .select('*')
+          .order('created_at', { ascending: true });
+
+        if (!err2 && allDms) {
+          const filtered = allDms.filter(
+            (m) =>
+              (m.sender_id === user.id && m.receiver_id === activeChatUser) ||
+              (m.sender_id === activeChatUser && m.receiver_id === user.id)
+          );
+          setMessages(filtered);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch direct messages:', err);
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!activeChatUser) {
+      setMessages([]);
+      return;
+    }
+
+    fetchMessages();
+
+    // Supabase Realtime Listener for instant delivery
+    const channel = supabase
+      .channel(`chat_${user?.id}_${activeChatUser}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'direct_messages'
+        },
+        (payload) => {
+          const newMsg = payload.new;
+          if (
+            (newMsg.sender_id === user?.id && newMsg.receiver_id === activeChatUser) ||
+            (newMsg.sender_id === activeChatUser && newMsg.receiver_id === user?.id)
+          ) {
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === newMsg.id)) return prev;
+              return [...prev, newMsg];
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, activeChatUser]);
+
+  // Auto-scroll to bottom of messages container
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Fetch recent conversations when on conversation list view
+  const fetchRecentConversations = async () => {
+    if (!user?.id || !supabase) return;
+    setIsLoadingConversations(true);
+    try {
+      const { data, error } = await supabase
+        .from('direct_messages')
+        .select('*')
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        // Find distinct chat partner IDs and their latest message
+        const partnersMap = new Map();
+        data.forEach((msg) => {
+          const partnerId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
+          if (partnerId && !partnersMap.has(partnerId)) {
+            partnersMap.set(partnerId, {
+              partnerId,
+              lastMessage: msg.content,
+              lastCreatedAt: msg.created_at
+            });
+          }
+        });
+
+        const partnerIds = Array.from(partnersMap.keys());
+        if (partnerIds.length > 0) {
+          const { data: usersData } = await supabase
+            .from('users')
+            .select('id, handle, profile_pic_url, bio')
+            .in('id', partnerIds);
+
+          const usersMap = {};
+          (usersData || []).forEach((u) => {
+            usersMap[u.id] = u;
+          });
+
+          const conversationList = partnerIds.map((id) => {
+            const meta = partnersMap.get(id);
+            const userInfo = usersMap[id] || {};
+            return {
+              id,
+              handle: userInfo.handle || 'Classmate',
+              profile_pic_url: userInfo.profile_pic_url || '',
+              bio: userInfo.bio || '',
+              lastMessage: meta.lastMessage,
+              lastCreatedAt: meta.lastCreatedAt
+            };
+          });
+
+          setConversations(conversationList);
+        } else {
+          setConversations([]);
+        }
+      }
+    } catch (err) {
+      console.warn('Error fetching conversation list:', err);
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!activeChatUser) {
+      fetchRecentConversations();
+    }
+  }, [activeChatUser, user?.id]);
+
+  // 4. Send Logic: insert into direct_messages and append to local state immediately
+  const handleSendMessage = async (e) => {
+    e?.preventDefault();
+    const content = newMessage.trim();
+    if (!content || !user?.id || !activeChatUser || !supabase) return;
+
+    const optimisticId = `temp-${Date.now()}`;
+    const optimisticMessage = {
+      id: optimisticId,
+      sender_id: user.id,
+      receiver_id: activeChatUser,
+      content,
+      created_at: new Date().toISOString()
+    };
+
+    // Append to local state immediately for a snappy feel
+    setMessages((prev) => [...prev, optimisticMessage]);
+    setNewMessage('');
+
+    try {
+      const { data, error } = await supabase
+        .from('direct_messages')
+        .insert({
+          sender_id: user.id,
+          receiver_id: activeChatUser,
+          content
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === optimisticId ? data : m))
+        );
+      }
+    } catch (err) {
+      console.error('Failed to send direct message:', err);
+    }
+  };
+
+  // Helper for human-readable time format
+  const formatMsgTime = (isoString) => {
+    if (!isoString) return '';
+    try {
+      const date = new Date(isoString);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (_) {
+      return '';
+    }
+  };
+
+  // Switch chat partner
+  const handleSelectUser = (partnerId) => {
+    setActiveChatUser(partnerId);
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `/inbox?chatWith=${partnerId}`);
+    }
+  };
+
+  const handleBackToList = () => {
+    setActiveChatUser(null);
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', '/inbox');
+    }
+  };
+
+  // Filtered contacts / friends for directory
+  const filteredFriends = acceptedFriends.filter((f) => {
+    const term = contactSearchQuery.toLowerCase();
+    const handle = (f.handle || f.name || '').toLowerCase();
+    return handle.includes(term);
+  });
 
   return (
-    <div className="gas-inbox-wrapper" style={{ padding: '8px 12px 80px 12px', background: '#ffffff', minHeight: '100%' }}>
-      {/* 1. Find & Add Classmates Collapsible Section */}
-      <div style={{ marginBottom: '14px', width: '100%' }}>
-        <motion.button
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setShowFriendSearch(!showFriendSearch)}
-          style={{
-            width: '100%',
-            padding: '12px 16px',
-            borderRadius: '16px',
-            border: '1px solid #e5e7eb',
-            background: showFriendSearch ? '#f3f4f6' : '#ffffff',
-            color: '#000000',
-            fontSize: '13.5px',
-            fontWeight: '800',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            cursor: 'pointer',
-            boxShadow: 'none',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>👥</span>
-            <span>Find & Add Classmates</span>
-          </div>
-          <span style={{ fontSize: '12px', color: '#6b7280' }}>
-            {showFriendSearch ? '▲ Close' : '▼ Search'}
-          </span>
-        </motion.button>
+    <div className="w-full max-w-md mx-auto px-2 py-3 flex flex-col h-[calc(100vh-140px)] min-h-[520px]">
+      {/* 5. UI Styling (Glassmorphism & Neon) */}
+      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl h-[70vh] flex flex-col overflow-hidden shadow-2xl relative">
+        {activeChatUser ? (
+          /* ================= ACTIVE CHAT WINDOW ================= */
+          <>
+            {/* Chat Header */}
+            <div className="p-3.5 bg-black/60 backdrop-blur-md border-b border-white/10 flex items-center justify-between z-10">
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleBackToList}
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-all"
+                  aria-label="Back to conversations"
+                >
+                  <ArrowLeft size={16} />
+                </button>
 
-        <AnimatePresence>
-          {showFriendSearch && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              style={{ marginTop: '10px', overflow: 'hidden' }}
-            >
-              <FriendSearch
-                currentUser={user}
-                API={API}
-                supabase={supabase}
-                onFriendAdded={onFriendAdded}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* 2. Inbox Header Title */}
-      <div style={{ textAlign: 'center', padding: '4px 0 12px 0' }}>
-        <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '950', color: '#000000' }}>
-          {user?.is_pro ? '👑 Names Revealed Inbox' : '📬 Secret Flames Inbox'}
-        </h3>
-        <p style={{ color: '#6b7280', fontSize: '13px', margin: '4px 0 0 0' }}>
-          {user?.is_pro
-            ? 'God mode active: All voter names are visible!'
-            : 'Tap any flame card to reveal who secretly voted for you'}
-        </p>
-      </div>
-
-      {/* 3. Global Viral Invites Progress Banner (If not pro) */}
-      {!user?.is_pro && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{
-            background: '#f9fafb',
-            borderRadius: '20px',
-            padding: '16px',
-            border: '1px solid #e5e7eb',
-            boxShadow: 'none',
-            marginBottom: '16px',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '12px', fontWeight: '800', color: '#000000', letterSpacing: '0.5px' }}>
-              🎁 Unlock Voter Names
-            </span>
-            <span style={{ fontSize: '12px', fontWeight: '700', color: '#6b7280' }}>
-              {effectiveInvites}/3 invites completed
-            </span>
-          </div>
-
-          {/* Progress Bar Container */}
-          <div style={{ width: '100%', height: '6px', background: '#e5e7eb', borderRadius: '4px', overflow: 'hidden', marginBottom: '12px' }}>
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${progressPercent}%` }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
-              style={{
-                height: '100%',
-                background: '#000000',
-                borderRadius: '4px',
-              }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <p style={{ margin: 0, fontSize: '12px', color: '#6b7280', lineHeight: '1.3' }}>
-              {effectiveInvites >= 3
-                ? 'Reward unlocked! Tap any flame to unveil the secret voter.'
-                : `Invite ${remaining} more ${remaining === 1 ? 'friend' : 'friends'} to unlock voter identities.`}
-            </p>
-
-            {/* Minimalist Share Icon Button */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onInviteShare}
-              aria-label="Share Link"
-              title="Share Invite Link"
-              style={{
-                width: '44px',
-                height: '44px',
-                minWidth: '44px',
-                minHeight: '44px',
-                borderRadius: '50%',
-                border: '1px solid #e5e7eb',
-                background: '#000000',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                flexShrink: 0,
-                boxShadow: 'none'
-              }}
-            >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </motion.button>
-          </div>
-        </motion.div>
-      )}
-
-      {/* 4. Messages List */}
-      {inbox.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6b7280' }}>
-          <div style={{ fontSize: '48px', marginBottom: '12px' }}>📭</div>
-          <p style={{ fontWeight: '700', fontSize: '16px', color: '#000000', margin: '0 0 6px 0' }}>Your flame inbox is empty.</p>
-          <p style={{ fontSize: '13px', margin: 0 }}>Answer polls in the feed to get your classmates to vote for you!</p>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {inbox.map((vote, index) => {
-            const isRevealed = Boolean(vote.voterHandle) && !vote.isLocked;
-            const isGirl = vote.voterGender === 'girl';
-            const isBoy = vote.voterGender === 'boy';
-
-            const flameTheme = isGirl
-              ? {
-                  icon: '🌸',
-                  label: 'From a Girl in your Coaching Hub',
-                }
-              : isBoy
-              ? {
-                  icon: '💙',
-                  label: 'From a Boy in your Coaching Hub',
-                }
-              : {
-                  icon: '✨',
-                  label: 'From a Batchmate in your Coaching Hub',
-                };
-
-            return (
-              <motion.div
-                key={vote.voteId || vote.id || `inbox-flame-${vote.timestamp || vote.created_at || index}-${index}`}
-                whileHover={{ scale: 1.015 }}
-                whileTap={{ scale: 0.985 }}
-                onClick={() => onOpenReveal(vote)}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
-                  padding: '16px',
-                  borderRadius: '22px',
-                  background: '#ffffff',
-                  border: '1px solid #e5e7eb',
-                  boxShadow: 'none',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Header: Gender Flame Pill & Reveal Status */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '4px 10px',
-                      borderRadius: '12px',
-                      background: '#f3f4f6',
-                      border: '1px solid #e5e7eb',
-                    }}
-                  >
-                    <span style={{ fontSize: '15px' }}>{flameTheme.icon}</span>
-                    <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#374151', letterSpacing: '0.3px' }}>
-                      {flameTheme.label}
-                    </span>
-                  </div>
-
-                  {isRevealed ? (
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: '900',
-                        color: '#059669',
-                        background: '#f0fdf4',
-                        padding: '4px 10px',
-                        borderRadius: '12px',
-                        border: '1px solid #bbf7d0',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      ✓ REVEALED
-                    </span>
-                  ) : (
-                    <div
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: '950',
-                        color: '#ffffff',
-                        background: '#000000',
-                        padding: '5px 12px',
-                        borderRadius: '12px',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      REVEAL ➔
+                <div className="relative">
+                  <div className="w-9 h-9 rounded-full p-[1.5px] bg-gradient-to-tr from-pink-500 to-cyan-400">
+                    <div className="w-full h-full bg-black rounded-full overflow-hidden flex items-center justify-center">
+                      {activeChatProfile?.profile_pic_url ? (
+                        <img
+                          src={activeChatProfile.profile_pic_url}
+                          alt={activeChatProfile.handle || 'User'}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xs font-black text-white">
+                          {activeChatProfile?.handle?.charAt(0).toUpperCase() || '💬'}
+                        </span>
+                      )}
                     </div>
-                  )}
+                  </div>
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00ff41] rounded-full border border-black shadow-[0_0_6px_#00ff41]" />
                 </div>
 
-                {/* Poll Question */}
-                <div>
-                  <p
-                    style={{
-                      margin: '0 0 6px 0',
-                      fontSize: '16px',
-                      fontWeight: '900',
-                      color: '#000000',
-                      lineHeight: '1.4',
-                    }}
-                  >
-                    "{vote.question}"
+                <div className="flex flex-col">
+                  <span className="text-xs font-black text-white leading-tight">
+                    @{activeChatProfile?.handle || 'Classmate'}
+                  </span>
+                  <span className="text-[10px] text-zinc-400 font-medium">
+                    Direct Message
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-[10px] text-cyan-300 font-bold shadow-[0_0_8px_rgba(6,182,212,0.3)]">
+                <Sparkles size={11} className="text-cyan-400" />
+                <span>Encrypted</span>
+              </div>
+            </div>
+
+            {/* Chat Messages List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-zinc-700">
+              {isLoadingMessages ? (
+                <div className="h-full flex flex-col items-center justify-center gap-2 text-zinc-500 text-xs">
+                  <div className="w-5 h-5 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
+                  <span>Loading messages...</span>
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 text-zinc-500">
+                  <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-2xl mb-2">
+                    👋
+                  </div>
+                  <p className="text-xs font-bold text-zinc-300 m-0">No messages yet</p>
+                  <p className="text-[11px] text-zinc-500 mt-1">
+                    Send a message to break the ice!
                   </p>
+                </div>
+              ) : (
+                messages.map((msg) => {
+                  const isSent = msg.sender_id === user?.id;
 
-                  {/* Voter Info: STRICTLY HIDDEN UNLESS REVEALED */}
-                  <div style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {isRevealed ? (
-                      <span style={{ color: '#000000', fontWeight: '800' }}>
-                        Voted by: {vote.voterAvatar} {vote.voterName ? `${vote.voterName} (@${vote.voterHandle})` : `@${vote.voterHandle}`}
+                  return (
+                    <motion.div
+                      key={msg.id}
+                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      className={`flex flex-col ${isSent ? 'items-end' : 'items-start'}`}
+                    >
+                      {/* Sent Messages (Right) vs Received Messages (Left) */}
+                      <div
+                        className={
+                          isSent
+                            ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-t-2xl rounded-bl-2xl px-4 py-2 ml-auto max-w-[75%] shadow-lg shadow-pink-500/15 break-words text-xs font-medium leading-relaxed'
+                            : 'bg-gray-800 text-gray-200 border border-gray-700 rounded-t-2xl rounded-br-2xl px-4 py-2 mr-auto max-w-[75%] shadow-md break-words text-xs font-medium leading-relaxed'
+                        }
+                      >
+                        {msg.content}
+                      </div>
+
+                      <span className="text-[9.5px] text-zinc-500 font-medium mt-1 px-1">
+                        {formatMsgTime(msg.created_at)}
                       </span>
-                    ) : (
-                      <span style={{ color: '#6b7280', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>🔒</span>
-                        <span>Secret Voter • Tap to reveal</span>
-                      </span>
-                    )}
+                    </motion.div>
+                  );
+                })
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Message Input: A sleek fixed bar at the bottom with a dark input field and a glowing neon send button */}
+            <form
+              onSubmit={handleSendMessage}
+              className="p-3 bg-black/60 backdrop-blur-md border-t border-white/10 flex items-center gap-2"
+            >
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a direct message..."
+                className="flex-1 bg-zinc-900/90 border border-zinc-700/80 focus:border-[#00f0ff] focus:ring-1 focus:ring-[#00f0ff] rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-500 outline-none transition-all shadow-inner"
+              />
+
+              <button
+                type="submit"
+                disabled={!newMessage.trim()}
+                className="bg-gradient-to-r from-pink-500 to-purple-500 hover:brightness-110 active:scale-95 text-white p-2.5 rounded-xl shadow-[0_0_12px_rgba(236,72,153,0.5)] cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center"
+                aria-label="Send message"
+              >
+                <Send size={15} />
+              </button>
+            </form>
+          </>
+        ) : (
+          /* ================= CONVERSATIONS & CONTACTS DIRECTORY ================= */
+          <div className="flex-1 flex flex-col p-4 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-pink-500 to-cyan-400 p-[1.5px] flex items-center justify-center">
+                  <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-sm">
+                    💬
                   </div>
                 </div>
+                <div>
+                  <h3 className="text-sm font-black text-white leading-tight">
+                    Direct Messages
+                  </h3>
+                  <p className="text-[10px] text-zinc-400 font-medium">
+                    Private 1-on-1 chats with classmates
+                  </p>
+                </div>
+              </div>
+            </div>
 
-                {/* Locked Progress Bar & Direct Share CTA */}
-                {!isRevealed && !user?.is_pro && (
-                  <div
-                    style={{
-                      background: '#f9fafb',
-                      borderRadius: '14px',
-                      padding: '10px 12px',
-                      border: '1px solid #e5e7eb',
-                      marginTop: '2px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: '800', color: '#374151' }}>
-                        🎯 {effectiveInvites}/3 invites completed
-                      </span>
-                      <span style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280' }}>
-                        {remaining === 0 ? 'Ready to reveal!' : `${remaining} more needed`}
-                      </span>
-                    </div>
+            {/* Contact search */}
+            <div className="relative mt-3 mb-2">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
+              />
+              <input
+                type="text"
+                value={contactSearchQuery}
+                onChange={(e) => setContactSearchQuery(e.target.value)}
+                placeholder="Search classmates..."
+                className="w-full bg-zinc-900/80 border border-zinc-700/80 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-cyan-500 transition-all"
+              />
+            </div>
 
-                    {/* Mini Progress Bar on Card */}
-                    <div style={{ width: '100%', height: '5px', background: '#e5e7eb', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
-                      <div
-                        style={{
-                          width: `${progressPercent}%`,
-                          height: '100%',
-                          background: '#000000',
-                          borderRadius: '3px',
-                        }}
-                      />
-                    </div>
+            {/* Conversation list */}
+            <div className="flex-1 overflow-y-auto space-y-2 mt-1 scrollbar-thin scrollbar-thumb-zinc-700 pr-0.5">
+              {isLoadingConversations ? (
+                <div className="py-12 flex flex-col items-center justify-center gap-2 text-zinc-500 text-xs">
+                  <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                  <span>Loading conversations...</span>
+                </div>
+              ) : conversations.length > 0 ? (
+                conversations
+                  .filter((c) =>
+                    c.handle.toLowerCase().includes(contactSearchQuery.toLowerCase())
+                  )
+                  .map((conv) => (
+                    <motion.div
+                      key={conv.id}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handleSelectUser(conv.id)}
+                      className="p-3 bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/5 hover:border-white/15 rounded-xl cursor-pointer flex items-center justify-between gap-3 transition-all"
+                    >
+                      <div className="flex items-center gap-2.5 overflow-hidden">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-500 to-purple-500 p-[1.5px] flex-shrink-0">
+                          <div className="w-full h-full bg-black rounded-full overflow-hidden flex items-center justify-center">
+                            {conv.profile_pic_url ? (
+                              <img
+                                src={conv.profile_pic_url}
+                                alt={conv.handle}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-xs font-black text-white">
+                                {conv.handle.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
 
-                    {/* Minimalist Share Icon Button */}
-                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onInviteShare();
-                        }}
-                        aria-label="Share Link"
-                        title="Share Invite Link"
-                        style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '50%',
-                          border: '1px solid #e5e7eb',
-                          background: '#000000',
-                          color: '#ffffff',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: 'none'
-                        }}
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="22" y1="2" x2="11" y2="13"></line>
-                          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                        </svg>
-                      </motion.button>
-                    </div>
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="text-xs font-black text-white truncate">
+                            @{conv.handle}
+                          </span>
+                          <span className="text-[11px] text-zinc-400 truncate max-w-[200px]">
+                            {conv.lastMessage || 'Say hello!'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        <span className="text-[9.5px] text-zinc-500 font-medium">
+                          {conv.lastCreatedAt ? formatMsgTime(conv.lastCreatedAt) : ''}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-pink-500/20 text-pink-300 border border-pink-500/30">
+                          Chat
+                        </span>
+                      </div>
+                    </motion.div>
+                  ))
+              ) : null}
+
+              {/* Also show Friends Directory if conversations are few or none */}
+              <div className="pt-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 px-1">
+                  Classmates & Friends ({filteredFriends.length})
+                </span>
+
+                {filteredFriends.length === 0 ? (
+                  <div className="py-8 text-center text-zinc-500 text-xs">
+                    No classmates found.
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 mt-2">
+                    {filteredFriends.map((f) => {
+                      const friendId = f.id || f.user_id;
+                      return (
+                        <div
+                          key={friendId}
+                          onClick={() => handleSelectUser(friendId)}
+                          className="p-2.5 bg-zinc-950/60 hover:bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-between cursor-pointer transition-all"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm font-bold text-white overflow-hidden">
+                              {f.profile_pic || f.profile_pic_url ? (
+                                <img
+                                  src={f.profile_pic || f.profile_pic_url}
+                                  alt={f.handle || f.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                f.avatar || '😎'
+                              )}
+                            </div>
+                            <span className="text-xs font-bold text-zinc-200">
+                              @{f.handle || f.name || 'Classmate'}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            className="px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold hover:bg-cyan-500 hover:text-black transition-all cursor-pointer"
+                          >
+                            💬 Message
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
