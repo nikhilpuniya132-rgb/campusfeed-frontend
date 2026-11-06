@@ -15,7 +15,11 @@ import {
   CheckCircle2,
   Trash2,
   Unlock,
-  BookmarkX
+  BookmarkX,
+  MessageCircleQuestion,
+  Send,
+  Lock,
+  Sparkles
 } from 'lucide-react';
 import { MASTER_CLASS_OPTIONS, CLASS_OPTIONS } from '../constants/classes';
 import { supabase as defaultSupabase } from '../supabase';
@@ -84,12 +88,23 @@ export default function Profile({
   const [isSaving, setIsSaving] = useState(false);
 
   // Task 3: Tabbed Navigation & Grid State
-  const [activeTab, setActiveTab] = useState('posts'); // 'posts' | 'reposts' | 'archived'
+  const [activeTab, setActiveTab] = useState('posts'); // 'posts' | 'reposts' | 'archived' | 'qa'
   const [archivedSubTab, setArchivedSubTab] = useState('archived'); // 'archived' | 'saved'
   const [gridItems, setGridItems] = useState([]);
   const [isLoadingGrid, setIsLoadingGrid] = useState(false);
   const [selectedGridItem, setSelectedGridItem] = useState(null);
   const [actionToast, setActionToast] = useState('');
+
+  // Tellonym Q&A State
+  const profileId = profileData?.user?.id || profileData?.id || user?.id;
+  const isProfileOwner = Boolean(user?.id && profileId && user.id === profileId);
+
+  const [questions, setQuestions] = useState([]);
+  const [newQuestionText, setNewQuestionText] = useState('');
+  const [answerText, setAnswerText] = useState({});
+  const [isSubmittingQuestion, setIsSubmittingQuestion] = useState(false);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
+  const [qaOwnerTab, setQaOwnerTab] = useState('inbox'); // 'inbox' | 'public'
 
   const showActionToast = (msg) => {
     setActionToast(msg);
@@ -236,9 +251,143 @@ export default function Profile({
     }
   };
 
+  // Task 1.2: Fetch Logic - query anonymous_questions where receiver_id = profileId
+  const fetchProfileData = async () => {
+    if (!profileId || !supabase) return;
+    setIsLoadingQuestions(true);
+    try {
+      const { data, error } = await supabase
+        .from('anonymous_questions')
+        .select('*')
+        .eq('receiver_id', profileId)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setQuestions(data);
+      } else if (error) {
+        console.warn('Error fetching anonymous questions:', error.message);
+      }
+    } catch (err) {
+      console.error('Failed to fetch anonymous questions:', err);
+    } finally {
+      setIsLoadingQuestions(false);
+    }
+  };
+
   useEffect(() => {
-    fetchGridContent();
-  }, [activeTab, archivedSubTab, user?.id]);
+    fetchProfileData();
+  }, [profileId]);
+
+  useEffect(() => {
+    if (activeTab === 'qa') {
+      fetchProfileData();
+    } else {
+      fetchGridContent();
+    }
+  }, [activeTab, archivedSubTab, user?.id, profileId]);
+
+  // Task 1.4: Visitor View - Send anonymous question
+  const handleSendAnonymousQuestion = async (e) => {
+    e?.preventDefault();
+    const qText = newQuestionText.trim();
+    if (!qText) {
+      showActionToast('Please type a question! 💬');
+      return;
+    }
+    if (!profileId) {
+      showActionToast('Receiver ID missing');
+      return;
+    }
+
+    setIsSubmittingQuestion(true);
+    try {
+      const { data, error } = await supabase
+        .from('anonymous_questions')
+        .insert({
+          receiver_id: profileId,
+          question: qText,
+          is_answered: false
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.warn('Insert question error:', error.message);
+      } else if (data) {
+        setQuestions(prev => [data, ...prev]);
+      } else {
+        fetchProfileData();
+      }
+
+      setNewQuestionText('');
+      showActionToast('Question sent anonymously! 🤫');
+    } catch (err) {
+      console.error('Failed to send question:', err);
+      showActionToast('Failed to send question');
+    } finally {
+      setIsSubmittingQuestion(false);
+    }
+  };
+
+  // Task 1.5: Owner View - Publish answer to question
+  const handlePublishAnswer = async (questionId) => {
+    const answer = (answerText[questionId] || '').trim();
+    if (!answer) {
+      showActionToast('Please type an answer first! ✍️');
+      return;
+    }
+
+    try {
+      // Optimistic update
+      setQuestions(prev => prev.map(q => {
+        if (q.id === questionId) {
+          return { ...q, answer, is_answered: true };
+        }
+        return q;
+      }));
+
+      // Clear draft answer text
+      setAnswerText(prev => {
+        const next = { ...prev };
+        delete next[questionId];
+        return next;
+      });
+
+      showActionToast('Answer published! ✨');
+
+      const { error } = await supabase
+        .from('anonymous_questions')
+        .update({ answer, is_answered: true })
+        .eq('id', questionId);
+
+      if (error) {
+        console.warn('Publish answer warning:', error.message);
+      }
+    } catch (err) {
+      console.error('Failed to publish answer:', err);
+      showActionToast('Failed to publish answer');
+    }
+  };
+
+  // Task 1.5: Delete question (unwanted / answered)
+  const handleDeleteQuestion = async (questionId) => {
+    try {
+      setQuestions(prev => prev.filter(q => q.id !== questionId));
+      showActionToast('Question deleted 🗑️');
+
+      const { error } = await supabase
+        .from('anonymous_questions')
+        .delete()
+        .eq('id', questionId);
+
+      if (error) {
+        console.warn('Delete question warning:', error.message);
+      }
+    } catch (err) {
+      console.error('Failed to delete question:', err);
+      showActionToast('Failed to delete question');
+    }
+  };
 
   // 1. Archive an item on the "Posts" grid (updates is_archived to true)
   const handleArchivePost = async (e, postId) => {
@@ -1302,7 +1451,7 @@ export default function Profile({
 
       {/* 3. TABBED NAVIGATION MENU BELOW PROFILE INFO (Task 3 Requirement) */}
       <div className="w-full mt-2">
-        {/* Main Tabs: Posts | Reposts | Archived */}
+        {/* Main Tabs: Posts | Reposts | Archived | Q&A */}
         <div className="flex items-center justify-around border-b border-zinc-800 pb-2 mb-3">
           <button
             type="button"
@@ -1342,6 +1491,23 @@ export default function Profile({
             <Archive size={15} />
             <span>Archived</span>
           </button>
+
+          {/* Tellonym Q&A Tab */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('qa')}
+            className={`flex items-center gap-1.5 pb-1 text-xs font-black uppercase tracking-wider transition-all border-b-2 cursor-pointer bg-transparent ${
+              activeTab === 'qa'
+                ? 'text-[#00f0ff] border-[#00f0ff] drop-shadow-[0_0_8px_rgba(0,240,255,0.7)]'
+                : 'text-zinc-500 border-transparent hover:text-zinc-300'
+            }`}
+          >
+            <MessageCircleQuestion size={15} />
+            <span>Q&A</span>
+            {isProfileOwner && questions.filter(q => !q.is_answered).length > 0 && (
+              <span className="w-2 h-2 rounded-full bg-[#ff007f] shadow-[0_0_6px_#ff007f] animate-pulse" />
+            )}
+          </button>
         </div>
 
         {/* Sub-toggle inside Archived Tab for Saved Posts */}
@@ -1372,8 +1538,280 @@ export default function Profile({
           </div>
         )}
 
-        {/* 3.3 UI Rendering: 3-column image grid (like Instagram profile) */}
-        {isLoadingGrid ? (
+        {/* Tab Content: Q&A Feature OR 3-column image grid */}
+        {activeTab === 'qa' ? (
+          <div className="w-full flex flex-col gap-4 py-2">
+            {!isProfileOwner ? (
+              /* ================= VISITOR VIEW (user.id !== profileId) ================= */
+              <div className="w-full flex flex-col gap-5">
+                {/* 1. "Ask Me Anything Anonymously" input box and submit button */}
+                <div className="w-full bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-zinc-950/95 border border-[#ff007f]/40 hover:border-[#ff007f]/70 rounded-3xl p-5 shadow-[0_0_25px_rgba(255,0,127,0.15)] backdrop-blur-md transition-all">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 rounded-full p-[2px] bg-gradient-to-tr from-[#ff007f] via-[#ec4899] to-[#00f0ff] shadow-[0_0_12px_rgba(255,0,127,0.5)]">
+                      <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-base">
+                        🤫
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-white leading-tight flex items-center gap-1.5">
+                        <span>Ask Me Anything Anonymously</span>
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-[#ff007f]/20 text-[#ff007f] border border-[#ff007f]/30">
+                          Tellonym
+                        </span>
+                      </h3>
+                      <p className="text-[11px] text-zinc-400 font-medium">
+                        Your identity is completely hidden. Speak your mind!
+                      </p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSendAnonymousQuestion} className="flex flex-col gap-3">
+                    <textarea
+                      value={newQuestionText}
+                      onChange={(e) => setNewQuestionText(e.target.value)}
+                      placeholder="Send a secret question or compliment... 💬"
+                      rows={3}
+                      className="w-full bg-black/60 border border-zinc-700 focus:border-[#ff007f] focus:ring-1 focus:ring-[#ff007f] rounded-2xl p-3.5 text-xs text-white placeholder-zinc-500 outline-none transition-all resize-none shadow-inner"
+                    />
+
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[10.5px] text-zinc-400 flex items-center gap-1 font-medium">
+                        <Lock size={11} className="text-[#00f0ff]" />
+                        <span>100% anonymous submission</span>
+                      </span>
+
+                      <button
+                        type="submit"
+                        disabled={!newQuestionText.trim() || isSubmittingQuestion}
+                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#ff007f] to-[#ec4899] hover:brightness-110 active:scale-95 text-white font-black text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(255,0,127,0.4)] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                      >
+                        <Send size={13} />
+                        <span>{isSubmittingQuestion ? 'Sending...' : 'Send Anonymously'}</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* 2. Below it, render a list of questions where is_answered === true */}
+                <div className="w-full flex flex-col gap-3">
+                  <div className="flex items-center gap-2 px-1">
+                    <Sparkles size={14} className="text-[#00f0ff]" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-zinc-300">
+                      Public Q&A ({questions.filter(q => q.is_answered).length})
+                    </h4>
+                  </div>
+
+                  {isLoadingQuestions ? (
+                    <div className="py-10 flex flex-col items-center justify-center gap-2 text-zinc-500 text-xs">
+                      <div className="w-5 h-5 border-2 border-[#00f0ff] border-t-transparent rounded-full animate-spin" />
+                      <span>Loading answers...</span>
+                    </div>
+                  ) : questions.filter(q => q.is_answered).length === 0 ? (
+                    <div className="py-12 text-center text-zinc-500 flex flex-col items-center justify-center gap-2 bg-zinc-950/40 rounded-2xl border border-zinc-800/80 p-6">
+                      <div className="text-3xl">💬</div>
+                      <p className="text-xs font-semibold text-zinc-400 m-0">
+                        No answered questions yet. Be the first to ask!
+                      </p>
+                    </div>
+                  ) : (
+                    questions
+                      .filter(q => q.is_answered)
+                      .map((q) => (
+                        <div
+                          key={q.id}
+                          className="w-full flex flex-col gap-2 p-3.5 bg-zinc-950/70 rounded-2xl border border-zinc-800/80 shadow-md"
+                        >
+                          {/* Question: dark gray bubble */}
+                          <div className="w-fit max-w-[88%] bg-zinc-800/90 text-zinc-100 rounded-2xl rounded-bl-sm px-4 py-2.5 border border-zinc-700/70 shadow-sm">
+                            <div className="flex items-center gap-1.5 mb-1 text-[10px] text-zinc-400 font-semibold">
+                              <span>Anonymous Question 🤫</span>
+                            </div>
+                            <p className="text-xs font-medium leading-relaxed m-0 text-zinc-200">
+                              {q.question}
+                            </p>
+                          </div>
+
+                          {/* Answer: neon-bordered bubble below it */}
+                          <div className="w-fit max-w-[88%] self-end bg-black/90 text-white rounded-2xl rounded-br-sm px-4 py-2.5 border border-[#00f0ff] shadow-[0_0_15px_rgba(0,240,255,0.22)]">
+                            <div className="flex items-center gap-1.5 mb-1 text-[10px] text-[#00f0ff] font-bold">
+                              <span>@{user?.handle || 'Answer'}</span>
+                            </div>
+                            <p className="text-xs font-semibold leading-relaxed m-0 text-white">
+                              {q.answer}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* ================= OWNER VIEW (user.id === profileId) ================= */
+              <div className="w-full flex flex-col gap-4">
+                {/* Split navigation toggles: Secret Inbox vs Public Answers */}
+                <div className="flex items-center justify-center gap-2 mb-1 px-1">
+                  <button
+                    type="button"
+                    onClick={() => setQaOwnerTab('inbox')}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
+                      qaOwnerTab === 'inbox'
+                        ? 'bg-gradient-to-r from-[#ff007f] to-[#ec4899] text-white border-[#ff007f] shadow-[0_0_14px_rgba(255,0,127,0.45)]'
+                        : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white'
+                    }`}
+                  >
+                    <span>🤫 Secret Inbox</span>
+                    {questions.filter(q => !q.is_answered).length > 0 && (
+                      <span className="px-1.5 py-0.2 bg-black/70 rounded-full text-[10px] font-black text-white">
+                        {questions.filter(q => !q.is_answered).length}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setQaOwnerTab('public')}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
+                      qaOwnerTab === 'public'
+                        ? 'bg-[#00f0ff] text-black border-[#00f0ff] shadow-[0_0_14px_rgba(0,240,255,0.4)] font-black'
+                        : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white'
+                    }`}
+                  >
+                    <span>✨ Public Answers</span>
+                    {questions.filter(q => q.is_answered).length > 0 && (
+                      <span className="px-1.5 py-0.2 bg-zinc-800 rounded-full text-[10px] font-black text-zinc-300">
+                        {questions.filter(q => q.is_answered).length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {isLoadingQuestions ? (
+                  <div className="py-12 flex flex-col items-center justify-center gap-2 text-zinc-500 text-xs">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Loading Q&A...</span>
+                  </div>
+                ) : qaOwnerTab === 'inbox' ? (
+                  /* --- 1. Secret Inbox (Unanswered Questions) --- */
+                  <div className="flex flex-col gap-3">
+                    {questions.filter(q => !q.is_answered).length === 0 ? (
+                      <div className="py-12 text-center text-zinc-500 flex flex-col items-center justify-center gap-2 bg-zinc-950/40 rounded-2xl border border-zinc-800/80 p-6">
+                        <div className="text-3xl">📬</div>
+                        <p className="text-xs font-semibold text-zinc-400 m-0">
+                          Your Secret Inbox is clear! No unanswered questions.
+                        </p>
+                      </div>
+                    ) : (
+                      questions
+                        .filter(q => !q.is_answered)
+                        .map((q) => (
+                          <div
+                            key={q.id}
+                            className="w-full bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-4 flex flex-col gap-3 shadow-lg transition-all"
+                          >
+                            {/* Question Header: Anonymous Badge + 🗑️ Delete Button */}
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-bold text-zinc-400 flex items-center gap-1.5">
+                                <span>🤫 Anonymous Question</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteQuestion(q.id)}
+                                title="Delete question"
+                                aria-label="Delete question"
+                                className="p-1.5 rounded-lg bg-red-950/70 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/40 text-xs transition-all cursor-pointer"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+
+                            {/* Question Text */}
+                            <div className="bg-zinc-950/80 border border-zinc-800 rounded-xl p-3">
+                              <p className="text-sm text-zinc-100 font-medium leading-relaxed m-0">
+                                {q.question}
+                              </p>
+                            </div>
+
+                            {/* Input Field to Type Answer + Publish Button */}
+                            <div className="flex flex-col gap-2">
+                              <textarea
+                                value={answerText[q.id] || ''}
+                                onChange={(e) =>
+                                  setAnswerText((prev) => ({ ...prev, [q.id]: e.target.value }))
+                                }
+                                placeholder="Type your public answer..."
+                                rows={2}
+                                className="w-full bg-black/70 border border-zinc-700 focus:border-[#00f0ff] focus:ring-1 focus:ring-[#00f0ff] rounded-xl p-2.5 text-xs text-white placeholder-zinc-500 outline-none transition-all resize-none shadow-inner"
+                              />
+                              <div className="flex justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => handlePublishAnswer(q.id)}
+                                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#00f0ff] to-[#3b82f6] hover:brightness-110 active:scale-95 text-black font-extrabold text-xs flex items-center gap-1.5 shadow-[0_0_12px_rgba(0,240,255,0.35)] cursor-pointer transition-all"
+                                >
+                                  <Send size={12} />
+                                  <span>Publish Answer</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                ) : (
+                  /* --- 2. Public Answers (Answered Questions) --- */
+                  <div className="flex flex-col gap-3">
+                    {questions.filter(q => q.is_answered).length === 0 ? (
+                      <div className="py-12 text-center text-zinc-500 flex flex-col items-center justify-center gap-2 bg-zinc-950/40 rounded-2xl border border-zinc-800/80 p-6">
+                        <div className="text-3xl">✨</div>
+                        <p className="text-xs font-semibold text-zinc-400 m-0">
+                          No public answers published yet. Answer incoming questions in your Secret Inbox!
+                        </p>
+                      </div>
+                    ) : (
+                      questions
+                        .filter(q => q.is_answered)
+                        .map((q) => (
+                          <div
+                            key={q.id}
+                            className="w-full flex flex-col gap-2 p-3.5 bg-zinc-950/70 rounded-2xl border border-zinc-800/80 shadow-md relative group"
+                          >
+                            {/* Question: dark gray bubble */}
+                            <div className="w-fit max-w-[88%] bg-zinc-800/90 text-zinc-100 rounded-2xl rounded-bl-sm px-4 py-2.5 border border-zinc-700/70 shadow-sm">
+                              <div className="flex items-center gap-1.5 mb-1 text-[10px] text-zinc-400 font-semibold">
+                                <span>Anonymous Question 🤫</span>
+                              </div>
+                              <p className="text-xs font-medium leading-relaxed m-0 text-zinc-200">
+                                {q.question}
+                              </p>
+                            </div>
+
+                            {/* Answer: neon-bordered bubble below it */}
+                            <div className="w-fit max-w-[88%] self-end bg-black/90 text-white rounded-2xl rounded-br-sm px-4 py-2.5 border border-[#00f0ff] shadow-[0_0_15px_rgba(0,240,255,0.22)] relative">
+                              <div className="flex items-center justify-between gap-3 mb-1 text-[10px] text-[#00f0ff] font-bold">
+                                <span>@{user?.handle || 'You'}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteQuestion(q.id)}
+                                  title="Delete Q&A"
+                                  aria-label="Delete Q&A"
+                                  className="p-1 rounded bg-red-950/80 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/40 text-[10px] cursor-pointer transition-all opacity-70 group-hover:opacity-100"
+                                >
+                                  <Trash2 size={11} />
+                                </button>
+                              </div>
+                              <p className="text-xs font-semibold leading-relaxed m-0 text-white">
+                                {q.answer}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : isLoadingGrid ? (
           <div className="py-14 flex flex-col items-center justify-center gap-2 text-zinc-500 text-xs">
             <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
             <span>Loading photos...</span>
