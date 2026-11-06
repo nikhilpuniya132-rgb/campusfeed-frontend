@@ -12,7 +12,10 @@ import {
   Bookmark,
   ArchiveRestore,
   X,
-  CheckCircle2
+  CheckCircle2,
+  Trash2,
+  Unlock,
+  BookmarkX
 } from 'lucide-react';
 import { MASTER_CLASS_OPTIONS, CLASS_OPTIONS } from '../constants/classes';
 import { supabase as defaultSupabase } from '../supabase';
@@ -237,49 +240,124 @@ export default function Profile({
     fetchGridContent();
   }, [activeTab, archivedSubTab, user?.id]);
 
-  // Task 3.4: Archive an item on the "Posts" grid (updates is_archived to true)
+  // 1. Archive an item on the "Posts" grid (updates is_archived to true)
   const handleArchivePost = async (e, postId) => {
     e?.stopPropagation();
     try {
+      setGridItems(prev => prev.filter(item => item.id !== postId));
+      if (selectedGridItem?.id === postId) {
+        setSelectedGridItem(null);
+      }
+      showActionToast('Post moved to Archive 🗄️');
+
       const { error } = await supabase
         .from('photo_posts')
         .update({ is_archived: true })
         .eq('id', postId);
 
-      if (!error) {
-        setGridItems(prev => prev.filter(item => item.id !== postId));
-        showActionToast('Post moved to Archive 🗄️');
-        if (selectedGridItem?.id === postId) {
-          setSelectedGridItem(null);
-        }
-      } else {
-        showActionToast('Could not archive post');
+      if (error) {
+        console.warn('Archive post warning:', error.message);
       }
     } catch (err) {
       console.error('Error archiving post:', err);
     }
   };
 
-  // Complementary: Unarchive an item on the "Archived" grid (updates is_archived to false)
+  // 2. Delete an item on the "Posts" or "Archived" grid (deletes from photo_posts)
+  const handleDeletePost = async (e, postId) => {
+    e?.stopPropagation();
+    try {
+      setGridItems(prev => prev.filter(item => item.id !== postId));
+      if (selectedGridItem?.id === postId) {
+        setSelectedGridItem(null);
+      }
+      showActionToast('Post deleted 🗑️');
+
+      const { error } = await supabase
+        .from('photo_posts')
+        .delete()
+        .eq('id', postId);
+
+      if (error) {
+        console.warn('Delete post warning:', error.message);
+      }
+    } catch (err) {
+      console.error('Failed to delete post:', err);
+      showActionToast('Failed to delete post');
+    }
+  };
+
+  // 3. Remove repost: deletes from reposts where post_id = postId and user_id = user.id
+  const handleRemoveRepost = async (e, postId) => {
+    e?.stopPropagation();
+    try {
+      setGridItems(prev => prev.filter(item => item.id !== postId));
+      if (selectedGridItem?.id === postId) {
+        setSelectedGridItem(null);
+      }
+      showActionToast('Repost removed ❌');
+
+      const { error } = await supabase
+        .from('reposts')
+        .delete()
+        .eq('post_id', postId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.warn('Remove repost warning:', error.message);
+      }
+    } catch (err) {
+      console.error('Failed to remove repost:', err);
+      showActionToast('Failed to remove repost');
+    }
+  };
+
+  // 4. Unarchive an item on the "Archived" grid (updates is_archived to false)
   const handleUnarchivePost = async (e, postId) => {
     e?.stopPropagation();
     try {
+      setGridItems(prev => prev.filter(item => item.id !== postId));
+      if (selectedGridItem?.id === postId) {
+        setSelectedGridItem(null);
+      }
+      showActionToast('Post unarchived 🔓');
+
       const { error } = await supabase
         .from('photo_posts')
         .update({ is_archived: false })
         .eq('id', postId);
 
-      if (!error) {
-        setGridItems(prev => prev.filter(item => item.id !== postId));
-        showActionToast('Post restored to Posts ✨');
-        if (selectedGridItem?.id === postId) {
-          setSelectedGridItem(null);
-        }
-      } else {
-        showActionToast('Could not unarchive post');
+      if (error) {
+        console.warn('Unarchive warning:', error.message);
       }
     } catch (err) {
       console.error('Error unarchiving post:', err);
+      showActionToast('Failed to unarchive post');
+    }
+  };
+
+  // 5. Unsave an item on the "Saved" grid (deletes from saved_posts where post_id = postId and user_id = user.id)
+  const handleUnsavePost = async (e, postId) => {
+    e?.stopPropagation();
+    try {
+      setGridItems(prev => prev.filter(item => item.id !== postId));
+      if (selectedGridItem?.id === postId) {
+        setSelectedGridItem(null);
+      }
+      showActionToast('Post unsaved 💔');
+
+      const { error } = await supabase
+        .from('saved_posts')
+        .delete()
+        .eq('post_id', postId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.warn('Unsave post warning:', error.message);
+      }
+    } catch (err) {
+      console.error('Failed to unsave post:', err);
+      showActionToast('Failed to unsave post');
     }
   };
 
@@ -1330,31 +1408,84 @@ export default function Profile({
                   loading="lazy"
                 />
 
-                {/* 3.4 Archive option on "Posts" grid items */}
-                {activeTab === 'posts' && (
-                  <button
-                    type="button"
-                    onClick={(e) => handleArchivePost(e, item.id)}
-                    title="Archive this post"
-                    aria-label="Archive this post"
-                    className="absolute top-1.5 right-1.5 bg-black/75 backdrop-blur-md text-zinc-200 hover:text-white p-1.5 rounded-lg border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer shadow-md"
-                  >
-                    <Archive size={12} />
-                  </button>
-                )}
+                {/* Action buttons overlay on grid items */}
+                <div className="absolute top-1.5 right-1.5 flex items-center gap-1 z-10">
+                  {/* 1. Posts Grid: Archive + Delete */}
+                  {activeTab === 'posts' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => handleArchivePost(e, item.id)}
+                        title="Archive this post"
+                        aria-label="Archive this post"
+                        className="bg-black/80 hover:bg-black backdrop-blur-md text-zinc-200 hover:text-white p-1.5 rounded-lg border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer shadow-md"
+                      >
+                        <Archive size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeletePost(e, item.id)}
+                        title="Delete this post"
+                        aria-label="Delete this post"
+                        className="bg-red-950/85 hover:bg-red-600 backdrop-blur-md text-red-200 hover:text-white p-1.5 rounded-lg border border-red-500/40 opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer shadow-md"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </>
+                  )}
 
-                {/* Unarchive option on "Archived" grid items */}
-                {activeTab === 'archived' && archivedSubTab === 'archived' && (
-                  <button
-                    type="button"
-                    onClick={(e) => handleUnarchivePost(e, item.id)}
-                    title="Restore to Posts"
-                    aria-label="Restore to Posts"
-                    className="absolute top-1.5 right-1.5 bg-black/75 backdrop-blur-md text-zinc-200 hover:text-white p-1.5 rounded-lg border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer shadow-md"
-                  >
-                    <ArchiveRestore size={12} />
-                  </button>
-                )}
+                  {/* 2. Reposts Grid: Remove Repost */}
+                  {activeTab === 'reposts' && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleRemoveRepost(e, item.id)}
+                      title="Remove Repost"
+                      aria-label="Remove Repost"
+                      className="bg-red-950/85 hover:bg-red-600 backdrop-blur-md text-red-200 hover:text-white px-2 py-1 rounded-lg border border-red-500/40 opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer shadow-md flex items-center gap-1 text-[10px] font-bold"
+                    >
+                      <X size={11} />
+                      <span>Remove</span>
+                    </button>
+                  )}
+
+                  {/* 3. Archived Grid: Unarchive + Delete */}
+                  {activeTab === 'archived' && archivedSubTab === 'archived' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => handleUnarchivePost(e, item.id)}
+                        title="Restore to Posts"
+                        aria-label="Restore to Posts"
+                        className="bg-black/80 hover:bg-black backdrop-blur-md text-zinc-200 hover:text-white p-1.5 rounded-lg border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer shadow-md"
+                      >
+                        <Unlock size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeletePost(e, item.id)}
+                        title="Delete this post"
+                        aria-label="Delete this post"
+                        className="bg-red-950/85 hover:bg-red-600 backdrop-blur-md text-red-200 hover:text-white p-1.5 rounded-lg border border-red-500/40 opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer shadow-md"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </>
+                  )}
+
+                  {/* 4. Saved Grid: Unsave */}
+                  {activeTab === 'archived' && archivedSubTab === 'saved' && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleUnsavePost(e, item.id)}
+                      title="Unsave post"
+                      aria-label="Unsave post"
+                      className="bg-red-950/85 hover:bg-red-600 backdrop-blur-md text-red-200 hover:text-white px-2 py-1 rounded-lg border border-red-500/40 opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer shadow-md flex items-center gap-1 text-[10px] font-bold"
+                    >
+                      <BookmarkX size={11} />
+                      <span>Unsave</span>
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -1411,25 +1542,69 @@ export default function Profile({
 
                 {/* Modal Action Buttons */}
                 <div className="flex items-center gap-2 pt-2 border-t border-zinc-800">
-                  {activeTab === 'posts' ? (
+                  {activeTab === 'posts' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => handleArchivePost(e, selectedGridItem.id)}
+                        className="flex-1 py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                      >
+                        <Archive size={14} />
+                        <span>Archive</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeletePost(e, selectedGridItem.id)}
+                        className="py-2 px-3 rounded-xl bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/40 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                      >
+                        <Trash2 size={14} />
+                        <span>Delete</span>
+                      </button>
+                    </>
+                  )}
+
+                  {activeTab === 'reposts' && (
                     <button
                       type="button"
-                      onClick={(e) => handleArchivePost(e, selectedGridItem.id)}
-                      className="flex-1 py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                      onClick={(e) => handleRemoveRepost(e, selectedGridItem.id)}
+                      className="flex-1 py-2 px-3 rounded-xl bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/40 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all"
                     >
-                      <Archive size={14} />
-                      <span>Archive Post</span>
+                      <X size={14} />
+                      <span>Remove Repost</span>
                     </button>
-                  ) : activeTab === 'archived' && archivedSubTab === 'archived' ? (
+                  )}
+
+                  {activeTab === 'archived' && archivedSubTab === 'archived' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => handleUnarchivePost(e, selectedGridItem.id)}
+                        className="flex-1 py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                      >
+                        <Unlock size={14} />
+                        <span>Restore to Posts</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeletePost(e, selectedGridItem.id)}
+                        className="py-2 px-3 rounded-xl bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/40 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                      >
+                        <Trash2 size={14} />
+                        <span>Delete</span>
+                      </button>
+                    </>
+                  )}
+
+                  {activeTab === 'archived' && archivedSubTab === 'saved' && (
                     <button
                       type="button"
-                      onClick={(e) => handleUnarchivePost(e, selectedGridItem.id)}
-                      className="flex-1 py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                      onClick={(e) => handleUnsavePost(e, selectedGridItem.id)}
+                      className="flex-1 py-2 px-3 rounded-xl bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/40 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all"
                     >
-                      <ArchiveRestore size={14} />
-                      <span>Restore to Posts</span>
+                      <BookmarkX size={14} />
+                      <span>Unsave Post</span>
                     </button>
-                  ) : null}
+                  )}
                 </div>
               </div>
             </motion.div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Sparkles, Plus, ExternalLink } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Sparkles, Plus, ExternalLink, Trash2 } from 'lucide-react';
 import { supabase as defaultSupabase } from '../supabase';
 
 export default function TalesBar({
@@ -19,6 +19,18 @@ export default function TalesBar({
   const [currentTaleIndex, setCurrentTaleIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const timerRef = useRef(null);
+
+  // Toast State & Notification Helper
+  const [toastMessage, setToastMessage] = useState('');
+  const toastTimeoutRef = useRef(null);
+
+  const showToast = (msg) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToastMessage(msg);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage('');
+    }, 2800);
+  };
 
   // Helper for human-readable time ago
   const formatTimeAgo = (isoString) => {
@@ -205,6 +217,57 @@ export default function TalesBar({
   };
 
   const activeTale = activeStoryUser?.tales?.[currentTaleIndex];
+  // Ownership Check: Compare activeTale.author_id to currently logged-in user.id
+  const isOwner = Boolean(
+    propUser?.id &&
+    activeTale &&
+    (activeTale.author_id === propUser.id || activeStoryUser?.authorId === propUser.id)
+  );
+
+  // Task 2: Delete active tale logic
+  const handleDeleteTale = async (e) => {
+    e?.stopPropagation();
+    if (!activeTale?.id) return;
+    const taleIdToDelete = activeTale.id;
+    const authorId = activeTale.author_id || activeStoryUser?.authorId;
+
+    // 1. Optimistic removal from local talesUsers state
+    setTalesUsers(prev => {
+      return prev
+        .map(u => {
+          if (u.authorId === authorId) {
+            const updatedTales = u.tales.filter(t => t.id !== taleIdToDelete);
+            if (updatedTales.length === 0) return null;
+            return { ...u, tales: updatedTales };
+          }
+          return u;
+        })
+        .filter(Boolean);
+    });
+
+    // 2. Close modal immediately and show success toast
+    handleCloseStory();
+    showToast('Tale deleted! 🗑️');
+
+    // 3. Delete from Supabase public.tales
+    try {
+      const { error } = await supabase
+        .from('tales')
+        .delete()
+        .eq('id', taleIdToDelete);
+
+      if (error) {
+        console.warn('Tale delete warning:', error.message);
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('campus-tale-posted'));
+      }
+    } catch (err) {
+      console.error('Failed to delete tale from database:', err);
+    }
+  };
+
   const currentUserHasTaleInList = propUser?.id && talesUsers.some(u => u.authorId === propUser.id);
   const showCurrentUserPill = !currentUserHasTaleInList && (propUser || userHasActiveTale);
 
@@ -376,15 +439,31 @@ export default function TalesBar({
                   </div>
                 </div>
 
-                {/* Close Button */}
-                <button
-                  type="button"
-                  onClick={handleCloseStory}
-                  className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-black/90 flex items-center justify-center cursor-pointer transition-all"
-                  aria-label="Close Story"
-                >
-                  <X size={16} />
-                </button>
+                {/* Right Action Controls: Delete if Owner + Close Button */}
+                <div className="flex items-center gap-2">
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={handleDeleteTale}
+                      className="px-2.5 py-1.5 rounded-full bg-red-600/85 hover:bg-red-600 text-white backdrop-blur-md border border-red-400/40 flex items-center gap-1.5 text-xs font-bold shadow-lg cursor-pointer transition-all hover:scale-105 active:scale-95"
+                      title="Delete Tale"
+                      aria-label="Delete Tale"
+                    >
+                      <Trash2 size={13} />
+                      <span>Delete</span>
+                    </button>
+                  )}
+
+                  {/* Close Button */}
+                  <button
+                    type="button"
+                    onClick={handleCloseStory}
+                    className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-black/90 flex items-center justify-center cursor-pointer transition-all"
+                    aria-label="Close Story"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
               </div>
 
               {/* Task 2.3: Music Sticker UI Update */}
@@ -464,8 +543,36 @@ export default function TalesBar({
 
                 {/* Gradient shade at top for header readability */}
                 <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/80 via-black/30 to-transparent pointer-events-none" />
+
+                {/* Bottom Center Delete Tale button for owner */}
+                {isOwner && (
+                  <div className="absolute bottom-5 inset-x-0 z-30 flex justify-center pointer-events-none">
+                    <button
+                      type="button"
+                      onClick={handleDeleteTale}
+                      className="pointer-events-auto px-4 py-2 rounded-full bg-red-600/90 hover:bg-red-600 text-white backdrop-blur-md border border-red-400/40 flex items-center gap-2 text-xs font-black tracking-wide shadow-2xl cursor-pointer transition-all hover:scale-105 active:scale-95 hover:shadow-red-600/50"
+                    >
+                      <Trash2 size={14} />
+                      <span>Delete Tale</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 bg-zinc-900/95 border border-white/20 text-white text-xs font-semibold rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2"
+          >
+            <span>{toastMessage}</span>
           </motion.div>
         )}
       </AnimatePresence>
