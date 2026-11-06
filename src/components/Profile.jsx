@@ -111,6 +111,11 @@ export default function Profile({
     setTimeout(() => setActionToast(''), 2500);
   };
 
+  const toast = {
+    success: (msg) => showActionToast(msg),
+    error: (msg) => showActionToast(msg)
+  };
+
   const effectiveInvites = Math.max(
     Number(user?.invites || 0),
     Number(user?.recruits || 0)
@@ -823,7 +828,7 @@ export default function Profile({
   };
 
   return (
-    <div style={{ padding: '4px 0 calc(70px + env(safe-area-inset-bottom, 10px)) 0', maxWidth: '448px', margin: '0 auto', boxSizing: 'border-box', position: 'relative', background: 'transparent', color: '#ffffff', minHeight: '100%' }}>
+    <div className="min-h-screen pb-24 bg-black overflow-x-hidden text-white w-full max-w-md mx-auto relative px-2">
       
       {/* Action Toast Feedback */}
       <AnimatePresence>
@@ -970,181 +975,139 @@ export default function Profile({
         </AnimatePresence>
       </div>
 
-      {/* 1. INSTAGRAM-STYLE PROFILE HEADER (Floating Pitch Black Card with rounded-[2.5rem]) */}
-      <div
-        style={{
-          marginBottom: '16px',
-          background: '#000000',
-          borderRadius: '2.5rem',
-          padding: '24px 20px',
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.75)',
-          border: '2px solid #000000'
-        }}
-      >
-        {/* Horizontal Row: Avatar on Left, Stats on Right */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', marginBottom: '14px' }}>
-          {/* Avatar (Left) */}
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            {renderProfilePic
-              ? renderProfilePic(editProfilePic || user?.profile_pic, editAvatar || user?.avatar, user?.is_pro, selectedRing, 84, isLifetimeLegend)
-              : (
-                <div style={{ fontSize: '42px', width: '84px', height: '84px', borderRadius: '50%', background: '#18181b', border: '1.5px solid #27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {user?.avatar || '😎'}
-                </div>
-              )}
-          </div>
-
-          {/* Stats Container (Right) */}
-          <div style={{ display: 'flex', flex: 1, justifyContent: 'space-around', alignItems: 'center', paddingLeft: '4px' }}>
-            {/* Stat 1: Polls Casted */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px' }}>
-              <span style={{ fontSize: '18px', fontWeight: '900', color: '#ffffff', lineHeight: 1.2 }}>
-                {todayVotesCount || user?.total_votes || 0}
-              </span>
-              <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '600', marginTop: '2px', textAlign: 'center' }}>
-                Polls Casted
-              </span>
+      {/* 1. PROFILE HEADER (Centered Ego & Status Hook - Task 1.2) */}
+      <div className="flex flex-col items-center text-center px-4 pt-2">
+        {/* Massive Premium Profile Picture */}
+        <div className="relative mb-4 flex items-center justify-center">
+          {editProfilePic || user?.profile_pic ? (
+            <img
+              src={editProfilePic || user?.profile_pic}
+              alt={user?.handle || 'Profile'}
+              className="w-28 h-28 rounded-full object-cover ring-4 ring-pink-500 ring-offset-4 ring-offset-black shadow-[0_0_20px_rgba(236,72,153,0.6)]"
+            />
+          ) : renderProfilePic ? (
+            <div className="w-28 h-28 rounded-full flex items-center justify-center ring-4 ring-pink-500 ring-offset-4 ring-offset-black shadow-[0_0_20px_rgba(236,72,153,0.6)] bg-zinc-900 overflow-hidden">
+              {renderProfilePic(editProfilePic || user?.profile_pic, editAvatar || user?.avatar, user?.is_pro, selectedRing, 112, isLifetimeLegend)}
             </div>
-
-            {/* Stat 2: Friends */}
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowFriendsModal(true)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                padding: '2px 4px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                minWidth: '60px'
-              }}
-              aria-label="View Friends"
-            >
-              <span style={{ fontSize: '18px', fontWeight: '900', color: '#ffffff', lineHeight: 1.2 }}>
-                {acceptedFriends.length}
-              </span>
-              <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '600', marginTop: '2px', textAlign: 'center' }}>
-                Friends
-              </span>
-            </motion.button>
-
-            {/* Stat 3: Spies */}
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowSpiesModal(true)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                padding: '2px 4px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                minWidth: '60px'
-              }}
-              aria-label="View Spies"
-            >
-              <div style={{ height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <UserSearch size={18} strokeWidth={2} color="#ffffff" />
-              </div>
-              <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: '600', marginTop: '2px', textAlign: 'center' }}>
-                Spies
-              </span>
-            </motion.button>
-          </div>
-        </div>
-
-        {/* User Handle & Details */}
-        <div style={{ textAlign: 'left', marginBottom: '14px' }}>
-          <h2 style={{ margin: '0 0 3px 0', fontSize: '16.5px', fontWeight: '900', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>@{user?.handle}</span>
-            {isLifetimeLegend && <span title="Lifetime Legend" style={{ fontSize: '13px' }}>👑</span>}
-          </h2>
-
-          <p style={{ margin: '0 0 6px 0', fontSize: '12px', color: '#a1a1aa', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-            <span style={{ color: '#ffffff', fontWeight: '700' }}>{user?.stream || '11th Medical'}</span>
-            <span>•</span>
-            <span>{user?.institute || user?.school || 'Kapil Institute'}</span>
-            <span>•</span>
-            <span style={{ color: '#a1a1aa' }}>📍 {user?.coaching_hub || user?.hub || 'Ajit Road Hub'}</span>
-          </p>
-
-          {/* Bio */}
-          <p style={{ color: '#d4d4d8', fontSize: '13px', margin: 0, lineHeight: '1.45' }}>
-            {user?.bio || `${user?.stream || '11th Medical'} student at ${user?.institute || 'Kapil Institute'}`}
-          </p>
-        </div>
-
-        {/* Action Buttons (Message / Edit Profile & Share Profile) */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-          {!isProfileOwner ? (
-            <button
-              type="button"
-              onClick={handleNavigateToChat}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold py-2 px-6 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:scale-105 transition-transform flex items-center justify-center gap-2 cursor-pointer text-sm"
-            >
-              <span>💬</span>
-              <span>Message</span>
-            </button>
           ) : (
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.98 }}
-              onClick={openEditProfile}
-              style={{
-                flex: 1,
-                padding: '9px 12px',
-                borderRadius: '10px',
-                background: '#18181b',
-                border: '1px solid #27272a',
-                color: '#ffffff',
-                fontWeight: '700',
-                fontSize: '13px',
-                cursor: 'pointer',
-                textAlign: 'center',
-                transition: 'background-color 0.15s ease'
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#27272a')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '#18181b')}
-            >
-              Edit Profile
-            </motion.button>
+            <div className="w-28 h-28 rounded-full flex items-center justify-center text-4xl ring-4 ring-pink-500 ring-offset-4 ring-offset-black shadow-[0_0_20px_rgba(236,72,153,0.6)] bg-zinc-900">
+              {user?.avatar || '😎'}
+            </div>
           )}
+        </div>
+
+        {/* Username with Verified / Insider Badge */}
+        <h2 className="text-xl font-black text-white flex items-center justify-center gap-1.5 leading-tight mb-1">
+          <span>@{user?.handle}</span>
+          <span
+            title="Verified Insider"
+            className="text-cyan-400 drop-shadow-[0_0_5px_rgba(6,182,212,0.8)] flex items-center"
+          >
+            <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+            </svg>
+          </span>
+          {isLifetimeLegend && <span title="Lifetime Legend" className="text-sm">👑</span>}
+        </h2>
+
+        {/* Stream & Institute */}
+        <p className="text-xs text-zinc-400 font-semibold flex items-center justify-center gap-1.5 flex-wrap mb-1.5">
+          <span className="text-white font-bold">{user?.stream || '11th Medical'}</span>
+          <span>•</span>
+          <span>{user?.institute || user?.school || 'Kapil Institute'}</span>
+          <span>•</span>
+          <span className="text-zinc-400">📍 {user?.coaching_hub || user?.hub || 'Ajit Road Hub'}</span>
+        </p>
+
+        {/* Bio */}
+        <p className="text-xs text-zinc-300 font-medium max-w-xs mx-auto leading-relaxed">
+          {user?.bio || `${user?.stream || '11th Medical'} student at ${user?.institute || 'Kapil Institute'}`}
+        </p>
+      </div>
+
+      {/* 3. Glassmorphism Stats Bar (Unified floating glass pill - Task 1.3) */}
+      <div className="flex justify-around items-center bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-4 my-6 mx-4 shadow-xl">
+        {/* Stat 1: Polls Casted */}
+        <div className="flex flex-col items-center min-w-[60px]">
+          <span className="text-lg font-black text-white leading-none">
+            {todayVotesCount || user?.total_votes || 0}
+          </span>
+          <span className="text-[11px] text-zinc-400 font-semibold mt-1 text-center">
+            Polls Casted
+          </span>
+        </div>
+
+        <div className="w-[1px] h-8 bg-white/10" />
+
+        {/* Stat 2: Friends */}
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowFriendsModal(true)}
+          className="flex flex-col items-center min-w-[60px] bg-transparent border-0 cursor-pointer p-0"
+          aria-label="View Friends"
+        >
+          <span className="text-lg font-black text-white leading-none">
+            {acceptedFriends.length}
+          </span>
+          <span className="text-[11px] text-zinc-400 font-semibold mt-1 text-center">
+            Friends
+          </span>
+        </motion.button>
+
+        <div className="w-[1px] h-8 bg-white/10" />
+
+        {/* Stat 3: Spies */}
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowSpiesModal(true)}
+          className="flex flex-col items-center min-w-[60px] bg-transparent border-0 cursor-pointer p-0"
+          aria-label="View Spies"
+        >
+          <div className="h-[18px] flex items-center justify-center">
+            <UserSearch size={18} strokeWidth={2} color="#ffffff" />
+          </div>
+          <span className="text-[11px] text-zinc-400 font-semibold mt-1 text-center">
+            Spies
+          </span>
+        </motion.button>
+      </div>
+
+      {/* Action Buttons: Visitor Message Button (Task 2.3) vs Owner Buttons */}
+      {!isProfileOwner ? (
+        <div className="w-full flex justify-center mb-6">
+          <button
+            type="button"
+            onClick={handleNavigateToChat}
+            className="w-full mx-4 max-w-[calc(100%-2rem)] bg-white/10 backdrop-blur-md border border-cyan-500/50 text-cyan-400 font-bold py-3 rounded-xl hover:bg-white/20 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.3)] text-sm"
+          >
+            <span>💬</span>
+            <span>Message @{user?.handle || 'User'}</span>
+          </button>
+        </div>
+      ) : (
+        <div className="flex gap-2 mx-4 mb-6">
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.98 }}
+            onClick={openEditProfile}
+            className="flex-1 py-2.5 px-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-bold text-xs hover:bg-zinc-800 transition-all cursor-pointer"
+          >
+            Edit Profile
+          </motion.button>
 
           <motion.button
             type="button"
             whileTap={{ scale: 0.98 }}
             onClick={handleNativeShare}
-            style={{
-              flex: 1,
-              padding: '9px 12px',
-              borderRadius: '10px',
-              background: '#18181b',
-              border: '1px solid #27272a',
-              color: '#ffffff',
-              fontWeight: '700',
-              fontSize: '13px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              transition: 'background-color 0.15s ease'
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#27272a')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '#18181b')}
+            className="flex-1 py-2.5 px-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-bold text-xs hover:bg-zinc-800 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <Share2 size={14} strokeWidth={2.2} />
+            <Share2 size={13} strokeWidth={2.2} />
             <span>Share Profile</span>
           </motion.button>
         </div>
-      </div>
+      )}
 
       {/* 2. EDIT PROFILE DRAWER (WHEN ACTIVE) */}
       {isEditing && (
@@ -1605,12 +1568,12 @@ export default function Profile({
                     <textarea
                       value={newQuestionText}
                       onChange={(e) => setNewQuestionText(e.target.value)}
-                      placeholder="Send a secret question or compliment... 💬"
+                      placeholder="Ask me a secret... (100% Anonymous)"
                       rows={3}
-                      className="w-full bg-black/60 border border-zinc-700 focus:border-[#ff007f] focus:ring-1 focus:ring-[#ff007f] rounded-2xl p-3.5 text-xs text-white placeholder-zinc-500 outline-none transition-all resize-none shadow-inner"
+                      className="w-full bg-black/60 border border-zinc-700 focus:border-[#ff007f] focus:ring-1 focus:ring-[#ff007f] rounded-2xl p-3.5 text-xs text-white placeholder-zinc-400 outline-none transition-all resize-none shadow-inner"
                     />
 
-                    <div className="flex items-center justify-between pt-1">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1">
                       <span className="text-[10.5px] text-zinc-400 flex items-center gap-1 font-medium">
                         <Lock size={11} className="text-[#00f0ff]" />
                         <span>100% anonymous submission</span>
@@ -1619,7 +1582,7 @@ export default function Profile({
                       <button
                         type="submit"
                         disabled={!newQuestionText.trim() || isSubmittingQuestion}
-                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#ff007f] to-[#ec4899] hover:brightness-110 active:scale-95 text-white font-black text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(255,0,127,0.4)] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-white text-black font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.4)] animate-pulse disabled:opacity-40 disabled:cursor-not-allowed disabled:animate-none transition-all cursor-pointer"
                       >
                         <Send size={13} />
                         <span>{isSubmittingQuestion ? 'Sending...' : 'Send Anonymously'}</span>
@@ -1684,6 +1647,24 @@ export default function Profile({
             ) : (
               /* ================= OWNER VIEW (user.id === profileId) ================= */
               <div className="w-full flex flex-col gap-4">
+                {/* 1. Owner View - The "Get Your URL" Feature (Task 2.1) */}
+                <div className="bg-gradient-to-br from-gray-900 to-black border border-pink-500/30 rounded-2xl p-5 mx-4 mb-2 shadow-[0_0_15px_rgba(236,72,153,0.15)] text-center">
+                  <h3 className="text-base font-black text-white leading-tight">
+                    Get Anonymous Messages
+                  </h3>
+                  <button
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                        navigator.clipboard.writeText(window.location.origin + '/profile/' + profileId);
+                      }
+                      toast.success('Link Copied! Paste it on your Instagram Story 🔗');
+                    }}
+                    className="mt-3 w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-black py-3 rounded-xl shadow-[0_0_15px_rgba(236,72,153,0.5)] active:scale-95 transition-all cursor-pointer text-sm"
+                  >
+                    Copy My Secret Link 🔗
+                  </button>
+                </div>
+
                 {/* Split navigation toggles: Secret Inbox vs Public Answers */}
                 <div className="flex items-center justify-center gap-2 mb-1 px-1">
                   <button
